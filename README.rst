@@ -11,7 +11,7 @@ of the nodes, the possibility to select the set of input and output nodes, and
 a diversity of neuroscience tasks provided by `NeuroGym <https://github.com/neurogym/neurogym>`__.
 
 
-A short primer on Reservoir Computing 
+A brief primer on Reservoir Computing 
 -------------------------------------
 
 Reservoir computing is a computational paradigm that uses artificial recurrent 
