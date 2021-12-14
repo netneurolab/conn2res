@@ -12,11 +12,14 @@ Memristive network
 # connections of the reservoir.  For this we will be using the human connectome
 # parcellated into 1015 brain regions following the Desikan  Killiany atlas
 # (Desikan, et al., 2006).
-
+import os
 import numpy as np
 
+PROJ_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+DATA_DIR = os.path.join(PROJ_DIR, 'examples', 'data')
+
 # load connectivity data
-conn = np.load('C:/Users/User/OneDrive - McGill University/Repos/conn2res/data/connectivity.npy')
+conn = np.load(os.path.join(DATA_DIR, 'connectivity.npy'))
 
 # select one subject
 subj_id = 10
@@ -32,34 +35,30 @@ conn = conn.astype(bool).astype(int)
 # then we split it into training and test sets. 'x' corresponds to the input
 # signals and 'y' corresponds to the output labels.
 
-import pandas as pd
 from conn2res import iodata
+import matplotlib.pyplot as plt
 
-task_name = 'mem_cap'
-task_args = {'task':task_name,
-             'n_samples':100,
-             'gain':3,
-             'n_patterns':10,
-             'pttn_len':20,
-             'frac_train':0.7
-            }
+task = 'GoNogo' #'PerceptualDecisionMaking' # 
+x, y = iodata.fetch_dataset(task)
 
-pttn_lens = task_args['pttn_len']*np.ones(int(0.5*task_args['n_patterns']*task_args['n_samples']), dtype=int)
+n_features = x.shape[1]
+print(f'n_features = {n_features}')
 
-x, y = iodata.generate_io(task=task_name, n_samples=1000)
+n_obs = x.shape[0]
+print(f'n_observations = {n_obs}')
+
+# split data into training and test sets
+x_train, x_test = iodata.split_dataset(x)
+y_train, y_test = iodata.split_dataset(y)
 
 ###############################################################################
 # Third we will simulate the dynamics of the reservoir using the previously
 # generated input signal x (x_train and x_test).
 
 # define set of input nodes
-ctx  = np.load('C:/Users/User/OneDrive - McGill University/Repos/conn2res/data/cortical.npy')
+ctx  = np.load(os.path.join(DATA_DIR, 'cortical.npy'))
 input_nodes  = np.where(ctx == 0)[0] # we use subcortical regions as input nodes
 output_nodes = np.where(ctx == 1)[0] # we use cortical regions as output nodes
-
-# split data into training and test sets
-x_train, x_test = x
-y_train, y_test = y
 
 n_features = x_train.shape[1]
 n_labels   = y_train.shape[1]
@@ -130,11 +129,4 @@ plt.show()
 #     df_encoding.append(df)
 #
 # df_encoding = pd.concat(df_encoding)
-# df_encoding.to_csv('C:/Users/User/Desktop/test_df_encoding.csv')
-#
 
-###############################################################################
-#
-# conn = np.load('/Users/laurasuarez/OneDrive - McGill University/Repos/conn2res/data/connectivity.npy')
-# ctx  = np.load('/Users/laurasuarez/OneDrive - McGill University/Repos/conn2res/data/cortical.npy')
-# rsn_mapping = np.load('/Users/laurasuarez/OneDrive - McGill University/Repos/conn2res/data/rsn_mapping.npy')

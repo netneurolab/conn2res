@@ -2,7 +2,7 @@
 """
 Connectome-informed reservoir - Echo-State Network
 =================================================
-This example demonstrates how to use the #TODO toolbox to
+This example demonstrates how to use the conn2res toolbox to
 perform a memory task using a human connectomed-informed
 Echo-State network while playing with the dynamics of the reservoir
 (Jaeger, 2000).
@@ -14,7 +14,6 @@ Echo-State network while playing with the dynamics of the reservoir
 # parcellated into 1015 brain regions following the Desikan  Killiany atlas
 # (Desikan, et al., 2006).
 import os 
-from os import truncate
 import numpy as np
 
 PROJ_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -99,7 +98,7 @@ import pandas as pd
 from conn2res import reservoir, coding
 
 alphas = np.linspace(0,2,11) #np.linspace(0,2,41)
-df_encoding = []
+df_subj = []
 for alpha in alphas[1:]:
     
     print(f'\n----------------------- alpha = {alpha} -----------------------')
@@ -126,18 +125,27 @@ for alpha in alphas[1:]:
 
     # reorganize the columns
     if 'module' in df.columns:
-        df_encoding.append(df[['module', 'n_nodes', 'alpha', 'score']])
+        df_subj.append(df[['module', 'n_nodes', 'alpha', 'score']])
     else:
-        df_encoding.append(df[['alpha', 'score']])
+        df_subj.append(df[['alpha', 'score']])
       
-df_encoding = pd.concat(df_encoding, ignore_index=True)
-df_encoding['score'] = df_encoding['score'].astype(float)
+df_subj = pd.concat(df_subj, ignore_index=True)
+df_subj['score'] = df_subj['score'].astype(float)
    
 #############################################################################
 # Now we plot the performance curve
 import seaborn as sns
 
-sns.lineplot(data=df_encoding, x='alpha', y='score', hue='module')
+sns.set(style="ticks", font_scale=2.0)  
+fig = plt.figure(num=1, figsize=(12,10))
+ax = plt.subplot(111)
+sns.lineplot(data=df_subj, x='alpha', y='score', 
+             hue='module', 
+             hue_order=['VIS', 'SM', 'DA', 'VA', 'LIM', 'FP', 'DMN'],
+             palette=sns.color_palette('husl', 7), 
+             markers=True, 
+             ax=ax)
+sns.despine(offset=10, trim=True)
 plt.title(task)
 plt.plot()
 plt.show()
