@@ -5,7 +5,7 @@ The ``conn2res`` is a reservoir computing toolbox designed
 for neuroscientes to train connectome-informed reservoirs
 to perform different cognitive tasks.
 
-The main advantage offered by this toolbox is its flexibility in 
+The main advantage offered by the ``conn2res`` toolbox is its flexibility in 
 terms of the connectivity matrix used for the reservoir, the local dynamics 
 of the nodes, the possibility to select the set of input and output nodes, and 
 a diversity of neuroscience tasks provided by `NeuroGym <https://github.com/neurogym/neurogym>`__.
