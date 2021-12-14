@@ -49,7 +49,9 @@ neurons with different activation functions such as ReLU, leaky ReLU, sigmoid
 or hyperbolic tangent). Depending on the type of dynamics, the output is either 
 a performance score, or a performance curve as a function of the parameter that
 controls for the qualitative behavior of the reservoir’s dynamics (i.e., stable, 
-critical or chaotic). 
+critical or chaotic).
+
+.. image:: https://github.com/estefanysuarez/conn2res/blob/master/Fig1.png
 
 The toolbox has been extended to simulate physical connectome-informed 
 memristive reservoirs, a newly type of neuromorphic hardware that, thanks to 
