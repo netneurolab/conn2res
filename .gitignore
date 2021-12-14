@@ -1,0 +1,34 @@
+# 
+.DS_store
+
+# visual code studio
+.vscode/
+
+# docstrings
+docs/generated/
+docs/auto_examples/
+docs/modules/
+
+# distribution / packaging
+.Python
+env/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# byte-compiled / optimized / DLL files
+__pycache__/
+.pytest_cache/
+*.py[cod]
+*$py.class
