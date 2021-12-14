@@ -13,13 +13,15 @@ Echo-State network while playing with the dynamics of the reservoir
 # connections of the reservoir.  For this we will be using the human connectome
 # parcellated into 1015 brain regions following the Desikan  Killiany atlas
 # (Desikan, et al., 2006).
-
+import os 
 from os import truncate
 import numpy as np
 
+PROJ_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+DATA_DIR = os.path.join(PROJ_DIR, 'examples', 'data')
+
 # load connectivity data
-# conn = np.load('C:/Users/User/OneDrive - McGill University/Repos/conn2res/data/connectivity.npy')
-conn = np.load('/Users/laurasuarez/OneDrive - McGill University/Repos/conn2res/data/connectivity.npy')
+conn = np.load(os.path.join(DATA_DIR, 'connectivity.npy'))
 
 # select one subject
 subj_id = 0
@@ -74,8 +76,7 @@ y_train, y_test = iodata.split_dataset(y)
 # generated input signal x (x_train and x_test).
 
 # define set of input nodes
-# ctx  = np.load('C:/Users/User/OneDrive - McGill University/Repos/conn2res/data/cortical.npy')
-ctx  = np.load('/Users/laurasuarez/OneDrive - McGill University/Repos/conn2res/data/cortical.npy')
+ctx  = np.load(os.path.join(DATA_DIR, 'cortical.npy'))
 subctx_nodes = np.where(ctx == 0)[0] # we use subcortical regions as input nodes
 
 input_nodes  = np.random.choice(subctx_nodes, n_features) # we select a randon set of input nodes
@@ -89,9 +90,8 @@ w_in[np.ix_(np.arange(n_features), input_nodes)] = 0.1 # factor that modulates t
 
 # We will use resting-state networks as readout modules. These intrinsic networks
 # define different sets of output nodes
-# rsn_mapping = np.load('C:/Users/User/OneDrive - McGill University/Repos/conn2res/data/rsn_mapping.npy')
-rsn_mapping = np.load('/Users/laurasuarez/OneDrive - McGill University/Repos/conn2res/data/rsn_mapping.npy')
-rsn_mapping = rsn_mapping[output_nodes] # [np.where(ctx == 1)] # we select the mapping only for cortical regions
+rsn_mapping = np.load(os.path.join(DATA_DIR, 'rsn_mapping.npy'))
+rsn_mapping = rsn_mapping[output_nodes] # we select the mapping only for output nodes 
 
 # evaluate network performance across various dynamical regimes
 # we do so by varying the value of alpha 
@@ -132,16 +132,12 @@ for alpha in alphas[1:]:
       
 df_encoding = pd.concat(df_encoding, ignore_index=True)
 df_encoding['score'] = df_encoding['score'].astype(float)
-
-# df_encoding.to_csv('C:/Users/User/Desktop/test_df_encoding.csv')
-df_encoding.to_csv('/Users/laurasuarez/Desktop/test_df_encoding.csv')
    
-
 #############################################################################
-# Now we plot the results
+# Now we plot the performance curve
 import seaborn as sns
 
-sns.lineplot(data=df_encoding, x='alpha', y='score')#, hue='module')
+sns.lineplot(data=df_encoding, x='alpha', y='score', hue='module')
 plt.title(task)
 plt.plot()
 plt.show()

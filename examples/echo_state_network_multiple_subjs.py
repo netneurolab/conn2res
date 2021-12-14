@@ -64,7 +64,7 @@ w_in[np.ix_(np.arange(n_features), input_nodes)] = 0.1 # factor that modulates t
 # We will use resting-state networks as readout modules. These intrinsic networks
 # define different sets of output nodes
 rsn_mapping = np.load('/Users/laurasuarez/OneDrive - McGill University/Repos/conn2res/data/rsn_mapping.npy')
-rsn_mapping = rsn_mapping[output_nodes] # [np.where(ctx == 1)] # we select the mapping only for cortical regions
+rsn_mapping = rsn_mapping[output_nodes] # we select the mapping only for output nodes
 
 
 ###############################################################################
