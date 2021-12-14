@@ -1,0 +1,4 @@
+include README.rst LICENSE requirements.txt
+recursive-include conn2res/examples/data *
+include versioneer.py
+include conn2res/_version.py
