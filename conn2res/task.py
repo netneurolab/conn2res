@@ -106,7 +106,6 @@ def run_task(task, reservoir_states, target, **kwargs):
         data frame with task scores
     """
     # score = regression(x=reservoir_states, y=target, **kwargs)
-
     score = classification(x=reservoir_states, y=target, **kwargs)
     df_res = pd.DataFrame(data=[score],
                           columns=['score'])
