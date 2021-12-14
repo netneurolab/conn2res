@@ -37,7 +37,8 @@ conn2res: an overview
 ---------------------
 
 The conn2res toolbox provides a general use-case driven workflow that takes as 
-input (1) either the type of task to be performed (see Neurogym repository; https://github.com/neurogym/neurogym.git), or a dataset of input-label pairs 
+input (1) either the type of task to be performed (see `NeuroGym 
+<https://github.com/neurogym/neurogym>`__), or a dataset of input-label pairs 
 can also be provided; (2) a binary or weighted connectome, which serves as the 
 reservoir’s architecture; (3) the input nodes (i.e., nodes that receive the 
 external signal); (4) the readout nodes (i.e., nodes from which information 
@@ -45,12 +46,10 @@ will be read and used to train the linear model); and (5) the type of dynamics
 governing the activation of the reservoir’s units (continuous or discrete time 
 nonlinear dynamics can be implemented, including spiking neurons or artificial 
 neurons with different activation functions such as ReLU, leaky ReLU, sigmoid 
-or hyperbolic tangent). 
-
-Depending on the type of dynamics, the output is either a performance score, 
-or a performance curve as a function of the parameter that controls for the 
-qualitative behavior of the reservoir’s dynamics (i.e., stable, critical or
-chaotic). 
+or hyperbolic tangent). Depending on the type of dynamics, the output is either 
+a performance score, or a performance curve as a function of the parameter that
+controls for the qualitative behavior of the reservoir’s dynamics (i.e., stable, 
+critical or chaotic). 
 
 The toolbox has been extended to simulate physical connectome-informed 
 memristive reservoirs, a newly type of neuromorphic hardware that, thanks to 
