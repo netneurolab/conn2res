@@ -1,4 +1,7 @@
-# 
+# data files 
+.data/
+
+# hidden files
 .DS_store
 
 # visual code studio
