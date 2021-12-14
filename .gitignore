@@ -1,5 +1,5 @@
 # data files 
-.data/
+data/
 
 # hidden files
 .DS_store
