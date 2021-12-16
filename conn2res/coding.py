@@ -1,14 +1,25 @@
 # -*- coding: utf-8 -*-
 """
-Intermediate functions before performing the task.
+Intermediate functions that handle the selection of 
+the readout nodes before performing the task.
 
 @author: Estefany Suarez
 """
 
 import numpy as np
 import pandas as pd
-
 from .task import run_task
+
+def get_modules(module_assignment):
+    """
+    #TODO
+    """
+    # get module ids 
+    module_ids = np.unique(module_assignment)
+    readout_modules = [np.where(module_assignment == i)[0] for i in module_ids]
+
+    return  module_ids, readout_modules
+
 
 def encoder(task, reservoir_states, target, readout_modules=None,\
             readout_nodes=None):
@@ -30,11 +41,14 @@ def encoder(task, reservoir_states, target, readout_modules=None,\
     target : listo or tuple of numpy.ndarrays
         training and test targets or output labels; the shape of each
         numpy.ndarray is n_samples, n_labels
+
+    #TODO update readout_modules doc
     readout_modules : (N,) list or numpy.ndarray, optional
         an array that specifies to which module each of the nodes in the
         reservoir belongs to. N is the number of nodes in the reservoir. These
         modules are used to define sets of readout_nodes. If provided,
         readout_nodes is ignored.
+
     readout_nodes : (N,) list or numpy.ndarray, optional
         specifies the set of nodes from which the signals will be extracted from
         'reservoir_states' to perform 'task'
@@ -48,18 +62,29 @@ def encoder(task, reservoir_states, target, readout_modules=None,\
         data frame with task scores
 
     """
+
     if readout_modules is not None:
 
-        # get unique modules identifiers
-        module_ids = np.unique(readout_modules)
+        if isinstance(readout_modules, np.ndarray): 
+            module_ids, readout_modules = get_modules(readout_modules)
+        
+        if isinstance(readout_modules, dict):
+            readout_modules = list(readout_modules.values())
+            module_ids      = list(readout_modules.keys())
 
-        # perform task using as readout nodes every module
+        if isinstance(readout_modules, list):            
+            module_ids = np.arange(len(readout_modules))
+        
+        # #TODO print error message
+        # assert isinstance(readout_modules, list):
+        #     "readout_modules should either be an array with
+        #        module ids, a list of readout_nodes"
+
+        # perform task using as readout nodes every module in readout_modules
         df_encoding = []
-        for module in module_ids:
+        for i, readout_nodes in enumerate(readout_modules):
 
-            # get set of readout nodes based on 'readout_modules'
-            readout_nodes = np.where(readout_modules == module)[0]
-            print(f'\t-------- Module : {module} with {len(readout_nodes)} nodes --------')
+            print(f'\t-------- Module : {module_ids[i]} with {len(readout_nodes)} nodes --------')
 
             # create temporal dataframe
             df_module = run_task(task=task,
@@ -67,7 +92,7 @@ def encoder(task, reservoir_states, target, readout_modules=None,\
                                  target=target,
                                  )
 
-            df_module['module'] = module
+            df_module['module'] = module_ids[i]
             df_module['n_nodes'] = len(readout_nodes)
 
             #get encoding scores
@@ -82,6 +107,7 @@ def encoder(task, reservoir_states, target, readout_modules=None,\
                                )
 
         df_encoding['n_nodes'] = len(readout_nodes)
+    
     else:
         df_encoding = run_task(task=task,
                                reservoir_states=reservoir_states,
