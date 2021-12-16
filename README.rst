@@ -1,3 +1,5 @@
+**Development Status:** 3 - Alpha. Some features still need to be added and tested.
+
 conn2res
 =========
 
