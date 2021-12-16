@@ -9,12 +9,59 @@ import numpy as np
 from gym import spaces
 import neurogym as ngym
 
+
+def get_available_tasks():
+    return [
+            'AntiReach',
+            'Bandit',
+            'ContextDecisionMaking',
+            'DawTwoStep',
+            'DelayComparison',
+            'DelayMatchCategory',
+            'DelayMatchSample',
+            'DelayMatchSampleDistractor1D',
+            'DelayPairedAssociation',
+            # 'Detection',  # TODO: Temporary removing until bug fixed
+            'DualDelayMatchSample',
+            'EconomicDecisionMaking',
+            'GoNogo',
+            'HierarchicalReasoning',
+            'IntervalDiscrimination',
+            'MotorTiming',
+            'MultiSensoryIntegration',
+            'Null',
+            'OneTwoThreeGo',
+            'PerceptualDecisionMaking',
+            'PerceptualDecisionMakingDelayResponse',
+            'PostDecisionWager',
+            'ProbabilisticReasoning',
+            'PulseDecisionMaking',
+            'Reaching1D',
+            'Reaching1DWithSelfDistraction',
+            'ReachingDelayResponse',
+            'ReadySetGo',
+            'SingleContextDecisionMaking',
+            'SpatialSuppressMotion',
+            'ToneDetection'  # TODO: Temporary removing until bug fixed
+        ]
+
+
 def unbatch(x):
     """
-        Transforms (batch, seq_len, features)
-        to (batch*seq_len, features)
-        #TODO
+    Removes batch_size dimension from array
+
+    Parameters
+    ----------
+    x : numpy.ndarray
+        array with dimensions (seq_len, batch_size, features)
+
+    Returns
+    -------
+    new_x : numpy.ndarray
+        new array with dimensions (batch_size*seq_len, features)
+
     """
+    #TODO right now it only works when x is (batch_first = False)
     return np.concatenate(x, axis=0)
 
 
@@ -33,41 +80,45 @@ def encode_labels(labels):
     return enc_labels
 
 
-def fetch_dataset(task, task_kwargs=None, n_trials=500, unbatch_data=True):
+def fetch_dataset(task, unbatch_data=True):
     """
-        Fetches inputs and labels from the NeuroGym repository
-        #TODO
+    Fetches inputs and labels for 'task' from the NeuroGym 
+    repository
+
+    Parameters
+    ----------
+    task : {'AntiReach', 'Bandit', 'ContextDecisionMaking', 
+    'DawTwoStep', 'DelayComparison', 'DelayMatchCategory',
+    'DelayMatchSample', 'DelayMatchSampleDistractor1D',
+    'DelayPairedAssociation', 'Detection', 'DualDelayMatchSample',
+    'EconomicDecisionMaking', 'GoNogo', 'HierarchicalReasoning',
+    'IntervalDiscrimination', 'MotorTiming', 'MultiSensoryIntegration',
+    'OneTwoThreeGo', 'PerceptualDecisionMaking',
+    'PerceptualDecisionMakingDelayResponse', 'PostDecisionWager',
+    'ProbabilisticReasoning', 'PulseDecisionMaking',
+    'Reaching1D', 'Reaching1DWithSelfDistraction',
+    'ReachingDelayResponse', 'ReadySetGo',
+    'SingleContextDecisionMaking', 'SpatialSuppressMotion',
+    'ToneDetection'}
+    Task to be performed
+    unbatch_data : bool, optional
+        If True, it adds an extra dimension to inputs and labels 
+        that corresponds to the batch_size. Otherwise, it returns an
+        observations by features array for the inputs, and a one
+        dimensional array for the labels.
+
+    Returns
+    -------
+    inputs : numpy.ndarray
+        array of observations by features
+    labels : numpy.ndarray
+        unidimensional array of labels 
     """
-    if task_kwargs:
-        # duration of a trial in time steps
-        t_max_trial = int(np.sum([duration for _, duration in task_kwargs['timing'].items()])/task_kwargs['dt'])
-        # print(f't_max_trial = {t_max_trial}')
 
-        # default batch size
-        batch_size = 10 
+    # create a Dataset object from NeuroGym
+    dataset = ngym.Dataset(task+'-v0')
 
-        # number of trials per batch
-        # n_trials = np.ceil(n_trials/batch_size)
-
-        # estimation of seq_len based on number of trials per batch
-        seq_len = int(n_trials * t_max_trial) # this is the seq_len per batch
-        print(f'seq_len = {seq_len}')
-
-        # fetch inputs and labels from NeuroGym 
-        dataset = ngym.Dataset(task+'-v0', env_kwargs=task_kwargs, 
-                               batch_size=batch_size, seq_len=seq_len, 
-                              )
-
-    else: 
-        dataset = ngym.Dataset(task+'-v0')
-
-    env = dataset.env
-    # print(env.ob.shape)
-    # ob_size = env.observation_space.shape
-    act_size = env.action_space.n
-    # print(f'observation size = {ob_size}')
-    # print(f'action size = {act_size}')
-
+    # get inputs and labels for 'task'
     inputs, labels = dataset()
     if unbatch_data:
         return unbatch(inputs), unbatch(labels)
@@ -77,9 +128,22 @@ def fetch_dataset(task, task_kwargs=None, n_trials=500, unbatch_data=True):
 
 def split_dataset(data, frac_train=0.7):
     """
-        Splits data into training and test sets according to
-        'frac_train'
-        #TODO
+    Splits data into training and test sets according to
+    'frac_train'
+
+    Parameters
+    ----------
+    data : numpy.ndarray
+        data array to be split
+    frac_train : float, from 0 to 1
+        fraction of samples in training set
+
+    Returns
+    -------
+    training_set : numpy.ndarray
+        array with training observations
+    test_set     : numpy.ndarray
+        array with test observations
     """
     n_train = int(frac_train * data.shape[0])
 
