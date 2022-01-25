@@ -42,6 +42,7 @@ conn  = conn/np.max(ew)
 # signals and 'y' corresponds to the output labels.
 from conn2res import iodata
 import matplotlib.pyplot as plt
+import seaborn as sns
 
 tasks = iodata.get_available_tasks()
 for task in tasks:
@@ -136,8 +137,6 @@ for task in tasks:
     
     #############################################################################
     # Now we plot the performance curve
-    import seaborn as sns
-
     sns.set(style="ticks", font_scale=2.0)  
     fig = plt.figure(num=1, figsize=(12,10))
     ax = plt.subplot(111)
