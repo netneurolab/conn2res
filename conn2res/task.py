@@ -15,7 +15,7 @@ from sklearn import metrics
 from sklearn.model_selection import ParameterGrid
 from sklearn.linear_model import Ridge, RidgeClassifier
 from sklearn.multioutput import MultiOutputRegressor, MultiOutputClassifier
-from sklearn.metrics import accuracy_score
+from sklearn.metrics import accuracy_score, confusion_matrix, ConfusionMatrixDisplay
 
 import matplotlib.pyplot as plt
 
@@ -80,6 +80,10 @@ def classification(x, y, **kwargs):
     model = RidgeClassifier(alpha=0.0, fit_intercept=True, **kwargs).fit(x_train, y_train)
     # score = model.score(x_test, y_test)
     score = accuracy_score(y_test, model.predict(x_test))
+   
+    # ConfusionMatrixDisplay.from_predictions(y_test, model.predict(x_test))
+    # plt.show()
+    # plt.close()
 
     return score 
 
@@ -95,6 +99,10 @@ def multiOutputClassification(x, y, **kwargs):
     model = MultiOutputRegressor(RidgeClassifier(alpha=0.5, fit_intercept=True, **kwargs)).fit(x_train, y_train)
     # score = model.score(x_test, y_test)
     score = accuracy_score(y_test, model.predict(x_test))
+    
+    # ConfusionMatrixDisplay.from_predictions(y_test, model.predict(x_test))
+    # plt.show()
+    # plt.close()
 
     return score 
 
@@ -140,6 +148,7 @@ def select_stat_model(y):
     #TODO 
     """
     if isinstance(y, tuple): y = y[0]
+    
     if y.dtype in [np.float32, np.float64]:
         if y.ndim > 1: 
             return multiOutputRegression
