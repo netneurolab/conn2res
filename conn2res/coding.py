@@ -10,6 +10,7 @@ import numpy as np
 import pandas as pd
 from .task import run_task
 
+
 def get_modules(module_assignment):
     """
     #TODO

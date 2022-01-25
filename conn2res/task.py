@@ -13,8 +13,8 @@ import mdp
 
 from sklearn import metrics
 from sklearn.model_selection import ParameterGrid
-from sklearn.linear_model import Ridge, RidgeClassifier, LinearRegression
-from sklearn.multioutput import MultiOutputRegressor
+from sklearn.linear_model import Ridge, RidgeClassifier
+from sklearn.multioutput import MultiOutputRegressor, MultiOutputClassifier
 from sklearn.metrics import accuracy_score
 
 import matplotlib.pyplot as plt
@@ -49,15 +49,22 @@ def regression(x, y, **kwargs):
 
     x_train, x_test, y_train, y_test = check_xy_dims(x,y)
 
-    # model = LinearRegression(fit_intercept=False, **kwargs).fit(x_train, y_train)
     model = Ridge(fit_intercept=False, alpha=0.5, **kwargs).fit(x_train, y_train)
     score = model.score(x_test, y_test)
 
-    # with np.errstate(divide='ignore', invalid='ignore'):
-    #     # perf = np.abs(np.corrcoef(y_test, y_pred)[0][1])
-    #     plt.scatter(y_test, y_pred)
-    #     plt.show()
-    #     plt.close()
+    return score
+
+
+def multiOutputRegression(x, y, **kwargs):
+    """
+    Multiple Output Regression tasks
+    #TODO 
+    """
+
+    x_train, x_test, y_train, y_test = check_xy_dims(x,y)
+
+    model = MultiOutputRegressor(Ridge(fit_intercept=False, alpha=0.5, **kwargs)).fit(x_train, y_train)
+    score = model.score(x_test, y_test)
 
     return score
 
@@ -70,13 +77,24 @@ def classification(x, y, **kwargs):
 
     x_train, x_test, y_train, y_test = check_xy_dims(x,y)
 
-    model = RidgeClassifier(alpha=0.0, fit_intercept=True, **kwargs)
-    # model = MultiOutputRegressor(RidgeClassifier(alpha=0.5, fit_intercept=True, **kwargs))
-    model.fit(x_train, y_train)
-
+    model = RidgeClassifier(alpha=0.0, fit_intercept=True, **kwargs).fit(x_train, y_train)
     # score = model.score(x_test, y_test)
     score = accuracy_score(y_test, model.predict(x_test))
-    print(f'\tscore : {score}')
+
+    return score 
+
+
+def multiOutputClassification(x, y, **kwargs):
+    """
+    Multiple Output Classification tasks
+    #TODO 
+    """
+
+    x_train, x_test, y_train, y_test = check_xy_dims(x,y)
+
+    model = MultiOutputRegressor(RidgeClassifier(alpha=0.5, fit_intercept=True, **kwargs)).fit(x_train, y_train)
+    # score = model.score(x_test, y_test)
+    score = accuracy_score(y_test, model.predict(x_test))
 
     return score 
 
@@ -105,11 +123,32 @@ def run_task(task, reservoir_states, target, **kwargs):
     df_res : pandas.DataFrame
         data frame with task scores
     """
-    # score = regression(x=reservoir_states, y=target, **kwargs)
-    score = classification(x=reservoir_states, y=target, **kwargs)
+
+    func = select_stat_model(y=target)
+    score = func(x=reservoir_states, y=target, **kwargs)
+
     df_res = pd.DataFrame(data=[score],
                           columns=['score'])
 
     return df_res
+
+
+def select_stat_model(y):
+    """
+    Classification tasks
+    #TODO 
+    """
+    if isinstance(y, tuple): y = y[0]
+    if y.dtype in [np.float32, np.float64]:
+        if y.ndim > 1: 
+            return multiOutputRegression
+        else: 
+            return regression
+
+    elif y.dtype in [np.int32, np.int64]:
+        if y.ndim > 1: 
+            return multiOutputClassification
+        else:
+            return classification
 
 

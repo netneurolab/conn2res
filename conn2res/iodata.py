@@ -13,9 +13,9 @@ import neurogym as ngym
 def get_available_tasks():
     return [
             'AntiReach',
-            'Bandit',
+            # 'Bandit',
             'ContextDecisionMaking',
-            'DawTwoStep',
+            # 'DawTwoStep',
             'DelayComparison',
             'DelayMatchCategory',
             'DelayMatchSample',
@@ -23,13 +23,13 @@ def get_available_tasks():
             'DelayPairedAssociation',
             # 'Detection',  # TODO: Temporary removing until bug fixed
             'DualDelayMatchSample',
-            'EconomicDecisionMaking',
+            # 'EconomicDecisionMaking',
             'GoNogo',
             'HierarchicalReasoning',
             'IntervalDiscrimination',
             'MotorTiming',
             'MultiSensoryIntegration',
-            'Null',
+            # 'Null',
             'OneTwoThreeGo',
             'PerceptualDecisionMaking',
             'PerceptualDecisionMakingDelayResponse',
@@ -42,7 +42,7 @@ def get_available_tasks():
             'ReadySetGo',
             'SingleContextDecisionMaking',
             'SpatialSuppressMotion',
-            'ToneDetection'  # TODO: Temporary removing until bug fixed
+            # 'ToneDetection'  # TODO: Temporary removing until bug fixed
         ]
 
 
