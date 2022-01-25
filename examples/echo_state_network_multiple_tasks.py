@@ -41,6 +41,10 @@ conn  = conn/np.max(ew)
 # then we split it into training and test sets. 'x' corresponds to the input
 # signals and 'y' corresponds to the output labels.
 from conn2res import iodata
+from conn2res import reservoir, coding
+
+import pandas as pd
+
 import matplotlib.pyplot as plt
 import seaborn as sns
 
@@ -97,9 +101,6 @@ for task in tasks:
 
     # evaluate network performance across various dynamical regimes
     # we do so by varying the value of alpha 
-    import pandas as pd
-    from conn2res import reservoir, coding
-
     alphas = np.linspace(0,2,11) #np.linspace(0,2,41)
     df_subj = []
     for alpha in alphas[1:]:
