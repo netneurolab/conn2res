@@ -135,7 +135,8 @@ def run_task(task, reservoir_states, target, **kwargs):
 
 def select_stat_model(y):
     """
-    Classification tasks
+    Select the right model depending on the nature of the target
+    variable
     #TODO 
     """
     if isinstance(y, tuple): y = y[0]
