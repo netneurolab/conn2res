@@ -49,7 +49,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 
 tasks = iodata.get_available_tasks()
-for task in tasks:
+for task in tasks[:]:
     
     x, y = iodata.fetch_dataset(task)
     # y = iodata.encode_labels(y)
@@ -67,7 +67,10 @@ for task in tasks:
     fig, axs = plt.subplots(2,1, figsize=(10,10), sharex=True)
     axs = axs.ravel()
     axs[0].plot(x)
+    axs[0].set_ylabel('Inputs')
+    
     axs[1].plot(y)
+    axs[1].set_ylabel('Outputs')
 
     plt.suptitle(task)
     plt.show()
@@ -135,6 +138,9 @@ for task in tasks:
         
     df_subj = pd.concat(df_subj, ignore_index=True)
     df_subj['score'] = df_subj['score'].astype(float)
+    df_subj['alpha'] = df_subj['alpha'].astype(float)
+
+    print(df_subj.head(5))
     
     #############################################################################
     # Now we plot the performance curve
@@ -142,11 +148,11 @@ for task in tasks:
     fig = plt.figure(num=1, figsize=(12,10))
     ax = plt.subplot(111)
     sns.lineplot(data=df_subj, x='alpha', y='score', 
-                hue='module', 
-                hue_order=['VIS', 'SM', 'DA', 'VA', 'LIM', 'FP', 'DMN'],
-                palette=sns.color_palette('husl', 7), 
-                markers=True, 
-                ax=ax)
+                 hue='module', 
+                 # hue_order=['VIS', 'SM', 'DA', 'VA', 'LIM', 'FP', 'DMN'],
+                 palette=sns.color_palette('husl', 7), 
+                 markers=True, 
+                 ax=ax)
     sns.despine(offset=10, trim=True)
     plt.title(task)
     plt.plot()

@@ -148,7 +148,7 @@ def select_stat_model(y):
     #TODO 
     """
     if isinstance(y, tuple): y = y[0]
-    
+
     if y.dtype in [np.float32, np.float64]:
         if y.ndim > 1: 
             return multiOutputRegression
