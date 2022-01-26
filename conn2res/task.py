@@ -16,6 +16,7 @@ from sklearn.model_selection import ParameterGrid
 from sklearn.linear_model import Ridge, RidgeClassifier
 from sklearn.multioutput import MultiOutputRegressor, MultiOutputClassifier
 from sklearn.metrics import accuracy_score, confusion_matrix, ConfusionMatrixDisplay
+from sklearn.ensemble import RandomForestRegressor
 
 import matplotlib.pyplot as plt
 
@@ -62,11 +63,24 @@ def multiOutputRegression(x, y, **kwargs):
     """
 
     x_train, x_test, y_train, y_test = check_xy_dims(x,y)
-
     model = MultiOutputRegressor(Ridge(fit_intercept=False, alpha=0.5, **kwargs)).fit(x_train, y_train)
-    score = model.score(x_test, y_test)
+    
+    # estimate score
+    y_pred = model.predict(x_test)
+    n_outputs = y_pred.shape[1]
 
-    return score
+    score = []
+    for output in range(n_outputs):
+        score.append((np.corrcoef(y_test[:,output], y_pred[:,output])[0][1])**2)
+    
+    # for i in range(20):
+    #     corr = np.round(np.corrcoef(y_test[:,i], y_pred[:,i])[0][1], 2)
+    #     plt.scatter(y_test[:,i], y_pred[:,i], s=2, label=f'Tau={i+1} - {corr}')
+    # plt.legend()
+    # plt.show()
+    # plt.close()
+
+    return np.sum(score)
 
 
 def classification(x, y, **kwargs):
@@ -76,8 +90,10 @@ def classification(x, y, **kwargs):
     """
 
     x_train, x_test, y_train, y_test = check_xy_dims(x,y)
-
     model = RidgeClassifier(alpha=0.0, fit_intercept=True, **kwargs).fit(x_train, y_train)
+    
+    # estimate score
+    #TODO - average accuracy across classes or something like this
     # score = model.score(x_test, y_test)
     score = accuracy_score(y_test, model.predict(x_test))
    
@@ -95,8 +111,10 @@ def multiOutputClassification(x, y, **kwargs):
     """
 
     x_train, x_test, y_train, y_test = check_xy_dims(x,y)
-
     model = MultiOutputRegressor(RidgeClassifier(alpha=0.5, fit_intercept=True, **kwargs)).fit(x_train, y_train)
+
+    # estimate score
+    #TODO - average accuracy across outputs????
     # score = model.score(x_test, y_test)
     score = accuracy_score(y_test, model.predict(x_test))
     
@@ -107,7 +125,7 @@ def multiOutputClassification(x, y, **kwargs):
     return score 
 
 
-def run_task(task, reservoir_states, target, **kwargs):
+def run_task(reservoir_states, target, **kwargs):
     """
     #TODO
     Function that calls the method to run the task specified by 'task'
@@ -133,8 +151,9 @@ def run_task(task, reservoir_states, target, **kwargs):
     """
 
     func = select_stat_model(y=target)
-    score = func(x=reservoir_states, y=target, **kwargs)
 
+    score = func(x=reservoir_states, y=target, **kwargs)
+    
     df_res = pd.DataFrame(data=[score],
                           columns=['score'])
 

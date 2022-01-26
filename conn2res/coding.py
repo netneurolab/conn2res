@@ -22,7 +22,7 @@ def get_modules(module_assignment):
     return  module_ids, readout_modules
 
 
-def encoder(task, reservoir_states, target, readout_modules=None,\
+def encoder(reservoir_states, target, readout_modules=None,\
             readout_nodes=None):
     """
     Function that defines the set(s) of readout nodes based on whether
@@ -49,7 +49,6 @@ def encoder(task, reservoir_states, target, readout_modules=None,\
         reservoir belongs to. N is the number of nodes in the reservoir. These
         modules are used to define sets of readout_nodes. If provided,
         readout_nodes is ignored.
-
     readout_nodes : (N,) list or numpy.ndarray, optional
         specifies the set of nodes from which the signals will be extracted from
         'reservoir_states' to perform 'task'
@@ -69,11 +68,11 @@ def encoder(task, reservoir_states, target, readout_modules=None,\
         if isinstance(readout_modules, np.ndarray): 
             module_ids, readout_modules = get_modules(readout_modules)
         
-        if isinstance(readout_modules, dict):
+        elif isinstance(readout_modules, dict):
             readout_modules = list(readout_modules.values())
             module_ids      = list(readout_modules.keys())
 
-        if isinstance(readout_modules, list):            
+        elif isinstance(readout_modules, list):            
             module_ids = np.arange(len(readout_modules))
         
         # #TODO print error message
@@ -88,8 +87,7 @@ def encoder(task, reservoir_states, target, readout_modules=None,\
             print(f'\t-------- Module : {module_ids[i]} with {len(readout_nodes)} nodes --------')
 
             # create temporal dataframe
-            df_module = run_task(task=task,
-                                 reservoir_states=(reservoir_states[0][:,readout_nodes], reservoir_states[1][:,readout_nodes]), # reservoir_states[:,:,readout_nodes],
+            df_module = run_task(reservoir_states=(reservoir_states[0][:,readout_nodes], reservoir_states[1][:,readout_nodes]), # reservoir_states[:,:,readout_nodes],
                                  target=target,
                                  )
 
@@ -102,16 +100,14 @@ def encoder(task, reservoir_states, target, readout_modules=None,\
         df_encoding = pd.concat(df_encoding)
 
     elif readout_nodes is not None:
-        df_encoding = run_task(task=task,
-                               reservoir_states=(reservoir_states[0][:,readout_nodes], reservoir_states[1][:,readout_nodes]),
+        df_encoding = run_task(reservoir_states=(reservoir_states[0][:,readout_nodes], reservoir_states[1][:,readout_nodes]),
                                target=target,
                                )
 
         df_encoding['n_nodes'] = len(readout_nodes)
     
     else:
-        df_encoding = run_task(task=task,
-                               reservoir_states=reservoir_states,
+        df_encoding = run_task(reservoir_states=reservoir_states,
                                target=target,
                                )
 

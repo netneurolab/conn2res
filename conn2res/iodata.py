@@ -10,40 +10,49 @@ from gym import spaces
 import neurogym as ngym
 
 
+NEUROGYM_TASKS = [
+                'AntiReach',
+                # 'Bandit',
+                'ContextDecisionMaking',
+                # 'DawTwoStep',
+                'DelayComparison',
+                'DelayMatchCategory',
+                'DelayMatchSample',
+                'DelayMatchSampleDistractor1D',
+                'DelayPairedAssociation',
+                # 'Detection',  # TODO: Temporary removing until bug fixed
+                'DualDelayMatchSample',
+                # 'EconomicDecisionMaking',
+                'GoNogo',
+                'HierarchicalReasoning',
+                'IntervalDiscrimination',
+                'MotorTiming',
+                'MultiSensoryIntegration',
+                # 'Null',
+                'OneTwoThreeGo',
+                'PerceptualDecisionMaking',
+                'PerceptualDecisionMakingDelayResponse',
+                'PostDecisionWager',
+                'ProbabilisticReasoning',
+                'PulseDecisionMaking',
+                'Reaching1D',
+                'Reaching1DWithSelfDistraction',
+                'ReachingDelayResponse',
+                'ReadySetGo',
+                'SingleContextDecisionMaking',
+                'SpatialSuppressMotion',
+                # 'ToneDetection'  # TODO: Temporary removing until bug fixed
+            ]
+
+
+CONN2RES_TASKS = [
+                'MemoryCapacity',
+                # 'TemporalPatternRecognition'  
+                ]
+
+
 def get_available_tasks():
-    return [
-            'AntiReach',
-            # 'Bandit',
-            'ContextDecisionMaking',
-            # 'DawTwoStep',
-            'DelayComparison',
-            'DelayMatchCategory',
-            'DelayMatchSample',
-            'DelayMatchSampleDistractor1D',
-            'DelayPairedAssociation',
-            # 'Detection',  # TODO: Temporary removing until bug fixed
-            'DualDelayMatchSample',
-            # 'EconomicDecisionMaking',
-            'GoNogo',
-            'HierarchicalReasoning',
-            'IntervalDiscrimination',
-            'MotorTiming',
-            'MultiSensoryIntegration',
-            # 'Null',
-            'OneTwoThreeGo',
-            'PerceptualDecisionMaking',
-            'PerceptualDecisionMakingDelayResponse',
-            'PostDecisionWager',
-            'ProbabilisticReasoning',
-            'PulseDecisionMaking',
-            'Reaching1D',
-            'Reaching1DWithSelfDistraction',
-            'ReachingDelayResponse',
-            'ReadySetGo',
-            'SingleContextDecisionMaking',
-            'SpatialSuppressMotion',
-            # 'ToneDetection'  # TODO: Temporary removing until bug fixed
-        ]
+    return NEUROGYM_TASKS
 
 
 def unbatch(x):
@@ -80,7 +89,7 @@ def encode_labels(labels):
     return enc_labels
 
 
-def fetch_dataset(task, unbatch_data=True):
+def fetch_dataset(task, unbatch_data=True, **kwargs):
     """
     Fetches inputs and labels for 'task' from the NeuroGym 
     repository
@@ -115,15 +124,30 @@ def fetch_dataset(task, unbatch_data=True):
         unidimensional array of labels 
     """
 
-    # create a Dataset object from NeuroGym
-    dataset = ngym.Dataset(task+'-v0')
+    if task in NEUROGYM_TASKS:
+        # create a Dataset object from NeuroGym
+        dataset = ngym.Dataset(task+'-v0')
+    
+        # get inputs and labels for 'task'
+        inputs, labels = dataset()
+        
+        if unbatch_data:
+            return unbatch(inputs), unbatch(labels)
 
-    # get inputs and labels for 'task'
-    inputs, labels = dataset()
-    if unbatch_data:
-        return unbatch(inputs), unbatch(labels)
-    else:
-        return inputs, labels
+    elif task in CONN2RES_TASKS:
+        # create a native conn2res Dataset 
+        inputs, labels = create_dataset(task, **kwargs)
+
+    return inputs, labels
+
+
+def create_dataset(task, tau_max=20, **kwargs):
+
+    if task == 'MemoryCapacity':
+        x = np.random.uniform(-1, 1, (1000+tau_max))[:,np.newaxis]
+        y = np.hstack([x[tau_max-tau:-tau][:,np.newaxis] for tau in range(1,tau_max+1)])
+
+    return x,y
 
 
 def split_dataset(data, frac_train=0.7):

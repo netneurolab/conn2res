@@ -737,3 +737,8 @@ def check_square(a):
     s = a.shape
     if s[0] == s[1]: return True
     else: return False
+
+
+def reservoir(name, **kwargs):
+    if name == 'EchoStateNetwork':
+        return EchoStateNetwork(**kwargs)
