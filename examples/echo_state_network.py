@@ -114,8 +114,7 @@ for alpha in alphas[1:]:
     rs_test  = ESN.simulate(ext_input=x_test)[:,output_nodes] 
 
     # perform task
-    df = coding.encoder(task=task,
-                        reservoir_states=(rs_train, rs_test),
+    df = coding.encoder(reservoir_states=(rs_train, rs_test),
                         target=(y_train, y_test),
                         readout_modules=rsn_mapping,
                         # pttn_lens=()

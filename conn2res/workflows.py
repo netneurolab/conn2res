@@ -15,9 +15,9 @@ from scipy.linalg import eigh
 
 from . import iodata, reservoir, coding
 
-def memory_capacity(conn, input_nodes, output_nodes, resname='EchoStateNetwork', 
-                    readout_modules=None, readout_nodes=None, alphas=None, input_gain=1.0, tau_max=20, 
-                    plot_res=False):
+def memory_capacity(conn, input_nodes, output_nodes, readout_modules=None, 
+                    readout_nodes=None, resname='EchoStateNetwork', 
+                    alphas=None, input_gain=1.0, tau_max=20, plot_res=False):
     """
     #TODO
     Function that measures the memory capacity of a reservoir as 
