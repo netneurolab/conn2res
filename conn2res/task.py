@@ -71,14 +71,17 @@ def multiOutputRegression(x, y, **kwargs):
 
     score = []
     for output in range(n_outputs):
-        score.append((np.corrcoef(y_test[:,output], y_pred[:,output])[0][1])**2)
-    
+        score.append(np.abs((np.corrcoef(y_test[:,output], y_pred[:,output])[0][1])))
+
     # for i in range(20):
     #     corr = np.round(np.corrcoef(y_test[:,i], y_pred[:,i])[0][1], 2)
     #     plt.scatter(y_test[:,i], y_pred[:,i], s=2, label=f'Tau={i+1} - {corr}')
     # plt.legend()
     # plt.show()
     # plt.close()
+
+    # print('\n')
+    # print(score)
 
     return np.sum(score)
 
