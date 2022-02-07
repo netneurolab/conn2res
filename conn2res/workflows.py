@@ -17,7 +17,8 @@ from . import iodata, reservoir, coding
 
 def memory_capacity(conn, input_nodes, output_nodes, readout_modules=None, 
                     readout_nodes=None, resname='EchoStateNetwork', 
-                    alphas=None, input_gain=1.0, tau_max=20, plot_res=False):
+                    alphas=None, input_gain=1.0, tau_max=20, plot_res=False, 
+                    plot_title=None):
     """
     #TODO
     Function that measures the memory capacity of a reservoir as 
@@ -98,12 +99,15 @@ def memory_capacity(conn, input_nodes, output_nodes, readout_modules=None,
         ax = plt.subplot(111)
         sns.lineplot(data=df, x='alpha', y='score', 
                      hue='module', 
-                    #  hue_order=['VIS', 'SM', 'DA', 'VA', 'LIM', 'FP', 'DMN'],
+                     hue_order=['VIS', 'SM', 'DA', 'VA', 'LIM', 'FP', 'DMN'],
                      palette=sns.color_palette('husl', 7), 
                      markers=True, 
                      ax=ax)
         sns.despine(offset=10, trim=True)
-        plt.title('Memory Capacity')
+
+        if plot_title is not None: plt.title(f'Memory Capacity - {plot_title}')
+        else: plt.title('Memory Capacity')
+        
         plt.plot()
         plt.show()
 
