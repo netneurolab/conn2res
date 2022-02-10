@@ -2,11 +2,15 @@
 """
 Connectome-informed reservoir - Echo-State Network
 =================================================
-This example demonstrates how to use the conn2res toolbox to
-perform a memory task using a human connectomed-informed
-Echo-State network while playing with the dynamics of the reservoir
-(Jaeger, 2000).
+This example demonstrates how to use the conn2res toolbox 
+to perform a task using a human connectomed-informed
+Echo-State network while playing with the dynamics of the 
+reservoir (Jaeger, 2000).
 """
+
+import warnings
+warnings.simplefilter(action='ignore', category=FutureWarning)
+warnings.simplefilter(action='ignore', category=RuntimeWarning)
 
 ###############################################################################
 # First let's import the connectivity matrix we are going to use to define the
@@ -40,22 +44,22 @@ conn  = conn/np.max(ew)
 # Second let's get the data to perform the task. We first generate the data and
 # then we split it into training and test sets. 'x' corresponds to the input
 # signals and 'y' corresponds to the output labels.
+
 from conn2res import iodata
 import matplotlib.pyplot as plt
 
 task = 'PerceptualDecisionMaking' #'GoNogo' #'PerceptualDecisionMaking' # 
 x, y = iodata.fetch_dataset(task)
 
-# print(f'\n----{task}-----')
-# x_labels = [f'i{n+1}' for n in range(x.shape[1])]
-# plt.plot(x[:], label=x_labels)
-# plt.plot(y[:], label='label')
-# plt.legend()
-# plt.suptitle(task)
-# plt.show()
-# plt.close()
-
-# y = iodata.encode_labels(y)
+# visualizing input/output data 
+print(f'\n----{task}-----')
+x_labels = [f'i{n+1}' for n in range(x.shape[1])]
+plt.plot(x[:], label=x_labels)
+plt.plot(y[:], label='label')
+plt.legend()
+plt.suptitle(task)
+plt.show()
+plt.close()
 
 n_features = x.shape[1]
 print(f'n_features = {n_features}')
@@ -85,7 +89,7 @@ output_nodes = np.where(ctx == 1)[0] # we use cortical regions as output nodes
 # tions between the input layer (source nodes where the input signal is
 # coming from) and the input nodes of the reservoir.
 w_in = np.zeros((n_features, n_reservoir_nodes))
-w_in[np.ix_(np.arange(n_features), input_nodes)] = 0.1 # factor that modulates the activation state of the reservoir
+w_in[np.ix_(np.arange(n_features), input_nodes)] = 1.0 # factor that modulates the activation state of the reservoir
 
 # We will use resting-state networks as readout modules. These intrinsic networks
 # define different sets of output nodes
@@ -117,7 +121,6 @@ for alpha in alphas[1:]:
     df = coding.encoder(reservoir_states=(rs_train, rs_test),
                         target=(y_train, y_test),
                         readout_modules=rsn_mapping,
-                        # pttn_lens=()
                         )
 
     df['alpha'] = np.round(alpha, 3)

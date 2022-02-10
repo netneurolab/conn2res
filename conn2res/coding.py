@@ -63,6 +63,8 @@ def encoder(reservoir_states, target, readout_modules=None,\
 
     """
 
+    print('\n PERFORMING TASK ...')
+
     if readout_modules is not None:
 
         if isinstance(readout_modules, np.ndarray): 
