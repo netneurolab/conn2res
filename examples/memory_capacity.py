@@ -39,13 +39,13 @@ rsn_mapping = np.load(os.path.join(DATA_DIR, 'rsn_mapping.npy'))
 from conn2res import workflows
 
 MC = workflows.memory_capacity(conn=conn,
-                                input_nodes=input_nodes,
-                                output_nodes=output_nodes,
-                                readout_modules=rsn_mapping[output_nodes],
-                                resname='EchoStateNetwork',
-                                alphas=np.linspace(0,4,21),
-                                input_gain=1.0,
-                                tau_max=16,
-                                plot_res=True,
-                                )
+                               input_nodes=input_nodes,
+                               output_nodes=output_nodes,
+                               rsn_mapping=rsn_mapping,
+                               resname='MSSNetwork',
+                               alphas=np.linspace(0, 4, 21),
+                               input_gain=1.0,
+                               tau_max=16,
+                               plot_res=True,
+                               )
 

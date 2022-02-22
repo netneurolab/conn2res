@@ -15,7 +15,8 @@ from scipy.linalg import eigh
 
 from . import iodata, reservoir, coding
 
-def memory_capacity(conn, input_nodes, output_nodes, readout_modules=None, 
+
+def memory_capacity(conn, input_nodes, output_nodes, rsn_mapping=None,
                     readout_nodes=None, resname='EchoStateNetwork', 
                     alphas=None, input_gain=1.0, tau_max=20, plot_res=False, 
                     plot_title=None):
@@ -50,23 +51,48 @@ def memory_capacity(conn, input_nodes, output_nodes, readout_modules=None,
     w_in = np.zeros((1, n_reservoir_nodes))
     w_in[:,input_nodes] = input_gain 
 
+    # if using MSSNetwork, must restructure nodes and input
+    if resname == 'MSSNetwork':
+        # select random node as ground from output nodes
+        gr_nodes = np.random.choice(output_nodes, 1)
+        output_nodes = np.setdiff1d(output_nodes, gr_nodes)
+
+        # remove ground node from readout_nodes if necessary
+        if readout_nodes is not None:
+            readout_nodes = np.setdiff1d(readout_nodes, gr_nodes)
+
+        # second dimension should be along the input nodes
+        x = np.tile(x, (1, len(input_nodes)))
+
+    # establish readout modules
+    readout_modules = rsn_mapping[output_nodes]
+
     # evaluate network performance across various dynamical regimes
     if alphas is None: alphas = np.linspace(0,2,11) 
     
     df = []
-    for alpha in alphas: 
+    for alpha in alphas[1:]:
 
         print(f'\n----------------------- alpha = {alpha} -----------------------')
 
-        # instantiate an Echo State Network object
-        network = reservoir.reservoir(name=resname,
-                                      w_ih=w_in,
-                                      w_hh=alpha*conn.copy(),
-                                      activation_function='tanh'
-                                    )
+        if resname == 'EchoStateNetwork':
+            # instantiate an Echo State Network object
+            network = reservoir.reservoir(name=resname,
+                                          w_ih=w_in,
+                                          w_hh=alpha * conn.copy(),
+                                          activation_function='tanh'
+                                          )
+        elif resname == 'MSSNetwork':
+            # instantiate an MSS Network object
+            network = reservoir.reservoir(name=resname,
+                                          w=alpha * conn.copy(),
+                                          i_nodes=output_nodes,
+                                          e_nodes=input_nodes,
+                                          gr_nodes=gr_nodes
+                                          )
 
         # simulate reservoir states; select only output nodes
-        rs = network.simulate(ext_input=x)[:,output_nodes]
+        rs = network.simulate(x)[:, output_nodes]
 
         # remove first tau_max points from reservoir states
         rs = rs[tau_max:]
