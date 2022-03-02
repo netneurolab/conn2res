@@ -98,8 +98,8 @@ for subj in range(n_subjs):
         print(f'\n----------------------- alpha = {alpha} -----------------------')
 
         # instantiate an Echo State Network object
-        ESN = reservoir.EchoStateNetwork(w_ih=w_in,
-                                         w_hh=alpha*w,
+        ESN = reservoir.EchoStateNetwork(w=alpha * w,
+                                         w_in=w_in,
                                          activation_function='tanh',
                                         )
 

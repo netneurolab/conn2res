@@ -48,5 +48,6 @@ MC = workflows.memory_capacity(conn=conn,
                                input_gain=1.0,
                                tau_max=16,
                                plot_res=True,
+                               res_kwargs={'mode': 'forward'}
                                )
 
