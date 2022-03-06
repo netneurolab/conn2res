@@ -493,6 +493,10 @@ class MemristiveReservoir(Reservoir):
                 # store state 
                 self._state[t, self._I] = Vi
         
+        # center internal voltage measurements
+        self._state[:, self._I] = self._state[:, self._I] - \
+            np.mean(self._state[:, self._I], axis=1, keepdims=True)
+
         return self._state
 
 
