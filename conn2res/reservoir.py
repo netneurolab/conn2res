@@ -240,10 +240,16 @@ class MemristiveReservoir(Reservoir):
         number of total nodes (sum of internal, external, and grounded nodes)
     G : numpy.ndarray
         matrix of conductances
+    G_history : numpy.ndarray
+        history of conducatnces across simulation
     mode : str {'forward', 'backward'}
         Refers to the method used to solve the system of equations. 
         Use 'forward' for explicit Euler method, and 'backward' for 
         implicit Euler method.
+    save_conductance : bool
+        Indicates whether to save conductance state after each simulation
+        step. If True, then will be stored in self._G_history. This will
+        increase memory demands.
 
     Methods
     ----------
@@ -254,7 +260,8 @@ class MemristiveReservoir(Reservoir):
     #TODO
 
     """
-    def __init__(self, w, int_nodes, ext_nodes, gr_nodes, mode='forward'):
+    def __init__(self, w, int_nodes, ext_nodes, gr_nodes,
+                 mode='forward', save_conductance=False):
         """
         Constructor class for Memristive Networks. Memristive networks are an
         abstraction for physical networks of memristive elements.
@@ -274,10 +281,15 @@ class MemristiveReservoir(Reservoir):
         gr_nodes : (n_grounded_nodes,) numpy.ndarray
             indexes of grounded nodes
             n_grounded_nodes: number of grounded nodes
-        mode : {'forward', 'backward'}
+        mode : {'forward', 'backward'}, optional
             Refers to the method used to solve the system of equations. 
             Use 'forward' for explicit Euler method, and 'backward' for 
-            implicit Euler method.
+            implicit Euler method. Default: 'forward'
+        save_conductance : bool, optional
+            Indicates whether to save conductance state after each simulation
+            step. If True, then will be stored in self._G_history. This will
+            increase memory demands. Default: False
+
         """
         super().__init__(w)
         self._W  = self.setW(w)
@@ -291,8 +303,10 @@ class MemristiveReservoir(Reservoir):
         self._n_nodes = len(self._W)
 
         self._G = None
+        self._G_history = None
 
         self.mode = mode
+        self.save_conductance = save_conductance
     
     def setW(self, w):
         """
@@ -459,6 +473,11 @@ class MemristiveReservoir(Reservoir):
         # initialize reservoir states
         self._state = np.zeros((len(ext_input), self.hidden_size))
 
+        # initialize array for storing conductance history if needed
+        if self.save_conductance:
+            self._G_history = np.zeros((len(ext_input), self.hidden_size,
+                                        self.hidden_size))
+
         if self.mode == 'forward':
             for t, Ve in enumerate(ext_input):
 
@@ -478,6 +497,10 @@ class MemristiveReservoir(Reservoir):
 
                 # store state 
                 self._state[t, self._I] = Vi
+
+                # store conductance if necessary
+                if self.save_conductance:
+                    self._G_history[t] = self._G
         
         elif self.mode == 'backward':
             for t,Ve in enumerate(ext_input):
@@ -492,6 +515,10 @@ class MemristiveReservoir(Reservoir):
 
                 # store state 
                 self._state[t, self._I] = Vi
+
+                # store conductance if necessary
+                if self.save_conductance:
+                    self._G_history[t] = self._G
         
         # center internal voltage measurements
         self._state[:, self._I] = self._state[:, self._I] - \
@@ -598,6 +625,10 @@ class MSSNetwork(MemristiveReservoir):
         Refers to the method used to solve the system of equations. 
         Use 'forward' for explicit Euler method, and 'backward' for 
         implicit Euler method.
+    save_conductance : bool
+        Indicates whether to save conductance state after each simulation
+        step. If True, then will be stored in self._G_history. This will
+        increase memory demands.
     vA : numpy.ndarray of floats
 
     vB : numpy.ndarray of floats
@@ -632,8 +663,8 @@ class MSSNetwork(MemristiveReservoir):
     VT = 1/b
 
     def __init__(self, w, int_nodes, ext_nodes, gr_nodes, mode='forward',
-                 vA=0.17, vB=0.22, tc=0.32e-3, NMSS=10000, Woff=0.91e-3,
-                 Won=0.87e-2, Nb=2000, noise=0.1):
+                 save_conductance=False, vA=0.17, vB=0.22, tc=0.32e-3,
+                 NMSS=10000, Woff=0.91e-3, Won=0.87e-2, Nb=2000, noise=0.1):
         """
         Constructor class for Memristive Networks following the Generalized
         Memristive Switch Model proposed in Nugent and Molter, 2014. Default
@@ -655,19 +686,14 @@ class MSSNetwork(MemristiveReservoir):
         gr_nodes : (n_grounded_nodes,) numpy.ndarray
             indexes of grounded nodes
             n_grounded_nodes: number of grounded nodes
-        mode : {'forward', 'backward'}
+        mode : {'forward', 'backward'}, optional
             Refers to the method used to solve the system of equations. 
             Use 'forward' for explicit Euler method, and 'backward' for 
-            implicit Euler method.
-        int_nodes : (n_internal_nodes,) numpy.ndarray
-            indexes of internal nodes
-            n_internal_nodes: number of internal nodes
-        ext_nodes : (n_external_nodes,) numpy.ndarray
-            indexes of external nodes
-            n_external_nodes: number of external nodes
-        gr_nodes : (n_grounded_nodes,) numpy.ndarray
-            indexes of grounded nodes
-            n_grounded_nodes: number of grounded nodes
+            implicit Euler method. Default: 'forward'
+        save_conductance : bool, optional
+            Indicates whether to save conductance state after each simulation
+            step. If True, then will be stored in self._G_history. This will
+            increase memory demands. Default: False
         vA : float. Default: 0.17
 
         vB : float. Default: 0.22
@@ -686,7 +712,8 @@ class MSSNetwork(MemristiveReservoir):
 
         #TODO
         """
-        super().__init__(w, int_nodes, ext_nodes, gr_nodes, mode)
+        super().__init__(w, int_nodes, ext_nodes, gr_nodes, mode,
+                         save_conductance)
 
         self.vA     = self.init_property(vA, noise)      # constant
         self.vB     = self.init_property(vB, noise)      # constant
