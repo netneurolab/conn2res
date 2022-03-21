@@ -6,9 +6,10 @@ Reservoir classes
 """
 
 import itertools as itr
+from tkinter import NONE
 import numpy as np
 import numpy.ma as ma
-from numpy.linalg import (inv, matrix_rank)
+from numpy.linalg import (pinv, matrix_rank)
 
 import matplotlib.pyplot as plt
 
@@ -20,41 +21,52 @@ class Reservoir:
 
     Attributes
     ----------
-    w_ih : numpy.ndarray
-        input connectivity matrix (source, target)
-    w_hh : numpy.ndarray
+    w : (N, N) numpy.ndarray
         reservoir connectivity matrix (source, target)
-    _state : numpy.ndarray
-        reservoir activation states
-    input_size : int
-        dimension of feature space
+        N: number of nodes in the network. If w is directed, then rows
+        (columns) should correspond to source (target) nodes.
     hidden_size : int
-        dimension of the reservoir
+        dimension of the reservoir (N)
 
     Methods
     ----------
 
     """
-    def __init__(self, w_ih, w_hh):
+    def __init__(self, w):
         """
         Constructor class for general Reservoir Networks
 
         Parameters
         ----------
-        w_ih: (N_inputs, N) numpy.ndarray
-            input connectivity matrix (source, target)
-            N_inputs: number of external input nodes
-            N: number of nodes in the network
-        w_hh : (N, N) numpy.ndarray
+        w : (N, N) numpy.ndarray
             reservoir connectivity matrix (source, target)
-            N: number of nodes in the network. If w_hh is directed, then rows
+            N: number of nodes in the network. If w is directed, then rows
             (columns) should correspond to source (target) nodes.
         """
 
-        self.w_ih = w_ih
-        self.w_hh = w_hh
+        self.w = w
+        self.hidden_size = w.shape[0]
+
         self._state = None
-        self.input_size, self.hidden_size = w_ih.shape
+        
+
+    def simulate(ext_input):
+        """
+        Abstract method for simulating reservoir dynamics given an external
+        input signal 'ext_input'
+
+        Parameters
+        ----------
+        ext_input : (L, inputs) numpy.ndarray
+            external input signal
+
+        Returns
+        -------
+        self._state : (L, N) numpy.ndarray
+            activation states of the reservoir; includes all the nodes
+        """
+
+        raise NotImplementedError("'simulate' not implemented yet.")
 
 
 class EchoStateNetwork(Reservoir):
@@ -65,66 +77,73 @@ class EchoStateNetwork(Reservoir):
 
     Attributes
     ----------
-    w_ih : numpy.ndarray
-        input connectivity matrix (source, target)
-    w_hh : numpy.ndarray
+    w : (N, N) numpy.ndarray
         reservoir connectivity matrix (source, target)
-    _state : numpy.ndarray
-        reservoir activation states
-    input_size : int
-        dimension of feature space
+        N: number of nodes in the network. If w is directed, then rows
+        (columns) should correspond to source (target) nodes.
     hidden_size : int
-        dimension of the reservoir
+        dimension of the reservoir (N)
+    w_in : (N_inputs, N) numpy.ndarray
+        input connectivity matrix (source, target)
+        N_inputs: number of expected inputs
+        N: number of nodes in the network
+    input_size : int
+        dimension of feature space (N_inputs)
     activation_function : {'tanh', 'piecewise'}
         type of activation function
+    ic : (N,) numpy.ndarray
+        Initial conditions
+        N: number of nodes in the network
 
     Methods
     -------
 
     """
 
-    def __init__(self, activation_function='tanh', *args, **kwargs):
+    def __init__(self, w, w_in, activation_function='tanh', ic=None):
         """
         Constructor class for Echo State Networks
 
         Parameters
         ----------
-        w_ih: (N_inputs, N) numpy.ndarray
-            Input connectivity matrix (source, target)
-            N_inputs: number of external input nodes
-            N: number of nodes in the network
-        w_hh : (N, N) numpy.ndarray
+        w : (N, N) numpy.ndarray
             Reservoir connectivity matrix (source, target)
-            N: number of nodes in the network. If w_hh is directed, then rows
+            N: number of nodes in the network. If w is directed, then rows
             (columns) should correspond to source (target) nodes.
+        w_in : (N_inputs, N) numpy.ndarray
+            Input connectivity matrix (source, target)
+            N_inputs: dimension of feature space
+            N: number of nodes in the network
         nonlinearity : str {'tanh', 'relu'}, default 'tanh'
             Activation function
+        ic : (N,) numpy.ndarray
+            Initial conditions
+            N: number of nodes in the network.
         """
-        super().__init__(*args, **kwargs)
+        super().__init__(w)
+        self.w_in = w_in
+        self.input_size = w_in.shape[0]
         self.activation_function = self.set_activation_function(activation_function)
+        self.ic = ic
 
 
-    def simulate(self, ext_input, ic=None, threshold=0.5):
+    def simulate(self, ext_input):
         """
-        Simulates reservoir dynamics given an external input signal
-        'ext_input'
+        Simulates EchoStateNetwork given an external input signal 'ext_input'
 
         Parameters
         ----------
-        ext_input: (time, N_inputs) numpy.ndarray
+        ext_input : (L, N_inputs) numpy.ndarray
             External input signal
-            N_inputs: number of external input nodes
-        ic: (N,) numpy.ndarray
-            Initial conditions
-            N: number of nodes in the network. If w_hh is directed, then rows
-            (columns) should correspond to source (target) nodes.
-        threshold : float
-            Threshold for piecewise nonlinearity. Ignored for the others.
-
+            L: length of input
+            N_inputs: dimension of feature space
+        
         Returns
         -------
-        self._state : numpy.ndarray
+        self._state : (L, N) numpy.ndarray
             activation states of the reservoir; includes all the nodes
+            L: length of input
+            N: number of nodes in the network
         """
 
         print('\n GENERATING RESERVOIR STATES ...')
@@ -137,14 +156,14 @@ class EchoStateNetwork(Reservoir):
         self._state = np.zeros((len(timesteps)+1, self.hidden_size))
 
         # set initial conditions
-        if ic is not None: self._state[0,:] = ic
+        if self.ic is not None: self._state[0,:] = self.ic
 
         # simulation of the dynamics
         for t in timesteps:
            
             if (t>0) and (t%100 == 0): print(f'\t ----- timestep = {t}')
             
-            synap_input = np.dot(self._state[t-1,:], self.w_hh) + np.dot(ext_input[t-1,:], self.w_ih)
+            synap_input = np.dot(self._state[t-1,:], self.w) + np.dot(ext_input[t-1,:], self.w_in)
             self._state[t,:] = self.activation_function(synap_input)
 
         return self._state
@@ -190,7 +209,7 @@ class EchoStateNetwork(Reservoir):
             return step
 
 
-class MemristiveReservoir:
+class MemristiveReservoir(Reservoir):
     """
     Class that represents a general Memristive Reservoir
 
@@ -198,22 +217,39 @@ class MemristiveReservoir:
 
     Attributes
     ----------
+    w : (N, N) numpy.ndarray
+        reservoir connectivity matrix (source, target)
+        N: number of nodes in the network.
+    hidden_size : int
+        dimension of the reservoir (N)
     W : numpy.ndarray
-        reservoir's binary connectivity matrix
+        binarized and symmetric reservoir connectivity matrix
     I : numpy.ndarray
-        set of internal nodes
+        indices of internal nodes (voltage not in contact with input signal)
     E : numpy.ndarray
-        set of external nodes
+        indices of external nodes (voltage manipulated by input signal)
     GR : numpy.ndarray
-        set of grounded nodes
+        indices of grounded nodes (held at a constant voltage)
     n_internal_nodes : int
         number of internal nodes
     n_external_nodes : int
         number of external nodes
     n_grounded_nodes : int
-        number of gorunded nodes
+        number of grounded nodes
+    n_nodes : int
+        number of total nodes (sum of internal, external, and grounded nodes)
     G : numpy.ndarray
         matrix of conductances
+    G_history : numpy.ndarray
+        history of conducatnces across simulation
+    mode : str {'forward', 'backward'}
+        Refers to the method used to solve the system of equations. 
+        Use 'forward' for explicit Euler method, and 'backward' for 
+        implicit Euler method.
+    save_conductance : bool
+        Indicates whether to save conductance state after each simulation
+        step. If True, then will be stored in self._G_history. This will
+        increase memory demands.
 
     Methods
     ----------
@@ -224,7 +260,8 @@ class MemristiveReservoir:
     #TODO
 
     """
-    def __init__(self, w, i_nodes, e_nodes, gr_nodes, *args, **kwargs):
+    def __init__(self, w, int_nodes, ext_nodes, gr_nodes,
+                 mode='forward', save_conductance=False):
         """
         Constructor class for Memristive Networks. Memristive networks are an
         abstraction for physical networks of memristive elements.
@@ -235,20 +272,29 @@ class MemristiveReservoir:
             reservoir's binary connectivity matrix
             N: total number of nodes in the network (internal + external
             + grounded nodes)
-        i_nodes : (n_internal_nodes,) numpy.ndarray
+        int_nodes : (n_internal_nodes,) numpy.ndarray
             indexes of internal nodes
             n_internal_nodes: number of internal nodes
-        e_nodes : (n_external_nodes,) numpy.ndarray
+        ext_nodes : (n_external_nodes,) numpy.ndarray
             indexes of external nodes
             n_external_nodes: number of external nodes
         gr_nodes : (n_grounded_nodes,) numpy.ndarray
             indexes of grounded nodes
             n_grounded_nodes: number of grounded nodes
+        mode : {'forward', 'backward'}, optional
+            Refers to the method used to solve the system of equations. 
+            Use 'forward' for explicit Euler method, and 'backward' for 
+            implicit Euler method. Default: 'forward'
+        save_conductance : bool, optional
+            Indicates whether to save conductance state after each simulation
+            step. If True, then will be stored in self._G_history. This will
+            increase memory demands. Default: False
+
         """
-        super().__init__(*args, **kwargs)
+        super().__init__(w)
         self._W  = self.setW(w)
-        self._I  = np.asarray(i_nodes)
-        self._E  = np.asarray(e_nodes)
+        self._I  = np.asarray(int_nodes)
+        self._E  = np.asarray(ext_nodes)
         self._GR = np.asarray(gr_nodes)
 
         self._n_internal_nodes = len(self._I)
@@ -257,7 +303,10 @@ class MemristiveReservoir:
         self._n_nodes = len(self._W)
 
         self._G = None
+        self._G_history = None
 
+        self.mode = mode
+        self.save_conductance = save_conductance
     
     def setW(self, w):
         """
@@ -348,7 +397,7 @@ class MemristiveReservoir:
         # inverse matrix A_II
         A_II = A[np.ix_(self._I, self._I)]
         # print(matrix_rank(A_II, hermitian=check_symmetric(A_II)))
-        A_II_inv = inv(A_II)
+        A_II_inv = pinv(A_II)
 
         # matrix HI
         H_IE  = np.dot(G[np.ix_(self._I, self._E)], Ve)
@@ -399,53 +448,83 @@ class MemristiveReservoir:
         return mask(self, V) 
 
     
-    def simulate(self, Vext, ic=None, mode='forward'):
+    def simulate(self, ext_input):
         """
         Simulates the dynamics of a memristive reservoir given an external
-        voltage signal V_E
+        voltage signal ext_input
 
         Parameters
         ----------
-        ext_input : (time, N_external_nodes) numpy.ndarray
-            External input signal
-            N_external_nodes: number of external (input) nodes
-        ic : (N_internal_nodes,) numpy.ndarray
-            Initial conditions
-            N_internal_nodes: number of internal (output) nodes
-        mode : {'forward', 'backward'}
-            Refers to the method used to solve the system of equations. 
-            Use 'forward' for explicit Euler method, and 'backward' for 
-            implicit Euler method.
+        ext_input : (L, n_external_nodes) numpy.ndarray
+            External input signal (applied directly to external nodes so must
+            be of same dimensionality)
+            n_external_nodes: number of external nodes
 
-        #TODO
+        Returns
+        -------
+        self._state : (L, N) numpy.ndarray
+            activation states of the reservoir; includes all the nodes
+            L: length of input
+            N: number of nodes in the network
         """
 
         print('\n GENERATING RESERVOIR STATES ...')
 
-        Vi = []
-        if mode == 'forward':
-            for t, Ve in enumerate(Vext):
+        # initialize reservoir states
+        self._state = np.zeros((len(ext_input), self.hidden_size))
+
+        # initialize array for storing conductance history if needed
+        if self.save_conductance:
+            self._G_history = np.zeros((len(ext_input), self.hidden_size,
+                                        self.hidden_size))
+
+        if self.mode == 'forward':
+            for t, Ve in enumerate(ext_input):
 
                 if (t>0) and (t%100 == 0): print(f'\t ----- timestep = {t}')
 
+                # store external voltages
+                self._state[t, self._E] = Ve
+
                 # get voltage at internal nodes
-                Vi.append(self.solveVi(Ve))
+                Vi = self.solveVi(Ve)
 
                 # update matrix of voltages across memristors
-                V = self.getV(Vi[-1], Ve)
+                V = self.getV(Vi, Ve)
 
                 # update conductance
                 self.updateG(V=V, update=True)
+
+                # store state 
+                self._state[t, self._I] = Vi
+
+                # store conductance if necessary
+                if self.save_conductance:
+                    self._G_history[t] = self._G
         
-        elif mode == 'backward':
-            for t,Ve in enumerate(Vext):
+        elif self.mode == 'backward':
+            for t,Ve in enumerate(ext_input):
                 
                 if (t>0) and (t%100 == 0): print(f'\t ----- timestep = {t}')
 
+                # store external voltages
+                self._state[t, self._E] = Ve
+
                 # get voltage at internal nodes
-                Vi.append(self.iterate(Ve))
+                Vi = self.iterate(Ve)
+
+                # store state 
+                self._state[t, self._I] = Vi
+
+                # store conductance if necessary
+                if self.save_conductance:
+                    self._G_history[t] = self._G
         
-        return np.asarray(Vi)
+        # center internal voltage measurements
+        self._state[:, self._I] = self._state[:, self._I] - \
+            np.mean(self._state[:, self._I], axis=1, keepdims=True)
+
+        return self._state
 
 
     def iterate(self, Ve, tol=5e-2, iters=100): 
@@ -519,22 +598,37 @@ class MSSNetwork(MemristiveReservoir):
 
     Attributes
     ----------
+    w : (N, N) numpy.ndarray
+        reservoir connectivity matrix (source, target)
+        N: number of nodes in the network.
+    hidden_size : int
+        dimension of the reservoir (N)
     W : numpy.ndarray
-        reservoir's binary connectivity matrix
+        binarized and symmetric reservoir connectivity matrix
     I : numpy.ndarray
-        set of internal nodes
+        indices of internal nodes (voltage not in contact with input signal)
     E : numpy.ndarray
-        set of external nodes
+        indices of external nodes (voltage manipulated by input signal)
     GR : numpy.ndarray
-        set of grounded nodes
+        indices of grounded nodes (held at a constant voltage)
     n_internal_nodes : int
         number of internal nodes
     n_external_nodes : int
         number of external nodes
     n_grounded_nodes : int
-        number of gorunded nodes
+        number of grounded nodes
+    n_nodes : int
+        number of total nodes (sum of internal, external, and grounded nodes)
     G : numpy.ndarray
         matrix of conductances
+    mode : str {'forward', 'backward'}
+        Refers to the method used to solve the system of equations. 
+        Use 'forward' for explicit Euler method, and 'backward' for 
+        implicit Euler method.
+    save_conductance : bool
+        Indicates whether to save conductance state after each simulation
+        step. If True, then will be stored in self._G_history. This will
+        increase memory demands.
     vA : numpy.ndarray of floats
 
     vB : numpy.ndarray of floats
@@ -568,8 +662,9 @@ class MSSNetwork(MemristiveReservoir):
     b = Q/(k*Temp)
     VT = 1/b
 
-    def __init__(self, vA=0.17, vB=0.22, tc=0.32e-3, NMSS=10000,\
-                 Woff=0.91e-3, Won=0.87e-2, Nb=2000, noise=0.1, *args, **kwargs):
+    def __init__(self, w, int_nodes, ext_nodes, gr_nodes, mode='forward',
+                 save_conductance=False, vA=0.17, vB=0.22, tc=0.32e-3,
+                 NMSS=10000, Woff=0.91e-3, Won=0.87e-2, Nb=2000, noise=0.1):
         """
         Constructor class for Memristive Networks following the Generalized
         Memristive Switch Model proposed in Nugent and Molter, 2014. Default
@@ -582,15 +677,23 @@ class MSSNetwork(MemristiveReservoir):
             reservoir's binary connectivity matrix
             N: total number of nodes in the network (internal + external
             + grounded nodes)
-        i_nodes : (n_internal_nodes,) numpy.ndarray
+        int_nodes : (n_internal_nodes,) numpy.ndarray
             indexes of internal nodes
             n_internal_nodes: number of internal nodes
-        e_nodes : (n_external_nodes,) numpy.ndarray
+        ext_nodes : (n_external_nodes,) numpy.ndarray
             indexes of external nodes
             n_external_nodes: number of external nodes
         gr_nodes : (n_grounded_nodes,) numpy.ndarray
             indexes of grounded nodes
             n_grounded_nodes: number of grounded nodes
+        mode : {'forward', 'backward'}, optional
+            Refers to the method used to solve the system of equations. 
+            Use 'forward' for explicit Euler method, and 'backward' for 
+            implicit Euler method. Default: 'forward'
+        save_conductance : bool, optional
+            Indicates whether to save conductance state after each simulation
+            step. If True, then will be stored in self._G_history. This will
+            increase memory demands. Default: False
         vA : float. Default: 0.17
 
         vB : float. Default: 0.22
@@ -609,7 +712,8 @@ class MSSNetwork(MemristiveReservoir):
 
         #TODO
         """
-        super().__init__(*args, **kwargs)
+        super().__init__(w, int_nodes, ext_nodes, gr_nodes, mode,
+                         save_conductance)
 
         self.vA     = self.init_property(vA, noise)      # constant
         self.vB     = self.init_property(vB, noise)      # constant
@@ -617,8 +721,10 @@ class MSSNetwork(MemristiveReservoir):
         self.NMSS   = self.init_property(NMSS, noise)    # constant
         self.Woff   = self.init_property(Woff, noise)    # constant
         self.Won    = self.init_property(Won, noise)     # constant
-        self._Ga    = mask(self, np.divide(self.Woff, self.NMSS))  # constant
-        self._Gb    = mask(self, np.divide(self.Won, self.NMSS))   # constant
+        self._Ga = mask(self, np.divide(self.Woff, self.NMSS,
+                                        where=self.NMSS != 0))  # constant
+        self._Gb = mask(self, np.divide(self.Won, self.NMSS,
+                                        where=self.NMSS != 0))  # constant
 
         self._Nb     = self.init_property(Nb, noise)
         self._G      = self._Nb * (self._Gb - self._Ga) + self.NMSS * self._Ga
@@ -644,13 +750,15 @@ class MSSNetwork(MemristiveReservoir):
         
         # set Nb values
         if G is not None: 
-            Nb = mask(self, (G - self.NMSS * self._Ga)/(self._Gb - self._Ga))
+            Gdiff1 = G - self.NMSS * self._Ga
+            Gdiff2 = self._Gb - self._Ga
+            Nb = mask(self, np.divide(Gdiff1, Gdiff2, where=Gdiff2 != 0))
 
         else: 
             Nb = self._Nb
 
-        # ration of dt to characterictic time of the device tc
-        alpha = dt/self.tc
+        # ratio of dt to characterictic time of the device tc
+        alpha = np.divide(dt, self.tc, where=self.tc != 0)
 
         # compute Pa
         exponent = -1 * (V - self.vA) / self.VT
@@ -741,3 +849,5 @@ def check_square(a):
 def reservoir(name, **kwargs):
     if name == 'EchoStateNetwork':
         return EchoStateNetwork(**kwargs)
+    if name == 'MSSNetwork':
+        return MSSNetwork(**kwargs)

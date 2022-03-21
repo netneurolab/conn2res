@@ -15,10 +15,11 @@ from scipy.linalg import eigh
 
 from . import iodata, reservoir, coding
 
-def memory_capacity(conn, input_nodes, output_nodes, readout_modules=None, 
+
+def memory_capacity(conn, input_nodes, output_nodes, rsn_mapping=None,
                     readout_nodes=None, resname='EchoStateNetwork', 
                     alphas=None, input_gain=1.0, tau_max=20, plot_res=False, 
-                    plot_title=None):
+                    plot_title=None, res_kwargs=None):
     """
     #TODO
     Function that measures the memory capacity of a reservoir as 
@@ -34,39 +35,72 @@ def memory_capacity(conn, input_nodes, output_nodes, readout_modules=None,
         data frame with task scores
     """
 
-
     # scale conenctivity weights between [0,1]
-    conn = (conn-conn.min())/(conn.max()-conn.min())
+    conn = (conn - conn.min()) / (conn.max() - conn.min())
     n_reservoir_nodes = len(conn)
 
     # normalize connectivity matrix by the spectral radius
     ew, _ = eigh(conn)
-    conn  = conn/np.max(ew)
+    conn = conn / np.max(ew)
 
-    # get dataset for memory capacity task 
+    # get dataset for memory capacity task
     x, y = iodata.fetch_dataset('MemoryCapacity', tau_max=tau_max)
 
-    # create input connectivity matrix
-    w_in = np.zeros((1, n_reservoir_nodes))
-    w_in[:,input_nodes] = input_gain 
+    # EchoStateNetwork setup
+    if resname == 'EchoStateNetwork':
+
+        # create input connectivity matrix
+        w_in = np.zeros((1, n_reservoir_nodes))
+        w_in[:, input_nodes] = input_gain
+
+        # init parameters
+        if res_kwargs is None:
+            res_kwargs = {}
+
+        res_kwargs['w_in'] = w_in
+
+    # MSSNetwork setup
+    elif resname == 'MSSNetwork':
+        # select random node as ground from output nodes
+        gr_nodes = np.random.choice(output_nodes, 1)
+        output_nodes = np.setdiff1d(output_nodes, gr_nodes)
+
+        # remove ground node from readout_nodes if necessary
+        if readout_nodes is not None:
+            readout_nodes = np.setdiff1d(readout_nodes, gr_nodes)
+
+        # second dimension must equal number of external nodes for MSSNetwork
+        x = np.tile(x, (1, len(input_nodes)))
+
+        # set-up init parameters
+        if res_kwargs is None:
+            res_kwargs = {}
+
+        res_kwargs['int_nodes'] = output_nodes
+        res_kwargs['ext_nodes'] = input_nodes
+        res_kwargs['gr_nodes'] = gr_nodes
+
+
+    # establish readout modules
+    if rsn_mapping is not None:
+        readout_modules = rsn_mapping[output_nodes]
+    else:
+        readout_modules = None
 
     # evaluate network performance across various dynamical regimes
     if alphas is None: alphas = np.linspace(0,2,11) 
     
     df = []
-    for alpha in alphas: 
+    for alpha in alphas[1:]:
 
         print(f'\n----------------------- alpha = {alpha} -----------------------')
 
-        # instantiate an Echo State Network object
         network = reservoir.reservoir(name=resname,
-                                      w_ih=w_in,
-                                      w_hh=alpha*conn.copy(),
-                                      activation_function='tanh'
-                                    )
+                                      w=alpha * conn.copy(),
+                                      **res_kwargs)
 
         # simulate reservoir states; select only output nodes
-        rs = network.simulate(ext_input=x)[:,output_nodes]
+        rs = network.simulate(x)[:, output_nodes]
 
         # remove first tau_max points from reservoir states
         rs = rs[tau_max:]

@@ -108,8 +108,8 @@ for alpha in alphas[1:]:
     print(f'\n----------------------- alpha = {alpha} -----------------------')
 
     # instantiate an Echo State Network object
-    ESN = reservoir.EchoStateNetwork(w_ih=w_in,
-                                     w_hh=alpha*conn.copy(),
+    ESN = reservoir.EchoStateNetwork(w=alpha * conn.copy(),
+                                     w_in=w_in,
                                      activation_function='tanh',
                                      )
 
