@@ -1,9 +1,9 @@
-.. _api_ref:
+.. .. _api_ref:
 
-.. currentmodule:: conn2res
+.. .. currentmodule:: conn2res
 
-Reference API
-=============
+.. Reference API
+.. =============
 
 .. .. contents:: **List of modules**
 ..    :local:

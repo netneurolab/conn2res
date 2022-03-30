@@ -1,3 +1,8 @@
+# other files
+examples/IO_data_structure.py
+examples/ echo_state_network_multiple_subjs.py 
+examples/echo_state_network_multiple_tasks.py 
+
 # data files 
 data/
 

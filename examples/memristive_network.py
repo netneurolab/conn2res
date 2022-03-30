@@ -85,12 +85,16 @@ nodes = np.arange(n_reservoir_nodes)
 gr_nodes  = np.random.choice(np.where(ctx == 1)[0], 1) # we select a single random ground node from cortical regions
 ext_nodes = np.random.choice(np.where(ctx == 0)[0], n_features) # we select a random set of input nodes from subcortical regions
 int_nodes = np.setdiff1d(nodes, np.union1d(gr_nodes,ext_nodes)) # we use the reamining cortical regions as output nodes
-readout_nodes = np.setdiff1d(np.where(ctx == 1)[0], gr_nodes) # nodes actually used to perform the task
+
+# However, because not all subcortical nodes are used as input nodes in this case, we create 
+# a new set of output nodes that include (only) all cortical regions but those corresponding 
+# to grounded nodes
+output_nodes = np.setdiff1d(np.where(ctx == 1)[0], gr_nodes) # nodes actually used to perform the task
 
 # We will use resting-state networks as readout modules. These intrinsic networks
 # define different sets of output nodes
 rsn_mapping = np.load(os.path.join(DATA_DIR, 'rsn_mapping.npy'))
-rsn_mapping = rsn_mapping[readout_nodes] # we select the mapping only for output nodes 
+rsn_mapping = rsn_mapping[output_nodes] # we select the mapping only for output nodes 
 
 # evaluate network performance across various dynamical regimes
 # we do so by varying the value of alpha 
@@ -111,12 +115,12 @@ for alpha in alphas[1:]:
                                )
 
     # simulate reservoir states; select only readout nodes.
-    rs_train = MMN.simulate(Vext=x_train[:], mode='backward')[:,readout_nodes]
-    rs_test  = MMN.simulate(Vext=x_test[:],  mode='backward')[:,readout_nodes] 
+    rs_train = MMN.simulate(Vext=x_train[:], mode='forward')[:,output_nodes]
+    rs_test  = MMN.simulate(Vext=x_test[:],  mode='backward')[:,output_nodes] 
     
     # perform task
     df = coding.encoder(reservoir_states=(rs_train, rs_test),
-                        target=(y_train[:], y_test[:]),
+                        target=(y_train, y_test),
                         readout_modules=rsn_mapping,
                         )
 

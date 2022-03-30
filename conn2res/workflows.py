@@ -34,7 +34,6 @@ def memory_capacity(conn, input_nodes, output_nodes, readout_modules=None,
         data frame with task scores
     """
 
-
     # scale conenctivity weights between [0,1]
     conn = (conn-conn.min())/(conn.max()-conn.min())
     n_reservoir_nodes = len(conn)
