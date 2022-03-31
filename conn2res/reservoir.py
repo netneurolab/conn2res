@@ -213,6 +213,8 @@ class MemristiveReservoir:
         number of external nodes
     n_grounded_nodes : int
         number of gorunded nodes
+    n_nodes : int
+        total number of nodes (internal, external, and ground)
     G : numpy.ndarray
         matrix of conductances
     save_conductance : bool
@@ -443,12 +445,12 @@ class MemristiveReservoir:
         print('\n GENERATING RESERVOIR STATES ...')
 
         # initialize reservoir states
-        self._state = np.zeros((len(Vext), self.hidden_size))
+        self._state = np.zeros((len(Vext), self._n_nodes))
 
         # initialize array for storing conductance history if needed
         if self.save_conductance:
-            self._G_history = np.zeros((len(Vext), self.hidden_size,
-                                        self.hidden_size))
+            self._G_history = np.zeros((len(Vext), self._n_nodes,
+                                        self._n_nodes))
 
         for t, Ve in enumerate(Vext):
             if mode == 'forward':
@@ -569,6 +571,8 @@ class MSSNetwork(MemristiveReservoir):
         number of external nodes
     n_grounded_nodes : int
         number of gorunded nodes
+    n_nodes : int
+        total number of nodes (internal, external, and ground)
     G : numpy.ndarray
         matrix of conductances
     save_conductance : bool
@@ -666,7 +670,7 @@ class MSSNetwork(MemristiveReservoir):
                                 out=np.zeros_like(self.Woff))  # constant
         self._Gb    = np.divide(self.Won, self.NMSS,
                                 where=self.NMSS!=0,
-                                out=np.zeros_like(self.Won)))   # constant
+                                out=np.zeros_like(self.Won))   # constant
 
         self._Nb     = self.init_property(Nb, noise)
         self._G      = self._Nb * (self._Gb - self._Ga) + self.NMSS * self._Ga
@@ -704,7 +708,7 @@ class MSSNetwork(MemristiveReservoir):
         # ration of dt to characterictic time of the device tc
         alpha = np.divide(dt, self.tc,
                           where=self.tc != 0,
-                          out=np.zeros_like(dt))
+                          out=np.zeros_like(self.tc))
 
         # compute Pa
         exponent = -1 * (V - self.vA) / self.VT
