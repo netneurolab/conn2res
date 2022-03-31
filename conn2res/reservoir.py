@@ -8,7 +8,7 @@ Reservoir classes
 import itertools as itr
 import numpy as np
 import numpy.ma as ma
-from numpy.linalg import (inv, matrix_rank)
+from numpy.linalg import (pinv, matrix_rank)
 
 import matplotlib.pyplot as plt
 
@@ -97,7 +97,7 @@ class EchoStateNetwork(Reservoir):
             Reservoir connectivity matrix (source, target)
             N: number of nodes in the network. If w_hh is directed, then rows
             (columns) should correspond to source (target) nodes.
-        nonlinearity : str {'tanh', 'relu'}, default 'tanh'
+        activation_function : str {'tanh', 'relu'}, default 'tanh'
             Activation function
         """
         super().__init__(*args, **kwargs)
@@ -123,8 +123,9 @@ class EchoStateNetwork(Reservoir):
 
         Returns
         -------
-        self._state : numpy.ndarray
+        self._state : (time, N) numpy.ndarray
             activation states of the reservoir; includes all the nodes
+            N: number of nodes in the network
         """
 
         print('\n GENERATING RESERVOIR STATES ...')
@@ -201,11 +202,11 @@ class MemristiveReservoir:
     W : numpy.ndarray
         reservoir's binary connectivity matrix
     I : numpy.ndarray
-        set of internal nodes
+        indices of internal nodes
     E : numpy.ndarray
-        set of external nodes
+        indices of external nodes
     GR : numpy.ndarray
-        set of grounded nodes
+        indices of grounded nodes
     n_internal_nodes : int
         number of internal nodes
     n_external_nodes : int
@@ -214,6 +215,12 @@ class MemristiveReservoir:
         number of gorunded nodes
     G : numpy.ndarray
         matrix of conductances
+    save_conductance : bool
+        Indicates whether to save conductance state after each simulation
+        step. If True, then will be stored in self._G_history. This will
+        increase memory demands.
+    _state : numpy.ndarray
+        reservoir activation states
 
     Methods
     ----------
@@ -224,7 +231,7 @@ class MemristiveReservoir:
     #TODO
 
     """
-    def __init__(self, w, i_nodes, e_nodes, gr_nodes, *args, **kwargs):
+    def __init__(self, w, int_nodes, ext_nodes, gr_nodes, save_conductance=False, *args, **kwargs):
         """
         Constructor class for Memristive Networks. Memristive networks are an
         abstraction for physical networks of memristive elements.
@@ -235,20 +242,24 @@ class MemristiveReservoir:
             reservoir's binary connectivity matrix
             N: total number of nodes in the network (internal + external
             + grounded nodes)
-        i_nodes : (n_internal_nodes,) numpy.ndarray
+        int_nodes : (n_internal_nodes,) numpy.ndarray
             indexes of internal nodes
             n_internal_nodes: number of internal nodes
-        e_nodes : (n_external_nodes,) numpy.ndarray
+        ext_nodes : (n_external_nodes,) numpy.ndarray
             indexes of external nodes
             n_external_nodes: number of external nodes
         gr_nodes : (n_grounded_nodes,) numpy.ndarray
             indexes of grounded nodes
             n_grounded_nodes: number of grounded nodes
+        save_conductance : bool, optional
+            Indicates whether to save conductance state after each simulation
+            step. If True, then will be stored in self._G_history. This will
+            increase memory demands. Default: False
         """
         super().__init__(*args, **kwargs)
         self._W  = self.setW(w)
-        self._I  = np.asarray(i_nodes)
-        self._E  = np.asarray(e_nodes)
+        self._I  = np.asarray(int_nodes)
+        self._E  = np.asarray(ext_nodes)
         self._GR = np.asarray(gr_nodes)
 
         self._n_internal_nodes = len(self._I)
@@ -257,6 +268,11 @@ class MemristiveReservoir:
         self._n_nodes = len(self._W)
 
         self._G = None
+        
+        self.save_conductance = save_conductance
+        self._G_history = None
+
+        self._state = None
 
     
     def setW(self, w):
@@ -348,7 +364,7 @@ class MemristiveReservoir:
         # inverse matrix A_II
         A_II = A[np.ix_(self._I, self._I)]
         # print(matrix_rank(A_II, hermitian=check_symmetric(A_II)))
-        A_II_inv = inv(A_II)
+        A_II_inv = pinv(A_II)
 
         # matrix HI
         H_IE  = np.dot(G[np.ix_(self._I, self._E)], Ve)
@@ -417,35 +433,55 @@ class MemristiveReservoir:
             Use 'forward' for explicit Euler method, and 'backward' for 
             implicit Euler method.
 
-        #TODO
+        Returns
+        -------
+        self._state : (time, N) numpy.ndarray
+            activation states of the reservoir; includes all the nodes
+            N: number of nodes in the network
         """
 
         print('\n GENERATING RESERVOIR STATES ...')
 
-        Vi = []
-        if mode == 'forward':
-            for t, Ve in enumerate(Vext):
+        # initialize reservoir states
+        self._state = np.zeros((len(Vext), self.hidden_size))
 
-                if (t>0) and (t%100 == 0): print(f'\t ----- timestep = {t}')
+        # initialize array for storing conductance history if needed
+        if self.save_conductance:
+            self._G_history = np.zeros((len(Vext), self.hidden_size,
+                                        self.hidden_size))
 
-                # get voltage at internal nodes
-                Vi.append(self.solveVi(Ve))
+        for t, Ve in enumerate(Vext):
+            if mode == 'forward':
 
-                # update matrix of voltages across memristors
-                V = self.getV(Vi[-1], Ve)
+                    if (t>0) and (t%100 == 0): print(f'\t ----- timestep = {t}')
 
-                # update conductance
-                self.updateG(V=V, update=True)
+                    # get voltage at internal nodes
+                    Vi = self.solveVi(Ve)
+
+                    # update matrix of voltages across memristors
+                    V = self.getV(Vi, Ve)
+
+                    # update conductance
+                    self.updateG(V=V, update=True)
+
+            
+            elif mode == 'backward':
+                    
+                    if (t>0) and (t%100 == 0): print(f'\t ----- timestep = {t}')
+
+                    # get voltage at internal nodes
+                    Vi = self.iterate(Ve)
+
+            # store activation states
+            self._state[t, self._E] = Ve
+            self._state[t, self._I] = Vi
+
+            # store conductance
+            if self.save_conductance:
+                self._G_history[t] = self._G
+
         
-        elif mode == 'backward':
-            for t,Ve in enumerate(Vext):
-                
-                if (t>0) and (t%100 == 0): print(f'\t ----- timestep = {t}')
-
-                # get voltage at internal nodes
-                Vi.append(self.iterate(Ve))
-        
-        return np.asarray(Vi)
+        return self._state
 
 
     def iterate(self, Ve, tol=5e-2, iters=100): 
@@ -522,11 +558,11 @@ class MSSNetwork(MemristiveReservoir):
     W : numpy.ndarray
         reservoir's binary connectivity matrix
     I : numpy.ndarray
-        set of internal nodes
+        indices of internal nodes
     E : numpy.ndarray
-        set of external nodes
+        indices of external nodes
     GR : numpy.ndarray
-        set of grounded nodes
+        indices of grounded nodes
     n_internal_nodes : int
         number of internal nodes
     n_external_nodes : int
@@ -535,6 +571,10 @@ class MSSNetwork(MemristiveReservoir):
         number of gorunded nodes
     G : numpy.ndarray
         matrix of conductances
+    save_conductance : bool
+        Indicates whether to save conductance state after each simulation
+        step. If True, then will be stored in self._G_history. This will
+        increase memory demands.
     vA : numpy.ndarray of floats
 
     vB : numpy.ndarray of floats
@@ -582,15 +622,19 @@ class MSSNetwork(MemristiveReservoir):
             reservoir's binary connectivity matrix
             N: total number of nodes in the network (internal + external
             + grounded nodes)
-        i_nodes : (n_internal_nodes,) numpy.ndarray
+        int_nodes : (n_internal_nodes,) numpy.ndarray
             indexes of internal nodes
             n_internal_nodes: number of internal nodes
-        e_nodes : (n_external_nodes,) numpy.ndarray
+        ext_nodes : (n_external_nodes,) numpy.ndarray
             indexes of external nodes
             n_external_nodes: number of external nodes
         gr_nodes : (n_grounded_nodes,) numpy.ndarray
             indexes of grounded nodes
             n_grounded_nodes: number of grounded nodes
+        save_conductance : bool, optional
+            Indicates whether to save conductance state after each simulation
+            step. If True, then will be stored in self._G_history. This will
+            increase memory demands. Default: False
         vA : float. Default: 0.17
 
         vB : float. Default: 0.22
@@ -741,3 +785,5 @@ def check_square(a):
 def reservoir(name, **kwargs):
     if name == 'EchoStateNetwork':
         return EchoStateNetwork(**kwargs)
+    if name == 'MSSNetwork':
+        return MSSNetwork(**kwargs)
