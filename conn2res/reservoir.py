@@ -661,8 +661,12 @@ class MSSNetwork(MemristiveReservoir):
         self.NMSS   = self.init_property(NMSS, noise)    # constant
         self.Woff   = self.init_property(Woff, noise)    # constant
         self.Won    = self.init_property(Won, noise)     # constant
-        self._Ga    = mask(self, np.divide(self.Woff, self.NMSS))  # constant
-        self._Gb    = mask(self, np.divide(self.Won, self.NMSS))   # constant
+        self._Ga    = np.divide(self.Woff, self.NMSS,
+                                where=self.NMSS!=0,
+                                out=np.zeros_like(self.Woff))  # constant
+        self._Gb    = np.divide(self.Won, self.NMSS,
+                                where=self.NMSS!=0,
+                                out=np.zeros_like(self.Won)))   # constant
 
         self._Nb     = self.init_property(Nb, noise)
         self._G      = self._Nb * (self._Gb - self._Ga) + self.NMSS * self._Ga
@@ -688,13 +692,19 @@ class MSSNetwork(MemristiveReservoir):
         
         # set Nb values
         if G is not None: 
-            Nb = mask(self, (G - self.NMSS * self._Ga)/(self._Gb - self._Ga))
+            Gdiff1 = G - self.NMSS * self._Ga
+            Gdiff2 = self._Gb - self._Ga
+            Nb = np.divide(Gdiff1, Gdiff2,
+                           where=Gdiff2 != 0,
+                           out=np.zeros_like(Gdiff1))
 
         else: 
             Nb = self._Nb
 
         # ration of dt to characterictic time of the device tc
-        alpha = dt/self.tc
+        alpha = np.divide(dt, self.tc,
+                          where=self.tc != 0,
+                          out=np.zeros_like(dt))
 
         # compute Pa
         exponent = -1 * (V - self.vA) / self.VT
