@@ -48,7 +48,7 @@ conn  = conn/np.max(ew)
 from conn2res import iodata
 import matplotlib.pyplot as plt
 
-task = 'GoNogo' #'PerceptualDecisionMaking' # 
+task = 'MemoryCapacity' # 'PerceptualDecisionMaking', 'GoNogo'
 x, y = iodata.fetch_dataset(task)
 
 # # visualizing input/output data 
@@ -109,8 +109,8 @@ for alpha in alphas[1:]:
 
     # instantiate an Memristive Network object
     MMN = reservoir.MSSNetwork(w=alpha*conn.copy(),
-                               i_nodes=int_nodes,
-                               e_nodes=ext_nodes,
+                               int_nodes=int_nodes,
+                               ext_nodes=ext_nodes,
                                gr_nodes=gr_nodes
                                )
 
