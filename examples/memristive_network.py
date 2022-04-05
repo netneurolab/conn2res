@@ -38,7 +38,7 @@ conn = conn.astype(bool).astype(int)
 from scipy.linalg import eigh
 
 ew, _ = eigh(conn)
-conn  = conn/np.max(ew)
+conn  = conn / np.max(ew)
 
 ###############################################################################
 # Second let's get the data to perform the task. We first generate the data and
@@ -108,7 +108,7 @@ for alpha in alphas[1:]:
     print(f'\n----------------------- alpha = {alpha} -----------------------')
 
     # instantiate an Memristive Network object
-    MMN = reservoir.MSSNetwork(w=alpha*conn.copy(),
+    MMN = reservoir.MSSNetwork(w=alpha * conn.copy(),
                                int_nodes=int_nodes,
                                ext_nodes=ext_nodes,
                                gr_nodes=gr_nodes

@@ -32,13 +32,13 @@ conn = conn[:,:,subj_id]
 n_reservoir_nodes = len(conn)
 
 # scale conenctivity weights between [0,1]
-conn = (conn-conn.min())/(conn.max()-conn.min())
+conn = (conn - conn.min())/(conn.max() - conn.min())
 
 # normalize connectivity matrix by the spectral radius.
 from scipy.linalg import eigh
 
 ew, _ = eigh(conn)
-conn  = conn/np.max(ew)
+conn  = conn / np.max(ew)
 
 ###############################################################################
 # Second let's get the data to perform the task. We first generate the data and
@@ -109,7 +109,7 @@ for alpha in alphas[1:]:
 
     # instantiate an Echo State Network object
     ESN = reservoir.EchoStateNetwork(w_ih=w_in,
-                                     w_hh=alpha*conn.copy(),
+                                     w_hh=alpha * conn.copy(),
                                      activation_function='tanh',
                                      )
 
