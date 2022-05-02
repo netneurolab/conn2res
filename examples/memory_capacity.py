@@ -8,12 +8,15 @@ Echo-State network while playing with the dynamics of the reservoir
 (Jaeger, 2000).
 """
 
+import warnings
+warnings.simplefilter(action='ignore', category=UserWarning)
+
 ###############################################################################
 # First let's import the connectivity matrix we are going to use to define the
 # connections of the reservoir.  For this we will be using the human connectome
 # parcellated into 1015 brain regions following the Desikan  Killiany atlas
 # (Desikan, et al., 2006).
-import os 
+import os
 import numpy as np
 
 PROJ_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -24,7 +27,7 @@ conn = np.load(os.path.join(DATA_DIR, 'connectivity.npy'))
 n_reservoir_nodes = len(conn)
 
 # select one subject
-subj_id = 0
+subj_id = 1
 conn = conn[:,:,subj_id]
 
 # define set of nodes
@@ -50,15 +53,16 @@ from conn2res import workflows
 
 # echo state network
 MC = workflows.memory_capacity(resname='EchoStateNetwork',
-                                conn=conn,
-                                input_nodes=input_nodes,
-                                output_nodes=output_nodes,
-                                readout_modules=rsn_mapping[output_nodes],
-                                alphas=np.linspace(0,4,21),
-                                input_gain=1.0,
-                                tau_max=16,
-                                plot_res=True,
-                                )
+                               conn=conn,
+                               input_nodes=input_nodes,
+                               output_nodes=output_nodes,
+                               # readout_modules=rsn_mapping[output_nodes],
+                               alphas=np.linspace(0,4,21),
+                               input_gain=1.0,
+                               tau_max=16,
+                               plot_res=True,
+                               activation_function='linear',
+                               )
 
 # memristive network
 MC = workflows.memory_capacity(resname='MSSNetwork',
@@ -66,11 +70,10 @@ MC = workflows.memory_capacity(resname='MSSNetwork',
                                 int_nodes=int_nodes,
                                 ext_nodes=ext_nodes,
                                 gr_nodes=gr_nodes,
-                                readout_modules=rsn_mapping[int_nodes],
-                                alphas=np.linspace(0,4,21),
+                                # readout_modules=rsn_mapping[int_nodes],
+                                alphas=[1.0],
                                 input_gain=1.0,
                                 tau_max=16,
                                 plot_res=True,
+                                mode='forward',
                                 )
-
-

@@ -24,7 +24,7 @@ import matplotlib.pyplot as plt
 def check_xy_dims(x,y):
     """
     Check that X,Y have the right dimensions
-    #TODO 
+    #TODO
     """
     x_train, x_test = x
     y_train, y_test = y
@@ -45,7 +45,7 @@ def check_xy_dims(x,y):
 def regression(x, y, **kwargs):
     """
     Regression tasks
-    #TODO 
+    #TODO
     """
 
     x_train, x_test, y_train, y_test = check_xy_dims(x,y)
@@ -59,12 +59,12 @@ def regression(x, y, **kwargs):
 def multiOutputRegression(x, y, **kwargs):
     """
     Multiple Output Regression tasks
-    #TODO 
+    #TODO
     """
 
     x_train, x_test, y_train, y_test = check_xy_dims(x,y)
     model = MultiOutputRegressor(Ridge(fit_intercept=False, alpha=0.5, **kwargs)).fit(x_train, y_train)
-    
+
     # estimate score
     y_pred = model.predict(x_test)
     n_outputs = y_pred.shape[1]
@@ -73,13 +73,13 @@ def multiOutputRegression(x, y, **kwargs):
     for output in range(n_outputs):
         score.append(np.abs((np.corrcoef(y_test[:,output], y_pred[:,output])[0][1])))
 
-    # for i in range(20):
+    # for i in range(n_outputs):
     #     corr = np.round(np.corrcoef(y_test[:,i], y_pred[:,i])[0][1], 2)
     #     plt.scatter(y_test[:,i], y_pred[:,i], s=2, label=f'Tau={i+1} - {corr}')
     # plt.legend()
     # plt.show()
     # plt.close()
-
+    #
     # print('\n')
     # print(score)
 
@@ -89,28 +89,28 @@ def multiOutputRegression(x, y, **kwargs):
 def classification(x, y, **kwargs):
     """
     Classification tasks
-    #TODO 
+    #TODO
     """
 
     x_train, x_test, y_train, y_test = check_xy_dims(x,y)
     model = RidgeClassifier(alpha=0.0, fit_intercept=True, **kwargs).fit(x_train, y_train)
-    
+
     # estimate score
     #TODO - average accuracy across classes or something like this
     # score = model.score(x_test, y_test)
     score = accuracy_score(y_test, model.predict(x_test))
-   
+
     # ConfusionMatrixDisplay.from_predictions(y_test, model.predict(x_test))
     # plt.show()
     # plt.close()
 
-    return score 
+    return score
 
 
 def multiOutputClassification(x, y, **kwargs):
     """
     Multiple Output Classification tasks
-    #TODO 
+    #TODO
     """
 
     x_train, x_test, y_train, y_test = check_xy_dims(x,y)
@@ -120,12 +120,12 @@ def multiOutputClassification(x, y, **kwargs):
     #TODO - average accuracy across outputs????
     # score = model.score(x_test, y_test)
     score = accuracy_score(y_test, model.predict(x_test))
-    
+
     # ConfusionMatrixDisplay.from_predictions(y_test, model.predict(x_test))
     # plt.show()
     # plt.close()
 
-    return score 
+    return score
 
 
 def run_task(reservoir_states, target, **kwargs):
@@ -156,7 +156,7 @@ def run_task(reservoir_states, target, **kwargs):
     func = select_stat_model(y=target)
 
     score = func(x=reservoir_states, y=target, **kwargs)
-    
+
     df_res = pd.DataFrame(data=[score],
                           columns=['score'])
 
@@ -167,20 +167,18 @@ def select_stat_model(y):
     """
     Select the right model depending on the nature of the target
     variable
-    #TODO 
+    #TODO
     """
     if isinstance(y, tuple): y = y[0]
 
     if y.dtype in [np.float32, np.float64]:
-        if y.ndim > 1: 
+        if y.ndim > 1:
             return multiOutputRegression
-        else: 
+        else:
             return regression
 
     elif y.dtype in [np.int32, np.int64]:
-        if y.ndim > 1: 
+        if y.ndim > 1:
             return multiOutputClassification
         else:
             return classification
-
-

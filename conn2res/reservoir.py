@@ -35,7 +35,7 @@ class Reservoir:
     ----------
 
     """
-    def __init__(self, w_ih, w_hh):
+    def __init__(self, w_ih, w_hh, *args, **kwargs):
         """
         Constructor class for general Reservoir Networks
 
@@ -97,10 +97,12 @@ class EchoStateNetwork(Reservoir):
             Reservoir connectivity matrix (source, target)
             N: number of nodes in the network. If w_hh is directed, then rows
             (columns) should correspond to source (target) nodes.
-        activation_function : str {'tanh', 'relu'}, default 'tanh'
-            Activation function
+        activation_function : str {'linear', 'elu', 'relu', 'leaky_relu',
+            'sigmoid', 'tanh', 'step'}, default 'tanh'
+            Activation function (nonlinearity of the system's units)
         """
         super().__init__(*args, **kwargs)
+
         self.activation_function = self.set_activation_function(activation_function)
 
 
@@ -142,9 +144,9 @@ class EchoStateNetwork(Reservoir):
 
         # simulation of the dynamics
         for t in timesteps:
-           
+
             if (t>0) and (t%100 == 0): print(f'\t ----- timestep = {t}')
-            
+
             synap_input = np.dot(self._state[t-1,:], self.w_hh) + np.dot(ext_input[t-1,:], self.w_ih)
             self._state[t,:] = self.activation_function(synap_input)
 
@@ -152,26 +154,26 @@ class EchoStateNetwork(Reservoir):
 
 
     def set_activation_function(self, function):
-        
+
         def linear(x, m=1):
             return m * x
 
         def elu(x, alpha=0.5):
             x[x <= 0] = alpha*(np.exp(x[x <= 0]) -1)
-            return x 
+            return x
 
         def relu(x):
             return np.maximum(0, x)
-        
+
         def leaky_relu(x, alpha=0.5):
             return np.maximum(alpha * x, x)
 
         def sigmoid(x):
             return 1.0 / (1 + np.exp(-x))
-        
+
         def tanh(x):
             return np.tanh(x)
-        
+
         def step(x, thr=0.5, vmin=0, vmax=1):
             return np.piecewise(x, [x<thr, x>=thr], [vmin, vmax]).astype(int)
 
@@ -182,7 +184,7 @@ class EchoStateNetwork(Reservoir):
         elif function == 'relu':
             return relu
         elif function == 'leaky_relu':
-            return leaky_relu       
+            return leaky_relu
         elif function == 'sigmoid':
             return sigmoid
         elif function == 'tanh':
@@ -199,7 +201,7 @@ class MemristiveReservoir:
 
     Attributes
     ----------
-    W : numpy.ndarray
+    w : numpy.ndarray
         reservoir's binary connectivity matrix
     I : numpy.ndarray
         indices of internal nodes
@@ -258,7 +260,7 @@ class MemristiveReservoir:
             step. If True, then will be stored in self._G_history. This will
             increase memory demands. Default: False
         """
-        super().__init__(*args, **kwargs)
+        # super().__init__(*args, **kwargs)
         self._W  = self.setW(w)
         self._I  = np.asarray(int_nodes)
         self._E  = np.asarray(ext_nodes)
@@ -270,13 +272,13 @@ class MemristiveReservoir:
         self._n_nodes = len(self._W)
 
         self._G = None
-        
+
         self.save_conductance = save_conductance
         self._G_history = None
 
         self._state = None
 
-    
+
     def setW(self, w):
         """
         #TODO
@@ -314,7 +316,7 @@ class MemristiveReservoir:
         else:
             return w
 
-    
+
     def init_property(self, mean, std=0.1):
         """
         This function initializes property matrices following a normal
@@ -335,7 +337,7 @@ class MemristiveReservoir:
 
         return p * self._W # ma.masked_array(p, mask=np.logical_not(self._W))
 
-    
+
     def solveVi(self, Ve, Vgr=None, G=None, **kwargs):
         """
         This function uses Kirchhoff's law to estimate voltage at the internal
@@ -377,7 +379,7 @@ class MemristiveReservoir:
         # return voltage at internal nodes
         return np.dot(A_II_inv, H_I)
 
-    
+
     def getV(self, Vi, Ve, Vgr=None):
         """
         Given the nodal voltage at the internal, external and grounded
@@ -414,9 +416,9 @@ class MemristiveReservoir:
             else:
                 V[i,j] = nv_dict[j] - nv_dict[i]
 
-        return mask(self, V) 
+        return mask(self, V)
 
-    
+
     def simulate(self, Vext, ic=None, mode='forward'):
         """
         Simulates the dynamics of a memristive reservoir given an external
@@ -424,15 +426,15 @@ class MemristiveReservoir:
 
         Parameters
         ----------
-        ext_input : (time, N_external_nodes) numpy.ndarray
-            External input signal
+        Vext : (time, N_external_nodes) numpy.ndarray
+            External voltage signal
             N_external_nodes: number of external (input) nodes
         ic : (N_internal_nodes,) numpy.ndarray
             Initial conditions
             N_internal_nodes: number of internal (output) nodes
         mode : {'forward', 'backward'}
-            Refers to the method used to solve the system of equations. 
-            Use 'forward' for explicit Euler method, and 'backward' for 
+            Refers to the method used to solve the system of equations.
+            Use 'forward' for explicit Euler method, and 'backward' for
             implicit Euler method.
 
         Returns
@@ -443,6 +445,7 @@ class MemristiveReservoir:
         """
 
         print('\n GENERATING RESERVOIR STATES ...')
+        print(f'\n SIMULATING STATES IN {mode.upper()} MODE ...')
 
         # initialize reservoir states
         self._state = np.zeros((len(Vext), self._n_nodes))
@@ -466,9 +469,9 @@ class MemristiveReservoir:
                     # update conductance
                     self.updateG(V=V, update=True)
 
-            
+
             elif mode == 'backward':
-                    
+
                     if (t>0) and (t%100 == 0): print(f'\t ----- timestep = {t}')
 
                     # get voltage at internal nodes
@@ -482,29 +485,28 @@ class MemristiveReservoir:
             if self.save_conductance:
                 self._G_history[t] = self._G
 
-        
         return self._state
 
 
-    def iterate(self, Ve, tol=5e-2, iters=100): 
+    def iterate(self, Ve, tol=5e-2, iters=100):
         """
         #TODO
 
         """
 
-        # initial guess for voltage at internal nodes 
+        # initial guess for voltage at internal nodes
         Vi = [self.solveVi(Ve=Ve, G=self._G)]
 
         # initial guess for conductance
-        G  = [self._G] 
+        G  = [self._G]
 
         convergence = False
         n_iters = 0
-        while not convergence: 
+        while not convergence:
 
-            assert n_iters < iters, 'There is no convergence !!!' 
-                
-            # get voltage across memristors 
+            assert n_iters < iters, 'There is no convergence !!!'
+
+            # get voltage across memristors
             # and update conductance
             V = self.getV(Vi[-1].copy(), Ve)
             G_tmp = self.updateG(V, G[-1], update=False)
@@ -513,11 +515,11 @@ class MemristiveReservoir:
             Vi.append(self.solveVi(Ve=Ve, G=G_tmp))
 
             # update conductance with G_tmp
-            G.append(self.updateG(V, G_tmp, update=False)) # supposedly correct 
+            G.append(self.updateG(V, G_tmp, update=False)) # supposedly correct
             # G.append(self.updateG(self.getV(Vi[-1].copy(), Ve), G[-1], update=False))
             # G.append(self.updateG(self.getV(Vi[-1].copy(), Ve), G_tmp, update=False))
 
-            # estimate error 
+            # estimate error
             err_Vi = self.getErr(Vi[-2], Vi[-1])
             err_G  = self.getErr(G[-2], G[-1])
 
@@ -528,36 +530,36 @@ class MemristiveReservoir:
             else:
                 del G[0]
                 del Vi[0]
-            
+
             n_iters += 1
 
             # print(f'\t\t n_iter = {n_iters}')
             # print(f'\t\t\t max error = {max_err}')
-        
+
         return Vi[-1]
 
-        
+
     def getErr(self, x_0, x_1):
         """
         # TODO
         """
-        
+
         err = 2 * np.abs(x_1-x_0)/(np.abs(x_1)+np.abs(x_0))
         err[np.isnan(err)] = 0.0
-        
+
         return err
 
 
 class MSSNetwork(MemristiveReservoir):
     """
-    Class that represents an Metastable Switch Memristive network
+    Class that represents a Metastable Switch Memristive network
     (see Nugent and Molter, 2014 for details)
 
     ...
 
     Attributes
     ----------
-    W : numpy.ndarray
+    w : numpy.ndarray
         reservoir's binary connectivity matrix
     I : numpy.ndarray
         indices of internal nodes
@@ -597,7 +599,6 @@ class MSSNetwork(MemristiveReservoir):
 
     Nb : numpy.ndarray of ints
 
-    
 
     Methods
     ----------
@@ -693,16 +694,16 @@ class MSSNetwork(MemristiveReservoir):
         ----------
 
         """
-        
+
         # set Nb values
-        if G is not None: 
+        if G is not None:
             Gdiff1 = G - self.NMSS * self._Ga
             Gdiff2 = self._Gb - self._Ga
             Nb = np.divide(Gdiff1, Gdiff2,
                            where=Gdiff2 != 0,
                            out=np.zeros_like(Gdiff1))
 
-        else: 
+        else:
             Nb = self._Nb
 
         # ration of dt to characterictic time of the device tc
@@ -720,7 +721,7 @@ class MSSNetwork(MemristiveReservoir):
 
         # compute dNb
         Na = self.NMSS - Nb
-        
+
         Gab = np.random.binomial(Na.astype(int), mask(self, Pa))
         Gba = np.random.binomial(Nb.astype(int), mask(self, Pb))
 
@@ -732,28 +733,36 @@ class MSSNetwork(MemristiveReservoir):
 
         return dNb
 
-    
+
     def updateG(self, V, G=None, update=False):
         """
         # TODO
         """
-        
+
         if G is None: G = self._G
 
         # compute dG
-        dNb = self.dG(V=V, G=G)     
+        dNb = self.dG(V=V, G=G)
         dG  = dNb * (self._Gb-self._Ga)
 
-        if update:  
+        if update:
             # update Nb
             self._Nb += dNb
 
             # update G
-            self._G = self._Nb * (self._Gb - self._Ga) + self.NMSS * self._Ga        
-            # self._G += dG   
+            self._G = self._Nb * (self._Gb - self._Ga) + self.NMSS * self._Ga
+            # self._G += dG
 
         else:
             return self._G.copy() + dG # updated conductance
+
+
+def reservoir(name, *args, **kwargs):
+    if name == 'EchoStateNetwork':
+        return EchoStateNetwork(*args, **kwargs)
+
+    if name == 'MSSNetwork':
+        return MSSNetwork(*args, **kwargs)
 
 
 def mask(reservoir, a):
@@ -794,10 +803,3 @@ def check_square(a):
     s = a.shape
     if s[0] == s[1]: return True
     else: return False
-
-
-def reservoir(name, **kwargs):
-    if name == 'EchoStateNetwork':
-        return EchoStateNetwork(**kwargs)
-    if name == 'MSSNetwork':
-        return MSSNetwork(**kwargs)
