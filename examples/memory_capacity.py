@@ -27,7 +27,7 @@ conn = np.load(os.path.join(DATA_DIR, 'connectivity.npy'))
 n_reservoir_nodes = len(conn)
 
 # select one subject
-subj_id = 1
+subj_id = 55
 conn = conn[:,:,subj_id]
 
 # define set of nodes
@@ -50,13 +50,12 @@ rsn_mapping = np.load(os.path.join(DATA_DIR, 'rsn_mapping.npy'))
 # Evaluate memory capacity
 from conn2res import workflows
 
-
 # echo state network
 MC = workflows.memory_capacity(resname='EchoStateNetwork',
                                conn=conn,
                                input_nodes=input_nodes,
                                output_nodes=output_nodes,
-                               # readout_modules=rsn_mapping[output_nodes],
+                               readout_modules=rsn_mapping[output_nodes],
                                alphas=np.linspace(0,4,21),
                                input_gain=1.0,
                                tau_max=16,
@@ -64,16 +63,16 @@ MC = workflows.memory_capacity(resname='EchoStateNetwork',
                                activation_function='linear',
                                )
 
-# memristive network
-MC = workflows.memory_capacity(resname='MSSNetwork',
-                                conn=conn,
-                                int_nodes=int_nodes,
-                                ext_nodes=ext_nodes,
-                                gr_nodes=gr_nodes,
-                                # readout_modules=rsn_mapping[int_nodes],
-                                alphas=[1.0],
-                                input_gain=1.0,
-                                tau_max=16,
-                                plot_res=True,
-                                mode='forward',
-                                )
+# # memristive network
+# MC = workflows.memory_capacity(resname='MSSNetwork',
+#                                 conn=conn,
+#                                 int_nodes=int_nodes,
+#                                 ext_nodes=ext_nodes,
+#                                 gr_nodes=gr_nodes,
+#                                 # readout_modules=rsn_mapping[int_nodes],
+#                                 alphas=[1.0],
+#                                 input_gain=1.0,
+#                                 tau_max=16,
+#                                 plot_res=True,
+#                                 mode='forward',
+#                                 )

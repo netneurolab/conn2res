@@ -145,7 +145,7 @@ class EchoStateNetwork(Reservoir):
         # simulation of the dynamics
         for t in timesteps:
 
-            if (t>0) and (t%100 == 0): print(f'\t ----- timestep = {t}')
+            # if (t>0) and (t%100 == 0): print(f'\t ----- timestep = {t}')
 
             synap_input = np.dot(self._state[t-1,:], self.w_hh) + np.dot(ext_input[t-1,:], self.w_ih)
             self._state[t,:] = self.activation_function(synap_input)

@@ -5,10 +5,14 @@ Functions for generating input/output data for tasks
 @author: Estefany Suarez
 """
 
+import os
+from re import I
 import numpy as np
-from gym import spaces
 import neurogym as ngym
+import matplotlib.pyplot as plt
+import seaborn as sns
 
+from .task import select_model
 
 NEUROGYM_TASKS = [
                 'AntiReach',
@@ -24,7 +28,7 @@ NEUROGYM_TASKS = [
                 'DualDelayMatchSample',
                 # 'EconomicDecisionMaking',
                 'GoNogo',
-                'HierarchicalReasoning',
+                # 'HierarchicalReasoning',
                 'IntervalDiscrimination',
                 'MotorTiming',
                 'MultiSensoryIntegration',
@@ -45,14 +49,14 @@ NEUROGYM_TASKS = [
             ]
 
 
-CONN2RES_TASKS = [
+NATIVE_TASKS = [
                 'MemoryCapacity',
                 # 'TemporalPatternRecognition'  
                 ]
 
 
 def get_available_tasks():
-    return NEUROGYM_TASKS
+    return NEUROGYM_TASKS #+ NATIVE_TASKS
 
 
 def unbatch(x):
@@ -89,7 +93,7 @@ def encode_labels(labels):
     return enc_labels
 
 
-def fetch_dataset(task, unbatch_data=True, **kwargs):
+def fetch_dataset(task, n_trials=100, *args, **kwargs):
     """
     Fetches inputs and labels for 'task' from the NeuroGym 
     repository
@@ -110,6 +114,7 @@ def fetch_dataset(task, unbatch_data=True, **kwargs):
     'SingleContextDecisionMaking', 'SpatialSuppressMotion',
     'ToneDetection'}
     Task to be performed
+    
     unbatch_data : bool, optional
         If True, it adds an extra dimension to inputs and labels 
         that corresponds to the batch_size. Otherwise, it returns an
@@ -125,32 +130,47 @@ def fetch_dataset(task, unbatch_data=True, **kwargs):
     """
 
     if task in NEUROGYM_TASKS:
-        # create a Dataset object from NeuroGym
-        dataset = ngym.Dataset(task+'-v0')
-    
-        # get inputs and labels for 'task'
-        inputs, labels = dataset()
-        
-        if unbatch_data:
-            return unbatch(inputs), unbatch(labels)
 
-    elif task in CONN2RES_TASKS:
+        # create a Dataset object from NeuroGym
+        kwargs = {'dt': 100}
+        dataset = ngym.Dataset(task+'-v0', env_kwargs=kwargs)
+
+        # get environment object 
+        env = dataset.env
+
+        # generate per trial dataset
+        _ = env.reset()
+        inputs = []
+        labels = []
+        for trial in range(n_trials):
+            env.new_trial()
+            ob, gt = env.ob, env.gt
+
+            # store input
+            inputs.append(ob)
+
+            # store labels
+            if gt.ndim == 1: labels.append(gt[:, np.newaxis])
+            else: labels.append(gt)
+
+    elif task in NATIVE_TASKS:
         # create a native conn2res Dataset 
-        inputs, labels = create_dataset(task, **kwargs)
+        inputs, labels = create_nativet_dataset(task, **kwargs)
 
     return inputs, labels
 
 
-def create_dataset(task, tau_max=20, **kwargs):
+def create_nativet_dataset(task, tau_max=20, **kwargs):
 
     if task == 'MemoryCapacity':
         x = np.random.uniform(-1, 1, (1000+tau_max))[:,np.newaxis]
-        y = np.hstack([x[tau_max-tau:-tau][:,np.newaxis] for tau in range(1,tau_max+1)])
-
-    return x,y
+        y = np.hstack([x[tau_max-tau:-tau] for tau in range(1,tau_max+1)])
+    
+    return x, y
 
 
 def split_dataset(data, frac_train=0.7):
+
     """
     Splits data into training and test sets according to
     'frac_train'
@@ -169,6 +189,68 @@ def split_dataset(data, frac_train=0.7):
     test_set     : numpy.ndarray
         array with test observations
     """
-    n_train = int(frac_train * data.shape[0])
 
-    return data[:n_train], data[n_train:]
+    n_train = int(frac_train * len(data))
+
+    if isinstance(data, list):
+        return np.vstack(data[:n_train]), np.vstack(data[n_train:])
+    else:
+        return data[:n_train], data[n_train:]
+
+
+def visualize_data(task, x, y, plot=True):
+    """
+    #TODO
+    Visualizes dataset for task
+
+    Parameters
+    ----------
+    task : str
+    x,y  : list or numpy.ndarray
+        
+    """
+
+    print(f'\n----- {task.upper()} -----')
+    print(f'\tNumber of trials = {len(x)}')
+
+    # convert x and y to arrays for visualization
+    if isinstance(x, list): x = np.vstack(x[:5])
+    if isinstance(y, list): y = np.vstack(y[:5]).squeeze()
+
+    print(f'\tinputs shape = {x.shape}')
+    print(f'\tlabels shape = {y.shape}')
+
+    # number of features, labels and classes 
+    try: n_features = x.shape[1]
+    except: n_features = 1
+
+    try: n_labels = y.shape[1]
+    except: n_labels = 1
+    n_classes = len(np.unique(y))
+
+    model = select_model(y)
+    
+    print(f'\t  n_features = {n_features}')
+    print(f'\tn_labels   = {n_labels}')
+    print(f'\tn_classes  = {n_classes}')
+    print(f'\tlabel type : {y.dtype}')
+    print(f'\tmodel = {model.__name__}')
+
+    if plot:
+        fig = plt.figure(num=1, figsize=(12,10))
+        ax = plt.subplot(111)
+
+        x_labels  = [f'I{n+1}' for n in range(n_features)]
+        y_labels = [f'O{n+1}' for n in range(n_labels)]
+
+        plt.plot(x[:], label=x_labels)
+        plt.plot(y[:], label=y_labels)
+        plt.legend()
+        plt.suptitle(task)
+        sns.despine(offset=10, trim=True)
+
+        fig.savefig(fname=f'figs/{task}.png', transparent=True, bbox_inches='tight', dpi=300)
+        # plt.show()
+        plt.close()
+    
+

@@ -72,12 +72,12 @@ def memory_capacity_reservoir(conn, input_nodes, output_nodes, readout_modules=N
         rs = rs[tau_max:]
 
         # split data into training and test sets
-        x_train, x_test = iodata.split_dataset(rs)
+        rs_train, rs_test = iodata.split_dataset(rs)
         y_train, y_test = iodata.split_dataset(y)
 
         # perform task
         try:
-            df_ = coding.encoder(reservoir_states=(x_train, x_test),
+            df_ = coding.encoder(reservoir_states=(rs_train, rs_test),
                                 target=(y_train, y_test),
                                 readout_modules=readout_modules,
                                 readout_nodes=readout_nodes
@@ -129,7 +129,7 @@ def memory_capacity_memreservoir(conn, int_nodes, ext_nodes, gr_nodes, readout_m
     # conn  = conn / np.max(ew)
 
     # get dataset for memory capacity task
-    x, y = iodata.fetch_dataset('MemoryCapacity', tau_max=tau_max)
+    x, y, _ = iodata.fetch_dataset('MemoryCapacity', tau_max=tau_max)
     x = np.tile(x, (1,len(ext_nodes)))
 
     # evaluate network performance across various dynamical regimes
@@ -156,12 +156,12 @@ def memory_capacity_memreservoir(conn, int_nodes, ext_nodes, gr_nodes, readout_m
         rs = rs[tau_max:]
 
         # split data into training and test sets
-        x_train, x_test = iodata.split_dataset(rs)
+        rs_train, rs_test = iodata.split_dataset(rs)
         y_train, y_test = iodata.split_dataset(y)
 
         # perform task
         try:
-            df_ = coding.encoder(reservoir_states=(x_train, x_test),
+            df_ = coding.encoder(reservoir_states=(rs_train, rs_test),
                                  target=(y_train, y_test),
                                  readout_modules=readout_modules,
                                  readout_nodes=readout_nodes
