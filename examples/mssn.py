@@ -34,41 +34,25 @@ n_reservoir_nodes = len(conn)
 # binarize connectivity matrix
 conn = conn.astype(bool).astype(int)
 
-# normalize connectivity matrix by the spectral radius.
-from scipy.linalg import eigh
+# # normalize connectivity matrix by the spectral radius.
+# from scipy.linalg import eigh
 
-ew, _ = eigh(conn)
-conn  = conn / np.max(ew)
+# ew, _ = eigh(conn)
+# conn  = conn / np.max(ew)
 
 ###############################################################################
 # Second let's get the data to perform the task. We first generate the data and
 # then we split it into training and test sets. 'x' corresponds to the input
 # signals and 'y' corresponds to the output labels.
-
 from conn2res import iodata
-import matplotlib.pyplot as plt
 
-task = 'MemoryCapacity' # 'PerceptualDecisionMaking', 'GoNogo'
-x, y = iodata.fetch_dataset(task)
+# get trial-based dataset for task
+task = 'PerceptualDecisionMaking'
+n_trials = 1000
+x, y = iodata.fetch_dataset(task, n_trials=n_trials)
 
-# # visualizing input/output data 
-# print(f'\n----{task}-----')
-# x_labels = [f'i{n+1}' for n in range(x.shape[1])]
-# plt.plot(x[:], label=x_labels)
-# plt.plot(y[:], label='label')
-# plt.legend()
-# plt.suptitle(task)
-# plt.show()
-# plt.close()
-
-n_features = x.shape[1]
-print(f'n_features = {n_features}')
-
-# n_labels   = y.shape[1]
-# print(f'n_labels = {n_labels}')
-
-n_obs = x.shape[0]
-print(f'n_observations = {n_obs}')
+# visualize task data
+iodata.visualize_data(task, x, y, plot=False)
 
 # split data into training and test sets
 x_train, x_test = iodata.split_dataset(x)
@@ -81,6 +65,7 @@ y_train, y_test = iodata.split_dataset(y)
 # define sets of internal, external and ground nodes
 ctx  = np.load(os.path.join(DATA_DIR, 'cortical.npy'))
 
+n_features = x_train.shape[1]
 nodes = np.arange(n_reservoir_nodes)
 gr_nodes  = np.random.choice(np.where(ctx == 1)[0], 1) # we select a single random ground node from cortical regions
 ext_nodes = np.random.choice(np.where(ctx == 0)[0], n_features) # we select a random set of input nodes from subcortical regions
@@ -101,9 +86,9 @@ rsn_mapping = rsn_mapping[output_nodes] # we select the mapping only for output 
 import pandas as pd
 from conn2res import reservoir, coding
 
-alphas = np.linspace(0,2,11) 
+alphas = np.linspace(0,2,11)[1:]
 df_subj = []
-for alpha in alphas[1:]:
+for alpha in alphas:
     
     print(f'\n----------------------- alpha = {alpha} -----------------------')
 
@@ -116,7 +101,7 @@ for alpha in alphas[1:]:
 
     # simulate reservoir states; select only readout nodes.
     rs_train = MMN.simulate(Vext=x_train[:], mode='forward')[:,output_nodes]
-    rs_test  = MMN.simulate(Vext=x_test[:],  mode='backward')[:,output_nodes] 
+    rs_test  = MMN.simulate(Vext=x_test[:],  mode='forward')[:,output_nodes] 
     
     # perform task
     df = coding.encoder(reservoir_states=(rs_train, rs_test),
@@ -137,15 +122,25 @@ df_subj['score'] = df_subj['score'].astype(float)
    
 #############################################################################
 # Now we plot the performance curve
+import matplotlib.pyplot as plt
 import seaborn as sns
 
 sns.set(style="ticks", font_scale=2.0)  
 fig = plt.figure(num=1, figsize=(12,10))
 ax = plt.subplot(111)
+
+n_modules = len(np.unique(df_subj['module']))
+palette = sns.color_palette('husl', n_modules+1)[:n_modules]
+
+if 'VIS' in list(np.unique(df_subj['module'])):
+    hue_order =['VIS', 'SM', 'DA', 'VA', 'LIM', 'FP', 'DMN']
+else:
+    hue_order = None
+
 sns.lineplot(data=df_subj, x='alpha', y='score', 
              hue='module', 
-             hue_order=['VIS', 'SM', 'DA', 'VA', 'LIM', 'FP', 'DMN'],
-             palette=sns.color_palette('husl', 7), 
+             hue_order=hue_order,
+             palette=palette, 
              markers=True, 
              ax=ax)
 sns.despine(offset=10, trim=True)

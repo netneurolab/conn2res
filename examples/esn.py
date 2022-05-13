@@ -4,8 +4,7 @@ Connectome-informed reservoir - Echo-State Network
 =================================================
 This example demonstrates how to use the conn2res toolbox 
 to perform a task using a human connectomed-informed
-Echo-State network while playing with the dynamics of the 
-reservoir (Jaeger, 2000).
+Echo-State network (Jaeger, 2000).
 """
 
 import warnings
@@ -48,8 +47,8 @@ conn  = conn / np.max(ew)
 from conn2res import iodata
 
 # get trial-based dataset for task
-task = 'PerceptualDecisionMaking' #'GoNogo' #'PerceptualDecisionMaking' 
-n_trials = 600
+task = 'PerceptualDecisionMaking' 
+n_trials = 1000
 x, y = iodata.fetch_dataset(task, n_trials=n_trials)
 
 # visualize task data
@@ -87,7 +86,7 @@ rsn_mapping = rsn_mapping[output_nodes] # we select the mapping only for output 
 import pandas as pd
 from conn2res import reservoir, coding
 
-alphas = np.linspace(0,2,11)[1:] #np.linspace(0,2,41)
+alphas = np.linspace(0,2,11)[1:]
 df_subj = []
 for alpha in alphas:
     
@@ -106,7 +105,7 @@ for alpha in alphas:
     # perform task
     df = coding.encoder(reservoir_states=(rs_train, rs_test),
                         target=(y_train, y_test),
-                        # readout_modules=rsn_mapping,
+                        readout_modules=rsn_mapping,
                         )
 
     df['alpha'] = np.round(alpha, 3)

@@ -69,22 +69,17 @@ def encoder(reservoir_states, target, readout_modules=None,\
             module_ids, readout_modules = get_modules(readout_modules)
         
         elif isinstance(readout_modules, dict):
-            readout_modules = list(readout_modules.values())
             module_ids      = list(readout_modules.keys())
+            readout_modules = list(readout_modules.values())
 
         elif isinstance(readout_modules, list):            
             module_ids = np.arange(len(readout_modules))
         
-        # #TODO print error message
-        # assert isinstance(readout_modules, list):
-        #     "readout_modules should either be an array with
-        #        module ids, a list of readout_nodes"
-
         # perform task using as readout nodes every module in readout_modules
         df_encoding = []
         for i, readout_nodes in enumerate(readout_modules):
 
-            print(f'\t-------- Module : {module_ids[i]} with {len(readout_nodes)} nodes --------')
+            print(f'\t   -- Module : {module_ids[i]} with {len(readout_nodes)} nodes --')
 
             # create temporal dataframe
             df_module = run_task(reservoir_states=(reservoir_states[0][:,readout_nodes], reservoir_states[1][:,readout_nodes]), # reservoir_states[:,:,readout_nodes],

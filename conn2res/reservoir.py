@@ -130,7 +130,7 @@ class EchoStateNetwork(Reservoir):
             N: number of nodes in the network
         """
 
-        print('\n GENERATING RESERVOIR STATES ...')
+        # print('\n GENERATING RESERVOIR STATES ...')
 
         # check data type for ext_input. If list convert to numpy.ndarray
         if isinstance(ext_input, list): ext_input = np.asarray(ext_input)
@@ -444,8 +444,8 @@ class MemristiveReservoir:
             N: number of nodes in the network
         """
 
-        print('\n GENERATING RESERVOIR STATES ...')
-        print(f'\n SIMULATING STATES IN {mode.upper()} MODE ...')
+        # print('\n GENERATING RESERVOIR STATES ...')
+        # print(f'\n SIMULATING STATES IN {mode.upper()} MODE ...')
 
         # initialize reservoir states
         self._state = np.zeros((len(Vext), self._n_nodes))

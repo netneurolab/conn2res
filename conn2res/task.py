@@ -190,7 +190,7 @@ def run_task(reservoir_states, target, **kwargs):
         data frame with task scores
     """
 
-    print('\n PERFORMING TASK ...')
+    # print('\n PERFORMING TASK ...')
 
     # verify dimensions of x and y
     x_train, x_test, y_train, y_test = check_xy_dims(x=reservoir_states, y=target)
@@ -199,7 +199,7 @@ def run_task(reservoir_states, target, **kwargs):
     func = select_model(y=y_train)
 
     score = func(x=(x_train, x_test), y=(y_train, y_test), **kwargs)
-    print(f'\tscore = {score}')
+    print(f'\t\t score = {score}')
 
     df_res = pd.DataFrame(data=[score],
                           columns=['score'])

@@ -188,9 +188,10 @@ def memory_capacity_memreservoir(conn, int_nodes, ext_nodes, gr_nodes, readout_m
 def memory_capacity(resname, **kwargs):
 
     if resname == 'EchoStateNetwork':
-        memory_capacity_reservoir(resname=resname, **kwargs)
+        return memory_capacity_reservoir(resname=resname, **kwargs)
     elif resname == 'MSSNetwork':
-        memory_capacity_memreservoir(resname=resname, **kwargs)
+        return memory_capacity_memreservoir(resname=resname, **kwargs)
+
 
 
 def plot(df, title):

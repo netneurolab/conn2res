@@ -247,10 +247,10 @@ def visualize_data(task, x, y, plot=True):
         plt.plot(y[:], label=y_labels)
         plt.legend()
         plt.suptitle(task)
+        
         sns.despine(offset=10, trim=True)
-
-        fig.savefig(fname=f'figs/{task}.png', transparent=True, bbox_inches='tight', dpi=300)
-        # plt.show()
+        # fig.savefig(fname=f'figs/{task}_io.png', transparent=True, bbox_inches='tight', dpi=300)
+        plt.show()
         plt.close()
     
 
