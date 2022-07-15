@@ -22,7 +22,7 @@ from sklearn.ensemble import RandomForestRegressor
 import matplotlib.pyplot as plt
 
 
-def check_xy_dims(x,y):
+def check_xy_dims(x, y):
     """
     Check that X,Y have the right dimensions
     #TODO
@@ -32,13 +32,13 @@ def check_xy_dims(x,y):
 
     if ((x_train.ndim == 1) and (x_test.ndim == 1)):
         x_train = x_train[:, np.newaxis]
-        x_test  = x_test[:, np.newaxis]
+        x_test = x_test[:, np.newaxis]
     elif ((x_train.ndim > 2) and (x_test.ndim > 2)):
         x_train = x_train.squeeze()
-        x_test  = x_test.squeeze()
+        x_test = x_test.squeeze()
 
     y_train = y_train.squeeze()
-    y_test  = y_test.squeeze()
+    y_test = y_test.squeeze()
 
     return x_train, x_test, y_train, y_test
 
@@ -52,7 +52,8 @@ def regression(x, y, **kwargs):
     x_train, x_test = x
     y_train, y_test = y
 
-    model = Ridge(fit_intercept=False, alpha=0.5, **kwargs).fit(x_train, y_train)
+    model = Ridge(fit_intercept=False, alpha=0.5,
+                  **kwargs).fit(x_train, y_train)
     score = model.score(x_test, y_test)
 
     return score
@@ -67,14 +68,16 @@ def multiOutputRegression(x, y, **kwargs):
     x_train, x_test = x
     y_train, y_test = y
 
-    model = MultiOutputRegressor(Ridge(fit_intercept=False, alpha=0.5, **kwargs)).fit(x_train, y_train)
+    model = MultiOutputRegressor(
+        Ridge(fit_intercept=False, alpha=0.5, **kwargs)).fit(x_train, y_train)
 
     y_pred = model.predict(x_test)
     n_outputs = y_pred.shape[1]
 
     score = []
     for output in range(n_outputs):
-        score.append(np.abs((np.corrcoef(y_test[:,output], y_pred[:,output])[0][1])))
+        score.append(
+            np.abs((np.corrcoef(y_test[:, output], y_pred[:, output])[0][1])))
 
     return np.sum(score)
 
@@ -88,8 +91,9 @@ def classification(x, y, **kwargs):
     x_train, x_test = x
     y_train, y_test = y
 
-    model = RidgeClassifier(alpha=0.0, fit_intercept=True, **kwargs).fit(x_train, y_train)
-    score  = model.score(x_test, y_test)
+    model = RidgeClassifier(alpha=0.0, fit_intercept=True,
+                            **kwargs).fit(x_train, y_train)
+    score = model.score(x_test, y_test)
 
     # # confusion matrix
     # ConfusionMatrixDisplay.from_predictions(y_test, model.predict(x_test))
@@ -110,9 +114,10 @@ def multiClassClassification(x, y, **kwargs):
 
     # capture only decision time points
     idx_train = np.nonzero(y_train)
-    idx_test  = np.nonzero(y_test)
+    idx_test = np.nonzero(y_test)
 
-    model = OneVsRestClassifier(RidgeClassifier(alpha=0.0, fit_intercept=False, **kwargs)).fit(x_train[idx_train], y_train[idx_train])
+    model = OneVsRestClassifier(RidgeClassifier(
+        alpha=0.0, fit_intercept=False, **kwargs)).fit(x_train[idx_train], y_train[idx_train])
     score = model.score(x_test[idx_test], y_test[idx_test])
 
     # # confusion matrix
@@ -136,9 +141,10 @@ def multiOutputClassification(x, y, **kwargs):
     x_train, x_test = x
     y_train, y_test = y
 
-    model = MultiOutputClassifier(RidgeClassifier(alpha=0.5, fit_intercept=True, **kwargs)).fit(x_train, y_train)
-    score = model.score(x_test, y_test)    
-    
+    model = MultiOutputClassifier(RidgeClassifier(
+        alpha=0.5, fit_intercept=True, **kwargs)).fit(x_train, y_train)
+    score = model.score(x_test, y_test)
+
     return score
 
 
@@ -148,22 +154,22 @@ def select_model(y):
     variable
     #TODO
     """
-    
+
     if y.dtype in [np.float32, np.float64]:
         if y.ndim == 1:
-            return regression # regression 
+            return regression  # regression
         else:
-            return multiOutputRegression # multilabel regression
+            return multiOutputRegression  # multilabel regression
 
     elif y.dtype in [np.int32, np.int64]:
         if y.ndim == 1:
-            if len(np.unique(y)) == 2: # binary classification
+            if len(np.unique(y)) == 2:  # binary classification
                 return classification
             else:
-                return multiClassClassification # multiclass classification
+                return multiClassClassification  # multiclass classification
         else:
-            return multiOutputClassification # multilabel and/or multiclass classification
-    
+            return multiOutputClassification  # multilabel and/or multiclass classification
+
 
 def run_task(reservoir_states, target, **kwargs):
     """
@@ -193,9 +199,10 @@ def run_task(reservoir_states, target, **kwargs):
     # print('\n PERFORMING TASK ...')
 
     # verify dimensions of x and y
-    x_train, x_test, y_train, y_test = check_xy_dims(x=reservoir_states, y=target)
+    x_train, x_test, y_train, y_test = check_xy_dims(
+        x=reservoir_states, y=target)
 
-    # select training model 
+    # select training model
     func = select_model(y=y_train)
 
     score = func(x=(x_train, x_test), y=(y_train, y_test), **kwargs)
