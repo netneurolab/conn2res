@@ -9,10 +9,9 @@ import os
 from re import I
 import numpy as np
 import neurogym as ngym
-import matplotlib.pyplot as plt
-import seaborn as sns
 
 from .task import select_model
+from . import plotting
 
 PROJ_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA_DIR = os.path.join(PROJ_DIR, 'examples', 'data')
@@ -252,18 +251,4 @@ def visualize_data(task, x, y, plot=True):
     print(f'\tmodel = {model.__name__}')
 
     if plot:
-        fig = plt.figure(num=1, figsize=(12, 10))
-        ax = plt.subplot(111)
-
-        x_labels = [f'I{n+1}' for n in range(n_features)]
-        y_labels = [f'O{n+1}' for n in range(n_labels)]
-
-        plt.plot(x[:], label=x_labels)
-        plt.plot(y[:], label=y_labels)
-        plt.legend()
-        plt.suptitle(task)
-
-        sns.despine(offset=10, trim=True)
-        # fig.savefig(fname=f'figs/{task}_io.png', transparent=True, bbox_inches='tight', dpi=300)
-        plt.show()
-        plt.close()
+        plotting.plot_task(x, y, task)

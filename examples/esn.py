@@ -7,9 +7,7 @@ to perform a task using a human connectomed-informed
 Echo-State network (Jaeger, 2000).
 """
 
-import seaborn as sns
-import matplotlib.pyplot as plt
-from conn2res import reservoir, coding
+from conn2res import reservoir, coding, plotting
 import pandas as pd
 from conn2res import iodata
 from scipy.linalg import eigh
@@ -124,25 +122,4 @@ df_subj['score'] = df_subj['score'].astype(float)
 ############################################################################
 # Now we plot the performance curve
 
-sns.set(style="ticks", font_scale=2.0)
-fig = plt.figure(num=1, figsize=(12, 10))
-ax = plt.subplot(111)
-
-n_modules = len(np.unique(df_subj['module']))
-palette = sns.color_palette('husl', n_modules+1)[:n_modules]
-
-if 'VIS' in list(np.unique(df_subj['module'])):
-    hue_order = ['VIS', 'SM', 'DA', 'VA', 'LIM', 'FP', 'DMN']
-else:
-    hue_order = None
-
-sns.lineplot(data=df_subj, x='alpha', y='score',
-             hue='module',
-             hue_order=hue_order,
-             palette=palette,
-             markers=True,
-             ax=ax)
-sns.despine(offset=10, trim=True)
-plt.title(task)
-plt.plot()
-plt.show()
+plotting.plot_performance_curve(df_subj, task)

@@ -19,7 +19,7 @@ from sklearn.multioutput import MultiOutputRegressor, MultiOutputClassifier
 from sklearn.metrics import accuracy_score, confusion_matrix, ConfusionMatrixDisplay
 from sklearn.ensemble import RandomForestRegressor
 
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
 
 
 def check_xy_dims(x, y):

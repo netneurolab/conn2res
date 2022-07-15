@@ -10,8 +10,6 @@ import numpy as np
 import numpy.ma as ma
 from numpy.linalg import (pinv, matrix_rank)
 
-import matplotlib.pyplot as plt
-
 
 class Reservoir:
     """
