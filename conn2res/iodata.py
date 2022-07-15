@@ -14,6 +14,9 @@ import seaborn as sns
 
 from .task import select_model
 
+PROJ_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+DATA_DIR = os.path.join(PROJ_DIR, 'examples', 'data')
+
 NEUROGYM_TASKS = [
     'AntiReach',
     # 'Bandit',
@@ -53,6 +56,10 @@ NATIVE_TASKS = [
     'MemoryCapacity',
     # 'TemporalPatternRecognition'
 ]
+
+
+def load_file(filename):
+    return np.load(os.path.join(DATA_DIR, filename))
 
 
 def get_available_tasks():

@@ -9,11 +9,9 @@ Memristive network
 
 import seaborn as sns
 import matplotlib.pyplot as plt
-from conn2res import reservoir, coding
+from conn2res import reservoir, coding, iodata
 import pandas as pd
-from conn2res import iodata
 import numpy as np
-import os
 import warnings
 warnings.simplefilter(action='ignore', category=FutureWarning)
 warnings.simplefilter(action='ignore', category=RuntimeWarning)
@@ -25,11 +23,8 @@ warnings.simplefilter(action='ignore', category=UserWarning)
 # parcellated into 1015 brain regions following the Desikan  Killiany atlas
 # (Desikan, et al., 2006).
 
-PROJ_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-DATA_DIR = os.path.join(PROJ_DIR, 'examples', 'data')
-
 # load connectivity data
-conn = np.load(os.path.join(DATA_DIR, 'connectivity.npy'))
+conn = iodata.load_file('connectivity.npy')
 
 # select one subject
 subj_id = 10
@@ -67,7 +62,7 @@ y_train, y_test = iodata.split_dataset(y)
 # generated input signal x (x_train and x_test).
 
 # define sets of internal, external and ground nodes
-ctx = np.load(os.path.join(DATA_DIR, 'cortical.npy'))
+ctx = iodata.load_file('cortical.npy')
 
 n_features = x_train.shape[1]
 nodes = np.arange(n_reservoir_nodes)
@@ -86,7 +81,7 @@ output_nodes = np.setdiff1d(np.where(ctx == 1)[0], gr_nodes)
 
 # We will use resting-state networks as readout modules. These intrinsic networks
 # define different sets of output nodes
-rsn_mapping = np.load(os.path.join(DATA_DIR, 'rsn_mapping.npy'))
+rsn_mapping = iodata.load_file('rsn_mapping.npy')
 # we select the mapping only for output nodes
 rsn_mapping = rsn_mapping[output_nodes]
 

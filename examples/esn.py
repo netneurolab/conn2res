@@ -7,7 +7,6 @@ to perform a task using a human connectomed-informed
 Echo-State network (Jaeger, 2000).
 """
 
-import os
 import seaborn as sns
 import matplotlib.pyplot as plt
 from conn2res import reservoir, coding
@@ -26,11 +25,8 @@ warnings.simplefilter(action='ignore', category=UserWarning)
 # parcellated into 1015 brain regions following the Desikan  Killiany atlas
 # (Desikan, et al., 2006).
 
-PROJ_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-DATA_DIR = os.path.join(PROJ_DIR, 'examples', 'data')
-
 # load connectivity data
-conn = np.load(os.path.join(DATA_DIR, 'connectivity.npy'))
+conn = iodata.load_file('connectivity.npy')
 
 # select one subject
 subj_id = 0
@@ -67,7 +63,7 @@ y_train, y_test = iodata.split_dataset(y)
 # generated input signal x (x_train and x_test).
 
 # define set of input nodes
-ctx = np.load(os.path.join(DATA_DIR, 'cortical.npy'))
+ctx = iodata.load_file('cortical.npy')
 # we use subcortical regions as input nodes
 subctx_nodes = np.where(ctx == 0)[0]
 
@@ -85,7 +81,7 @@ w_in[np.ix_(np.arange(n_features), input_nodes)] = 10.0
 
 # We will use resting-state networks as readout modules. These intrinsic networks
 # define different sets of output nodes
-rsn_mapping = np.load(os.path.join(DATA_DIR, 'rsn_mapping.npy'))
+rsn_mapping = iodata.load_file('rsn_mapping.npy')
 # we select the mapping only for output nodes
 rsn_mapping = rsn_mapping[output_nodes]
 

@@ -8,9 +8,8 @@ Echo-State network while playing with the dynamics of the reservoir
 (Jaeger, 2000).
 """
 
-from conn2res import workflows
+from conn2res import workflows, iodata
 import numpy as np
-import os
 import warnings
 warnings.simplefilter(action='ignore', category=UserWarning)
 
@@ -20,11 +19,8 @@ warnings.simplefilter(action='ignore', category=UserWarning)
 # parcellated into 1015 brain regions following the Desikan  Killiany atlas
 # (Desikan, et al., 2006).
 
-PROJ_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-DATA_DIR = os.path.join(PROJ_DIR, 'examples', 'data')
-
 # load connectivity data
-conn = np.load(os.path.join(DATA_DIR, 'connectivity.npy'))
+conn = iodata.load_file('connectivity.npy')
 n_reservoir_nodes = len(conn)
 
 # select one subject
@@ -32,7 +28,7 @@ subj_id = 55
 conn = conn[:, :, subj_id]
 
 # define set of nodes
-ctx = np.load(os.path.join(DATA_DIR, 'cortical.npy'))
+ctx = iodata.load_file('cortical.npy')
 
 # set of nodes for Echo State Network
 # we use subcortical regions as input nodes
@@ -51,7 +47,7 @@ int_nodes = np.setdiff1d(nodes, np.union1d(gr_nodes, ext_nodes))
 
 # We will use resting-state networks as readout modules. These intrinsic networks
 # define different sets of output nodes
-rsn_mapping = np.load(os.path.join(DATA_DIR, 'rsn_mapping.npy'))
+rsn_mapping = iodata.load_file('rsn_mapping.npy')
 
 # Evaluate memory capacity
 
