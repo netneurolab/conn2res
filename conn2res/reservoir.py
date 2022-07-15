@@ -137,7 +137,7 @@ class EchoStateNetwork(Reservoir):
             ext_input = np.asarray(ext_input)
 
         # initialize reservoir states
-        timesteps = range(1, len(ext_input))
+        timesteps = range(1, len(ext_input)+1)
         self._state = np.zeros((len(timesteps)+1, self.hidden_size))
 
         # set initial conditions
@@ -148,10 +148,12 @@ class EchoStateNetwork(Reservoir):
         for t in timesteps:
 
             # if (t>0) and (t%100 == 0): print(f'\t ----- timestep = {t}')
-
             synap_input = np.dot(
                 self._state[t-1, :], self.w_hh) + np.dot(ext_input[t-1, :], self.w_ih)
             self._state[t, :] = self.activation_function(synap_input)
+
+        # remove initial condition to match the time index of _state and ext_input
+        self._state = np.delete(self._state, 0, axis=0)
 
         return self._state
 
@@ -230,11 +232,11 @@ class MemristiveReservoir:
 
     Methods
     ----------
-    #TODO
+    # TODO
 
     References
     ----------
-    #TODO
+    # TODO
 
     """
 
@@ -283,7 +285,7 @@ class MemristiveReservoir:
 
     def setW(self, w):
         """
-        #TODO
+        # TODO
         This function guarantees that W is binary and symmetric. Converts
         directed connectivity matrices in undirected.
 
@@ -325,11 +327,11 @@ class MemristiveReservoir:
 
         Parameters
         ----------
-        #TODO
+        # TODO
 
         Returns
         -------
-        #TODO
+        # TODO
 
         """
 
@@ -346,11 +348,11 @@ class MemristiveReservoir:
 
         Parameters
         ----------
-        #TODO
+        # TODO
 
         Returns
         -------
-        #TODO
+        # TODO
 
         """
 
@@ -389,11 +391,11 @@ class MemristiveReservoir:
 
         Parameters
         ----------
-        #TODO
+        # TODO
 
         Returns
         -------
-        #TODO
+        # TODO
 
         """
 
@@ -493,7 +495,7 @@ class MemristiveReservoir:
 
     def iterate(self, Ve, tol=5e-2, iters=100):
         """
-        #TODO
+        # TODO
 
         """
 
@@ -605,7 +607,7 @@ class MSSNetwork(MemristiveReservoir):
 
     Methods
     ----------
-    #TODO
+    # TODO
 
     """
 
@@ -659,7 +661,7 @@ class MSSNetwork(MemristiveReservoir):
 
         noise : float. Default: 0.1
 
-        #TODO
+        # TODO
         """
         super().__init__(*args, **kwargs)
 
@@ -681,7 +683,7 @@ class MSSNetwork(MemristiveReservoir):
 
     def dG(self, V, G=None, dt=1e-4):
         """
-        #TODO
+        # TODO
         This function updates the conductance matrix G given V
 
         Parameters
@@ -772,7 +774,7 @@ def mask(reservoir, a):
     This functions converts to zero all entries in matrix 'a' for which there is
     no existent connection
 
-    #TODO
+    # TODO
     """
 
     a[np.where(reservoir._W == 0)] = 0
@@ -783,7 +785,7 @@ def check_symmetric(a, tol=1e-16):
     """
     This functions checks whether matrix 'a' is symmetric
 
-    #TODO
+    # TODO
     """
     return np.allclose(a, a.T, atol=tol)
 
@@ -799,7 +801,7 @@ def check_square(a):
     """
     This functions checks whether matrix 'a' is square
 
-    #TODO
+    # TODO
     """
 
     s = a.shape
