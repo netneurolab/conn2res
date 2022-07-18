@@ -9,6 +9,222 @@ import itertools as itr
 import numpy as np
 import numpy.ma as ma
 from numpy.linalg import (pinv, matrix_rank)
+from scipy.linalg import eigh
+from bct.algorithms.clustering import get_components
+from bct.algorithms.distance import distance_bin
+
+from .iodata import load_file
+from .coding import get_modules
+
+
+class Conn:
+    """
+    Class that represents a connectivity matrix representing either weighted
+    or unweighted connectivity data
+
+    Attributes
+    ----------
+    # TODO
+
+    Methods
+    ----------
+    # TODO
+    """
+
+    def __init__(self, subj_id=0):
+        # load connectivity data
+        self.w = load_file('connectivity.npy')
+
+        # select one subject
+        self.w = self.w[:, :, subj_id]
+
+        # number of all active nodes
+        self.n_nodes = len(self.w)
+
+        # indexes of set of active nodes
+        self.idx_node = np.full(self.n_nodes, True)
+
+    def scale_and_normalize(self):
+        """
+        Scales the connectivity matrix between [0, 1] and divides by spectral
+        radius
+
+        # TODO
+        """
+
+        # scale connectivity matrix between [0, 1]
+        self.scale()
+
+        # divide connectivity matrix by spectral radius
+        self.normalize()
+
+    def scale(self):
+        """
+        Scales the connectivity matrix between [0, 1]
+
+        # TODO
+        """
+
+        # scale connectivity matrix between [0, 1]
+        self.w = (self.w - self.w.min()) / (self.w.max() - self.w.min())
+
+    def normalize(self):
+        """
+        Normalizes the connectivity matrix with spectral radius
+
+        # TODO
+        """
+
+        # divide connectivity matrix by spectral radius
+        ew, _ = eigh(self.w)
+        self.w = self.w / np.max(ew)
+
+    def binarize(self):
+        """
+        Binarizes the connectivity matrix
+
+        # TODO
+        """
+
+        # binarize connectivity matrix
+        self.w = self.w.astype(bool).astype(int)
+
+    def subset_nodes(self, node_set, **kwargs):
+        """
+        Defines subset of nodes of the connectivity matrix and reduces
+        the connectivity matrix to this subset
+
+        # TODO
+        """
+
+        # get nodes
+        idx_node = np.isin(np.arange(self.n_nodes),
+                           self.get_nodes(node_set, **kwargs))
+
+        # update node attributes
+        self._update_nodes(idx_node)
+
+        # update component
+        self._update_component()
+
+    def get_nodes(self, node_set, nodes_from=None, nodes_without=None, n_nodes=1, **kwargs):
+        """
+        Gets a set of nodes of the connectivity matrix without changing 
+        the connectivity matrix itself
+
+        # TODO
+        """
+
+        # initialize fuller set of nodes we want to select from
+        if nodes_from is None:
+            nodes_from = np.arange(self.n_nodes)
+
+        if node_set == 'all':
+            # select all nodes without the ones we do not want to select from
+            selected_nodes = np.setdiff1d(nodes_from, nodes_without)
+
+        elif node_set in ['ctx', 'subctx']:
+            # load cortex and filter to active nodes
+            ctx = load_file('cortical.npy')
+            ctx = ctx[self.idx_node]
+
+            if node_set == 'ctx':
+                # select all nodes in cortex we want to select from
+                selected_nodes = np.where(ctx[nodes_from] == 1)[0]
+            elif node_set == 'subctx':
+                # select all nodes in subcortex we want to select from
+                selected_nodes = np.where(ctx[nodes_from] == 0)[0]
+
+            # remove nodes we do not want to select from
+            selected_nodes = np.setdiff1d(selected_nodes, nodes_without)
+
+        elif node_set == 'random':
+            # nodes we want to select from
+            nodes_from = np.setdiff1d(nodes_from, nodes_without)
+
+            # select random nodes
+            selected_nodes = np.random.choice(nodes_from, size=n_nodes)
+
+        elif node_set == 'shortest_path':
+            # calculate shortest paths between all nodes
+            D = distance_bin(self.w)
+            D = np.triu(D)  # remove repetitions
+
+            # nodes we want to select from
+            nodes_from = np.setdiff1d(nodes_from, nodes_without)
+
+            # shortest paths between all nodes of interest
+            D = D[np.ix_(nodes_from, nodes_from)]
+
+            # select all node pairs with requested shortest path from each other
+            if isinstance(kwargs['shortest_path'], str):
+                node_pairs = np.argwhere(D == np.amax(D))
+            elif isinstance(kwargs['shortest_path'], int):
+                node_pairs = np.argwhere(D == kwargs['shortest_path'])
+
+            # select requested number of nodes from the set above
+            if len(np.unique(node_pairs)) >= n_nodes:
+                i = 1
+                while len(np.unique(node_pairs[:i, :])) < n_nodes:
+                    i += 1
+                selected_nodes = nodes_from[np.unique(node_pairs[:i, :])]
+            else:
+                raise ValueError(
+                    'n_nodes do not exist with given shortest_path')
+
+        else:
+            # nodes we want to select from
+            nodes_from = np.setdiff1d(nodes_from, nodes_without)
+
+            # load resting-state networks and filter to active nodes
+            rsn_mapping = load_file('rsn_mapping.npy')
+            rsn_mapping = rsn_mapping[self.idx_node]
+
+            # get modules
+            module_ids, modules = get_modules(rsn_mapping)
+
+            if node_set in module_ids:
+                # select all nodes in the requested module
+                selected_nodes = [e for i, e in enumerate(
+                    modules) if (module_ids == node_set)[i]][0]
+
+                # intersection of nodes we want to select from
+                selected_nodes = np.intersect1d(selected_nodes, nodes_from)
+            else:
+                raise ValueError('node_set does not exist with given value')
+
+        return selected_nodes
+
+    def _update_component(self):
+        """
+        Updates a set of nodes so that they belong to one connected component
+
+        #TODO
+        """
+
+        # make sure that the connectivity matrix consists of one large component
+        comps, comp_sizes = get_components(self.w)
+        idx_node = comps == np.where(comp_sizes != 1)[0] + 1
+
+        # update node attributes
+        self._update_nodes(idx_node)
+
+    def _update_nodes(self, idx_node):
+        """
+        Updates attributes of a new subset of nodes
+
+        #TODO
+        """
+
+        if isinstance(idx_node, np.ndarray) and idx_node.dtype == np.bool:
+            # update node attributes
+            self.n_nodes = sum(idx_node)
+            self.idx_node[self.idx_node] = idx_node
+
+            # update weights
+            self.w = self.w[np.ix_(idx_node, idx_node)]
+        else:
+            raise NotImplementedError
 
 
 class Reservoir:
