@@ -43,7 +43,7 @@ def check_xy_dims(x, y):
     return x_train, x_test, y_train, y_test
 
 
-def regression(x, y, **kwargs):
+def regression(x, y, model=None, **kwargs):
     """
     Regression tasks
     #TODO
@@ -52,14 +52,21 @@ def regression(x, y, **kwargs):
     x_train, x_test = x
     y_train, y_test = y
 
-    model = Ridge(fit_intercept=False, alpha=0.5,
-                  **kwargs).fit(x_train, y_train)
+    # specify default model
+    if model is None:
+        model = Ridge(fit_intercept=False, alpha=0.5,
+                      **kwargs)
+
+    # fit model on training data
+    model.fit(x_train, y_train)
+
+    # calculate model scores on test data
     score = model.score(x_test, y_test)
 
     return score
 
 
-def multiOutputRegression(x, y, **kwargs):
+def multiOutputRegression(x, y, model=None, **kwargs):
     """
     Multiple output regression tasks
     #TODO
@@ -68,12 +75,17 @@ def multiOutputRegression(x, y, **kwargs):
     x_train, x_test = x
     y_train, y_test = y
 
-    model = MultiOutputRegressor(
-        Ridge(fit_intercept=False, alpha=0.5, **kwargs)).fit(x_train, y_train)
+    # specify default model
+    if model is None:
+        model = MultiOutputRegressor(
+            Ridge(fit_intercept=False, alpha=0.5, **kwargs))
 
+    # fit model on training data
+    model.fit(x_train, y_train)
+
+    # calculate model scores on test data
     y_pred = model.predict(x_test)
     n_outputs = y_pred.shape[1]
-
     score = []
     for output in range(n_outputs):
         score.append(
@@ -82,7 +94,7 @@ def multiOutputRegression(x, y, **kwargs):
     return np.sum(score)
 
 
-def classification(x, y, **kwargs):
+def classification(x, y, model=None, **kwargs):
     """
     Binary classification tasks
     #TODO
@@ -91,8 +103,14 @@ def classification(x, y, **kwargs):
     x_train, x_test = x
     y_train, y_test = y
 
-    model = RidgeClassifier(alpha=0.0, fit_intercept=True,
-                            **kwargs).fit(x_train, y_train)
+    # specify default model
+    if model is None:
+        model = RidgeClassifier(alpha=0.0, fit_intercept=True, **kwargs)
+
+    # fit model on training data
+    model.fit(x_train, y_train)
+
+    # calculate model scores on test data
     score = model.score(x_test, y_test)
 
     # # confusion matrix
@@ -103,7 +121,7 @@ def classification(x, y, **kwargs):
     return score
 
 
-def multiClassClassification(x, y, **kwargs):
+def multiClassClassification(x, y, model=None, **kwargs):
     """
     Multi-class Classification tasks
     #TODO
@@ -116,8 +134,15 @@ def multiClassClassification(x, y, **kwargs):
     idx_train = np.nonzero(y_train)
     idx_test = np.nonzero(y_test)
 
-    model = OneVsRestClassifier(RidgeClassifier(
-        alpha=0.0, fit_intercept=False, **kwargs)).fit(x_train[idx_train], y_train[idx_train])
+    # specify default model
+    if model is None:
+        model = OneVsRestClassifier(RidgeClassifier(
+            alpha=0.0, fit_intercept=False, **kwargs))
+
+    # fit model on training data
+    model.fit(x_train[idx_train], y_train[idx_train])
+
+    # calculate model scores on test data
     score = model.score(x_test[idx_test], y_test[idx_test])
 
     # # confusion matrix
@@ -132,7 +157,7 @@ def multiClassClassification(x, y, **kwargs):
     return score
 
 
-def multiOutputClassification(x, y, **kwargs):
+def multiOutputClassification(x, y, model=None, **kwargs):
     """
     Multiple output (binary and multi-class) classification tasks
     #TODO
@@ -141,8 +166,15 @@ def multiOutputClassification(x, y, **kwargs):
     x_train, x_test = x
     y_train, y_test = y
 
-    model = MultiOutputClassifier(RidgeClassifier(
-        alpha=0.5, fit_intercept=True, **kwargs)).fit(x_train, y_train)
+    # specify default model
+    if model is None:
+        model = MultiOutputClassifier(RidgeClassifier(
+            alpha=0.5, fit_intercept=True, **kwargs))
+
+    # fit model on training data
+    model.fit(x_train, y_train)
+
+    # calculate model scores on test data
     score = model.score(x_test, y_test)
 
     return score

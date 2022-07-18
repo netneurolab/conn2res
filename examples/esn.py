@@ -82,6 +82,9 @@ rsn_mapping = iodata.load_file('rsn_mapping.npy')
 # we select the mapping only for output nodes
 rsn_mapping = rsn_mapping[output_nodes]
 
+# specify model to train reservoir output on (ridge classifier by default)
+model = None
+
 # evaluate network performance across various dynamical regimes
 # we do so by varying the value of alpha
 
@@ -105,6 +108,7 @@ for alpha in alphas:
     df = coding.encoder(reservoir_states=(rs_train, rs_test),
                         target=(y_train, y_test),
                         readout_modules=rsn_mapping,
+                        model=model
                         )
 
     df['alpha'] = np.round(alpha, 3)
