@@ -73,8 +73,7 @@ def memory_capacity_reservoir(conn, input_nodes, output_nodes, readout_modules=N
         rs = rs[tau_max:]
 
         # split data into training and test sets
-        rs_train, rs_test = iodata.split_dataset(rs)
-        y_train, y_test = iodata.split_dataset(y)
+        rs_train, rs_test, y_train, y_test = iodata.split_dataset(rs, y)
 
         # perform task
         try:
@@ -167,8 +166,7 @@ def memory_capacity_memreservoir(conn, int_nodes, ext_nodes, gr_nodes, readout_m
         rs = rs[tau_max:]
 
         # split data into training and test sets
-        rs_train, rs_test = iodata.split_dataset(rs)
-        y_train, y_test = iodata.split_dataset(y)
+        rs_train, rs_test, y_train, y_test = iodata.split_dataset(rs, y)
 
         # perform task
         try:

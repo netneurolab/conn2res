@@ -86,9 +86,9 @@ def unbatch(x):
 
 def encode_labels(labels):
     """
-        Binary encoding of categorical labels for classification 
+        Binary encoding of categorical labels for classification
         problems
-        #TODO
+        # TODO
     """
 
     enc_labels = -1 * \
@@ -102,12 +102,12 @@ def encode_labels(labels):
 
 def fetch_dataset(task, *args, n_trials=100, add_constant=False, **kwargs):
     """
-    Fetches inputs and labels for 'task' from the NeuroGym 
+    Fetches inputs and labels for 'task' from the NeuroGym
     repository
 
     Parameters
     ----------
-    task : {'AntiReach', 'Bandit', 'ContextDecisionMaking', 
+    task : {'AntiReach', 'Bandit', 'ContextDecisionMaking',
     'DawTwoStep', 'DelayComparison', 'DelayMatchCategory',
     'DelayMatchSample', 'DelayMatchSampleDistractor1D',
     'DelayPairedAssociation', 'Detection', 'DualDelayMatchSample',
@@ -123,7 +123,7 @@ def fetch_dataset(task, *args, n_trials=100, add_constant=False, **kwargs):
     Task to be performed
 
     unbatch_data : bool, optional
-        If True, it adds an extra dimension to inputs and labels 
+        If True, it adds an extra dimension to inputs and labels
         that corresponds to the batch_size. Otherwise, it returns an
         observations by features array for the inputs, and a one
         dimensional array for the labels.
@@ -133,7 +133,7 @@ def fetch_dataset(task, *args, n_trials=100, add_constant=False, **kwargs):
     inputs : numpy.ndarray
         array of observations by features
     labels : numpy.ndarray
-        unidimensional array of labels 
+        unidimensional array of labels
     """
 
     if task in NEUROGYM_TASKS:
@@ -182,7 +182,7 @@ def create_nativet_dataset(task, tau_max=20, **kwargs):
     return x, y
 
 
-def split_dataset(data, frac_train=0.7):
+def split_dataset(*args, frac_train=0.7, axis=0):
     """
     Splits data into training and test sets according to
     'frac_train'
@@ -193,6 +193,8 @@ def split_dataset(data, frac_train=0.7):
         data array to be split
     frac_train : float, from 0 to 1
         fraction of samples in training set
+    axis: int
+        axis along which the data should be split or concatenated
 
     Returns
     -------
@@ -202,17 +204,32 @@ def split_dataset(data, frac_train=0.7):
         array with test observations
     """
 
-    n_train = int(frac_train * len(data))
+    argout = []
+    for arg in args:
+        if isinstance(arg, list):
+            n_train = int(frac_train * len(arg))
 
-    if isinstance(data, list):
-        return np.vstack(data[:n_train]), np.vstack(data[n_train:])
-    else:
-        return data[:n_train], data[n_train:]
+            if axis == 0:
+                argout.extend([np.vstack(arg[:n_train]),
+                              np.vstack(arg[n_train:])])
+            elif axis == 1:
+                argout.extend([np.hstack(arg[:n_train]),
+                              np.hstack(arg[n_train:])])
+
+        elif isinstance(arg, np.ndarray):
+            n_train = int(frac_train * arg.shape[axis])
+
+            if axis == 0:
+                argout.extend([arg[:n_train, :], arg[n_train:, :]])
+            elif axis == 1:
+                argout.extend([arg[:, :n_train], arg[:, n_train:]])
+
+    return tuple(argout)
 
 
 def visualize_data(task, x, y, plot=True):
     """
-    #TODO
+    # TODO
     Visualizes dataset for task
 
     Parameters
