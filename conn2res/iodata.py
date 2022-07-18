@@ -100,7 +100,7 @@ def encode_labels(labels):
     return enc_labels
 
 
-def fetch_dataset(task, n_trials=100, *args, **kwargs):
+def fetch_dataset(task, *args, n_trials=100, add_constant=False, **kwargs):
     """
     Fetches inputs and labels for 'task' from the NeuroGym 
     repository
@@ -152,6 +152,10 @@ def fetch_dataset(task, n_trials=100, *args, **kwargs):
         for trial in range(n_trials):
             env.new_trial()
             ob, gt = env.ob, env.gt
+
+            # add constant term
+            if add_constant:
+                ob = np.concatenate((np.ones((ob.shape[0], 1)), ob), axis=1)
 
             # store input
             inputs.append(ob)
