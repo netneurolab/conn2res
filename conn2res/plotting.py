@@ -65,8 +65,8 @@ def plot_performance_curve(df, title, num=2, figsize=(12, 10), savefig=False, bl
                  ax=ax)
 
     sns.despine(offset=10, trim=True)
+    plt.title(title)
     if savefig:
         fig.savefig(fname=os.path.join(FIG_DIR, f'{title}_score.png'),
                     transparent=True, bbox_inches='tight', dpi=300)
-    plt.title(title)
     plt.show(block=block)
