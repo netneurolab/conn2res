@@ -273,3 +273,53 @@ def visualize_data(task, x, y, plot=True):
 
     if plot:
         plotting.plot_task(x, y, task)
+
+
+def get_sample_weight(inputs, labels, sample_block=None):
+    """
+    Time averages dataset based on sample class and sample weight
+
+    Parameters
+    ----------
+    inputs : numpy.ndarray or list of numpy.ndarrays
+        input data
+    labels: numpy.ndarray or list of numpy.ndarrays
+        label data
+    sample_block : numpy.ndarray
+        block structure which is used as a basis for weighting
+        (i.e., same weights are applied within each block)
+
+    Returns
+    -------
+    sample_weight: numpy.ndarray or list of numpy.ndarrays
+        weights of samples which can be used either for averaging time
+        series or training models whilst weighting samples in the cost
+        function
+    idx_sample: numpy.ndarray or list of numpy.ndarrays
+        indexes of samples with one index per block (see sample_block)
+    """
+
+    if isinstance(inputs, np.ndarray):
+        inputs = [inputs]
+
+    if isinstance(labels, np.ndarray):
+        labels = [labels]
+
+    sample_weight = []
+    for data in inputs:
+        # sample block based on unique combinations of classes in data
+        if sample_block is None:
+            icol = [col for col in range(data.shape[1]) if np.unique(
+                data[:, col]).size <= 3]  # class is based on <=3 real values
+            _, sample_block = np.unique(
+                data[:, icol], return_inverse=True, axis=0)
+
+        # get unique sample blocks
+        _, ia, nc = np.unique(
+            sample_block, return_index=True, return_counts=True)
+
+        # sample weight
+        sample_weight.append(
+            np.hstack([np.tile(1/e, e) for e in nc[np.argsort(ia)]]))
+
+    return sample_weight
