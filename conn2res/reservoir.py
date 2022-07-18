@@ -77,13 +77,26 @@ class EchoStateNetwork(Reservoir):
         dimension of the reservoir
     activation_function : {'tanh', 'piecewise'}
         type of activation function
+    input_gain: float
+        gain to scale input weights
+    input_nodes: numpy.ndarray
+        set of indexes of input nodes
+    output_nodes: numpy.ndarray
+        set of indexes of output nodes
 
     Methods
     -------
+    # TODO
+
+    simulate
+
+    set_activation_function
+
+    add_washout_time
 
     """
 
-    def __init__(self, activation_function='tanh', *args, **kwargs):
+    def __init__(self, *args, activation_function='tanh', input_gain=1.0, **kwargs):
         """
         Constructor class for Echo State Networks
 
@@ -93,18 +106,37 @@ class EchoStateNetwork(Reservoir):
             Input connectivity matrix (source, target)
             N_inputs: number of external input nodes
             N: number of nodes in the network
-        w_hh : (N, N) numpy.ndarray
+        w_hh: (N, N) numpy.ndarray
             Reservoir connectivity matrix (source, target)
             N: number of nodes in the network. If w_hh is directed, then rows
             (columns) should correspond to source (target) nodes.
-        activation_function : str {'linear', 'elu', 'relu', 'leaky_relu',
+        activation_function: str {'linear', 'elu', 'relu', 'leaky_relu',
             'sigmoid', 'tanh', 'step'}, default 'tanh'
             Activation function (nonlinearity of the system's units)
+        input_gain: float
+            gain to scale input weights
+        input_nodes: numpy.ndarray
+            set of indexes of input nodes
+        output_nodes: numpy.ndarray
+            set of indexes of output nodes
         """
+
         super().__init__(*args, **kwargs)
 
+        # activation function
         self.activation_function = self.set_activation_function(
             activation_function)
+
+        # if not provided we feed into and read out from all nodes
+        self.input_nodes = kwargs.get(
+            'input_nodes', np.arange(self.hidden_size))
+        self.output_nodes = kwargs.get(
+            'output_nodes', np.arange(self.hidden_size))
+
+        # scale the input weights
+        self.input_gain = input_gain
+        self.w_ih[:, self.input_nodes] = self.input_gain * \
+            self.w_ih[:, self.input_nodes]
 
     def simulate(self, ext_input, ic=None, threshold=0.5):
         """
@@ -152,8 +184,9 @@ class EchoStateNetwork(Reservoir):
                 self._state[t-1, :], self.w_hh) + np.dot(ext_input[t-1, :], self.w_ih)
             self._state[t, :] = self.activation_function(synap_input)
 
-        # remove initial condition to match the time index of _state and ext_input
-        self._state = np.delete(self._state, 0, axis=0)
+        # select output nodes and remove initial condition (to match the time index of
+        # _state and ext_input)
+        self._state = self._state[1:, self.output_nodes]
 
         return self._state
 
@@ -195,6 +228,29 @@ class EchoStateNetwork(Reservoir):
             return tanh
         elif function == 'step':
             return step
+
+    def add_washout_time(self, *args, idx_washout=0):
+        """
+        Add washout time to reservoir states and corresponding arrays (e.g., label, sample weight)
+        'ext_input'
+
+        Parameters
+        ----------
+        idx_washout: int
+            index up to which the values of arrays should be deleted
+        args: numpy.ndarray
+            reservoir states and any additional arrays where washout is to be applied
+
+        Returns
+        -------
+        args: numpy.ndarray
+            same arrays as in args but after washout is applied
+        """
+
+        # delete initial indexes of arrays in args
+        argout = tuple(a[idx_washout:] for a in args)
+
+        return argout
 
 
 class MemristiveReservoir:

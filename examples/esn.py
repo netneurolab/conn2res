@@ -74,8 +74,7 @@ output_nodes = np.where(ctx == 1)[0]  # we use cortical regions as output nodes
 # tions between the input layer (source nodes where the input signal is
 # coming from) and the input nodes of the reservoir.
 w_in = np.zeros((n_features, n_reservoir_nodes))
-# factor that modulates the activation state of the reservoir
-w_in[np.ix_(np.arange(n_features), input_nodes)] = 10.0
+w_in[:, input_nodes] = 1
 
 # We will use resting-state networks as readout modules. These intrinsic networks
 # define different sets of output nodes
@@ -96,11 +95,14 @@ for alpha in alphas:
     ESN = reservoir.EchoStateNetwork(w_ih=w_in,
                                      w_hh=alpha * conn.copy(),
                                      activation_function='tanh',
+                                     input_gain=10.0,
+                                     input_nodes=input_nodes,
+                                     output_nodes=output_nodes
                                      )
 
     # simulate reservoir states; select only output nodes.
-    rs_train = ESN.simulate(ext_input=x_train)[:, output_nodes]
-    rs_test = ESN.simulate(ext_input=x_test)[:, output_nodes]
+    rs_train = ESN.simulate(ext_input=x_train)
+    rs_test = ESN.simulate(ext_input=x_test)
 
     # perform task
     df = coding.encoder(reservoir_states=(rs_train, rs_test),
