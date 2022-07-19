@@ -139,7 +139,6 @@ def fetch_dataset(task, n_trials=100, *args, **kwargs):
     if task in NEUROGYM_TASKS:
 
         # create a Dataset object from NeuroGym
-        kwargs = {'dt': 100}
         dataset = ngym.Dataset(task+'-v0', env_kwargs=kwargs)
 
         # get environment object
