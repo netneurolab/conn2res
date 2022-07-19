@@ -75,7 +75,7 @@ output_nodes = np.where(ctx == 1)[0]  # we use cortical regions as output nodes
 # coming from) and the input nodes of the reservoir.
 w_in = np.zeros((n_features, n_reservoir_nodes))
 # factor that modulates the activation state of the reservoir
-w_in[np.ix_(np.arange(n_features), input_nodes)] = 10.0
+w_in[np.ix_(np.arange(n_features), input_nodes)] = 10.0 * np.eye(n_features)
 
 # We will use resting-state networks as readout modules. These intrinsic networks
 # define different sets of output nodes
