@@ -1,19 +1,22 @@
 # -*- coding: utf-8 -*-
 """
-Intermediate functions that handle the selection of 
+Intermediate functions that handle the selection of
 the readout nodes before performing the task.
 
 @author: Estefany Suarez
 """
 
+from re import L
 import numpy as np
 import pandas as pd
+from scipy.linalg import block_diag
+
 from .task import run_task
 
 
 def get_modules(module_assignment):
     """
-    #TODO
+    # TODO
     """
     # get module ids
     module_ids = np.unique(module_assignment)
@@ -43,7 +46,7 @@ def encoder(reservoir_states, target, readout_modules=None,
         training and test targets or output labels; the shape of each
         numpy.ndarray is n_samples, n_labels
 
-    #TODO update readout_modules doc
+    # TODO update readout_modules doc
     readout_modules : (N,) list or numpy.ndarray, optional
         an array that specifies to which module each of the nodes in the
         reservoir belongs to. N is the number of nodes in the reservoir. These
@@ -83,8 +86,8 @@ def encoder(reservoir_states, target, readout_modules=None,
                 f'\t   -- Module : {module_ids[i]} with {len(readout_nodes)} nodes --')
 
             # create temporal dataframe
-            df_module = run_task(reservoir_states=(reservoir_states[0][:, readout_nodes], reservoir_states[1][:, readout_nodes]),  # reservoir_states[:,:,readout_nodes],
-                                 target=target, **kwargs)
+            df_module = run_task(reservoir_states=(
+                reservoir_states[0][:, readout_nodes], reservoir_states[1][:, readout_nodes]), target=target, **kwargs)  # reservoir_states[:,:,readout_nodes],
 
             df_module['module'] = module_ids[i]
             df_module['n_nodes'] = len(readout_nodes)
@@ -95,8 +98,8 @@ def encoder(reservoir_states, target, readout_modules=None,
         df_encoding = pd.concat(df_encoding)
 
     elif readout_nodes is not None:
-        df_encoding = run_task(reservoir_states=(reservoir_states[0][:, readout_nodes], reservoir_states[1][:, readout_nodes]),
-                               target=target, **kwargs)
+        df_encoding = run_task(reservoir_states=(
+            reservoir_states[0][:, readout_nodes], reservoir_states[1][:, readout_nodes]), target=target, **kwargs)
 
         df_encoding['n_nodes'] = len(readout_nodes)
 
@@ -105,3 +108,64 @@ def encoder(reservoir_states, target, readout_modules=None,
                                target=target, **kwargs)
 
     return df_encoding
+
+
+def time_average_samples(seq_len, data, sample_weight, operation=None):
+    """
+    Time averages reservoir states or subsamples labels before they are entered into the encoder (task)
+
+    Parameters
+    ----------
+    TODO
+
+    Returns
+    -------
+    TODO
+    """
+
+    # make sure that sample weights are in the right format
+    if isinstance(sample_weight, tuple):
+        sample_weight = list(sample_weight)
+    if isinstance(sample_weight, np.ndarray):
+        sample_weight = [sample_weight]
+
+    # make sure that data are in the right format
+    if isinstance(data, tuple):
+        data = list(data)
+    elif isinstance(data, np.ndarray):
+        data = [data]
+
+    if len(data) != len(data):
+        raise ValueError(
+            'data and sample_weight should have the same number of assigned variables')
+
+    argout = []
+    for i, _ in enumerate(data):
+        # number of trials
+        n_trials = int(data[i].shape[0] / seq_len)
+
+        # reshape data
+        data[i] = np.split(data[i], n_trials, axis=0)
+        sample_weight[i] = np.split(sample_weight[i], n_trials, axis=0)
+
+        tmp = []
+
+        for j in range(n_trials):
+            # get indices of unique weights (in order of occurence!)
+            _, ia = np.unique(sample_weight[i][j], return_index=True)
+            idx_sample = np.sort(ia)
+
+        if operation == 'time_average':
+            # reformat sample weight to enable matrix multiplication
+            idx_sample = np.append(idx_sample, sample_weight[i][j].size)
+            sample_weight[i][j] = block_diag(
+                *[sample_weight[i][j][idx_sample[ii]:idx_sample[ii+1]] for ii, _ in enumerate(idx_sample[:-1])])
+
+            # time average based on sample weight
+            tmp.append(sample_weight[i][j] @ data[i][j])
+
+        elif operation == 'subsample':
+            # subsample labels^M
+            tmp.append(data[i][j][idx_sample])
+
+        argout.append(np.vstack(tmp))
