@@ -114,16 +114,19 @@ def plot_performance_curve(df, title, num=2, figsize=(12, 10), savefig=False, bl
     fig = plt.figure(num=num, figsize=figsize)
     ax = plt.subplot(111)
 
-    n_modules = len(np.unique(df['module']))
-    palette = sns.color_palette('husl', n_modules+1)[:n_modules]
+    palette, hue, hue_order = None, None, None
+    if 'module' in df.columns:
+        hue = 'module'
+        n_modules = len(np.unique(df['module']))
+        palette = sns.color_palette('husl', n_modules+1)[:n_modules]
 
-    if 'VIS' in list(np.unique(df['module'])):
-        hue_order = ['VIS', 'SM', 'DA', 'VA', 'LIM', 'FP', 'DMN']
-    else:
-        hue_order = None
+        if 'VIS' in list(np.unique(df['module'])):
+            hue_order = ['VIS', 'SM', 'DA', 'VA', 'LIM', 'FP', 'DMN']
+        else:
+            hue_order = None
 
     sns.lineplot(data=df, x='alpha', y='score',
-                 hue='module',
+                 hue=hue,
                  hue_order=hue_order,
                  palette=palette,
                  markers=True,
