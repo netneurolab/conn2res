@@ -77,31 +77,36 @@ def encoder(reservoir_states, target, readout_modules=None,
 
         # perform task using as readout nodes every module in readout_modules
         df_encoding = []
+        model = []
         for i, readout_nodes in enumerate(readout_modules):
 
             print(
                 f'\t   -- Module : {module_ids[i]} with {len(readout_nodes)} nodes --')
 
             # create temporal dataframe
-            df_module = run_task(reservoir_states=(reservoir_states[0][:, readout_nodes], reservoir_states[1][:, readout_nodes]),  # reservoir_states[:,:,readout_nodes],
-                                 target=target, **kwargs)
+            df_module, model_module = run_task(reservoir_states=(
+                reservoir_states[0][:, readout_nodes], reservoir_states[1][:, readout_nodes]), target=target, **kwargs)  # reservoir_states[:,:,readout_nodes],
 
             df_module['module'] = module_ids[i]
             df_module['n_nodes'] = len(readout_nodes)
 
             # get encoding scores
             df_encoding.append(df_module)
+            model.append(model_module)
 
         df_encoding = pd.concat(df_encoding)
 
     elif readout_nodes is not None:
-        df_encoding = run_task(reservoir_states=(reservoir_states[0][:, readout_nodes], reservoir_states[1][:, readout_nodes]),
-                               target=target, **kwargs)
+        df_encoding, model = run_task(reservoir_states=(
+            reservoir_states[0][:, readout_nodes], reservoir_states[1][:, readout_nodes]), target=target, **kwargs)
 
         df_encoding['n_nodes'] = len(readout_nodes)
 
     else:
-        df_encoding = run_task(reservoir_states=reservoir_states,
-                               target=target, **kwargs)
+        df_encoding, model = run_task(reservoir_states=reservoir_states,
+                                      target=target, **kwargs)
 
-    return df_encoding
+    if 'model' in kwargs:
+        return df_encoding, model
+    else:
+        return df_encoding

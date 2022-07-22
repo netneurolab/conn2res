@@ -56,7 +56,7 @@ def regression(x, y, **kwargs):
                   **kwargs).fit(x_train, y_train)
     score = model.score(x_test, y_test)
 
-    return score
+    return score, model
 
 
 def multiOutputRegression(x, y, **kwargs):
@@ -79,7 +79,7 @@ def multiOutputRegression(x, y, **kwargs):
         score.append(
             np.abs((np.corrcoef(y_test[:, output], y_pred[:, output])[0][1])))
 
-    return np.sum(score)
+    return np.sum(score), model
 
 
 def classification(x, y, **kwargs):
@@ -100,7 +100,7 @@ def classification(x, y, **kwargs):
     # plt.show()
     # plt.close()
 
-    return score
+    return score, model
 
 
 def multiClassClassification(x, y, **kwargs):
@@ -129,7 +129,7 @@ def multiClassClassification(x, y, **kwargs):
     #     cm = metrics.confusion_matrix(y_test[idx_test], model.predict(x_test[idx_test]))
     #     score = np.sum(np.diagonal(cm))/np.sum(cm)  # turned out to be equivalent to the native sklearn score
 
-    return score
+    return score, model
 
 
 def multiOutputClassification(x, y, **kwargs):
@@ -145,7 +145,7 @@ def multiOutputClassification(x, y, **kwargs):
         alpha=0.5, fit_intercept=True, **kwargs)).fit(x_train, y_train)
     score = model.score(x_test, y_test)
 
-    return score
+    return score, model
 
 
 def select_model(y):
@@ -205,10 +205,10 @@ def run_task(reservoir_states, target, **kwargs):
     # select training model
     func = select_model(y=y_train)
 
-    score = func(x=(x_train, x_test), y=(y_train, y_test), **kwargs)
+    score, model = func(x=(x_train, x_test), y=(y_train, y_test), **kwargs)
     print(f'\t\t score = {score}')
 
     df_res = pd.DataFrame(data=[score],
                           columns=['score'])
 
-    return df_res
+    return df_res, model

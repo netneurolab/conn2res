@@ -140,7 +140,7 @@ def plot_performance_curve(df, title, num=2, figsize=(12, 10), savefig=False, bl
     plt.show(block=block)
 
 
-def plot_time_series(x, feature_set='orig', idx_ts=None, idx_features=None, n_features=None,
+def plot_time_series(x, feature_set='orig', idx_features=None, n_features=None, xlim=[0, 150], ylim=None,
                      scaler=1, num=1, figsize=(12, 6), subplot=None, title=None, fname='time_course',
                      legend_label='', savefig=False, block=True, **kwargs):
     # transform data
@@ -153,29 +153,39 @@ def plot_time_series(x, feature_set='orig', idx_ts=None, idx_features=None, n_fe
         subplot = (1, 1, 1)
     plt.subplot(*subplot)
 
-    # index of time series
-    if idx_ts is None:
-        idx_ts = np.arange(100)
-
     # plot data
-    plt.plot(x[idx_ts])
+    if x.size > 0:
+        plt.plot(x)
 
-    # plot legend
-    legend = [f'{legend_label} {n+1}' for n in range(x.shape[1])]
-    try:  # quick fix to get previously plotted legends
-        lg = plt.gca().lines[-1].axes.get_legend()
-        legend = [text.get_text() for text in lg.texts] + legend
-    except:
-        pass
-    plt.legend(legend, loc='upper right', fontsize=22)
+        # add x and y limits
+        plt.xlim(xlim)
+        if ylim is not None:
+            plt.xlim(ylim)
 
-    # add title
-    if title is not None:
-        plt.title(f'{title} time course', fontsize=22)
+        # plot legend
+        try:
+            legend = [f'{legend_label} {n+1}' for n in range(x.shape[1])]
+        except:
+            legend = [f'{legend_label} 1']
+        try:  # quick fix to get previously plotted legends
+            lg = plt.gca().lines[-1].axes.get_legend()
+            legend = [text.get_text() for text in lg.texts] + legend
+        except:
+            pass
+        if len(legend) <= 5:
+            plt.legend(legend, loc='upper right', fontsize=12)
+        else:
+            plt.legend(legend, loc='upper right', fontsize=12, ncol=2)
+        # plt.legend(legend, loc='upper center', bbox_to_anchor=(
+        #     0.5, 1.05), fontsize=10, ncol=len(legend))
 
     # set xtick/ythick fontsize
     plt.xticks(fontsize=22)
     plt.yticks(fontsize=22)
+
+    # add title
+    if title is not None:
+        plt.title(f'{title} time course', fontsize=22)
 
     # set tight layout in case there are different subplots
     plt.tight_layout()
@@ -186,27 +196,51 @@ def plot_time_series(x, feature_set='orig', idx_ts=None, idx_features=None, n_fe
     plt.show(block=block)
 
 
-def transform_data(data, feature_set, idx_features=None, n_features=None, scaler=1, **kwargs):
+def transform_data(data, feature_set, idx_features=None, n_features=None, scaler=1, model=None, **kwargs):
+
     if feature_set == 'pc':
         # transform data into principal components
         data = PCA(idx_pcs=idx_features,
                    n_pcs=n_features).fit_transform(data, **kwargs)
+
+    elif feature_set == 'idx':
+        # select given features
+        data = data[:, idx_features]
 
     elif feature_set == 'rnd':
         # update default number of features
         if n_features is None:
             n_features = 1
 
-        # choose feature columns randomly
+        # choose features randomly
         data = data[:, np.random.choice(
             np.arange(data.shape[1]), size=n_features)]
 
-    elif feature_set == 'df':
+    elif feature_set == 'decfun':
         # calculate decision function using model fitted on time series
-        data = kwargs['model'].decision_function(data)
+        data = model.decision_function(data)
 
     elif feature_set == 'coeff':
-        raise NotImplementedError
+        # get coefficient from model
+        if model.coef_.ndim > 1:
+            idx_class = kwargs.get('idx_class', 0)
+            coef = model.coef_[idx_class, :]
+        else:
+            coef = model.coef_
+
+        # choose features that correspond to largest absolute coefficients
+        idx_coef = np.argsort(np.absolute(coef))
+        if sum(coef != 0) > n_features:
+            # use top 5 features
+            idx_coef = idx_coef[-n_features:]
+        else:
+            # use <5 non-zero features
+            idx_coef = np.intersect1d(idx_coef, np.where(coef != 0)[0])
+
+        # scale time series with coefficients
+        data = data[:, idx_coef]
+        if data.size > 0:
+            data = data @ np.diag(coef[idx_coef])
 
     # scale features
     data *= scaler
