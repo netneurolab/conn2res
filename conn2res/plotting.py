@@ -163,10 +163,10 @@ def plot_time_series(x, feature_set='orig', idx_features=None, n_features=None, 
             plt.xlim(ylim)
 
         # plot legend
-        try:
+        if x.ndim == 2 and x.shape[1] > 1:
             legend = [f'{legend_label} {n+1}' for n in range(x.shape[1])]
-        except:
-            legend = [f'{legend_label} 1']
+        else:
+            legend = [f'{legend_label}']
         try:  # quick fix to get previously plotted legends
             lg = plt.gca().lines[-1].axes.get_legend()
             legend = [text.get_text() for text in lg.texts] + legend
@@ -219,6 +219,10 @@ def transform_data(data, feature_set, idx_features=None, n_features=None, scaler
     elif feature_set == 'decfun':
         # calculate decision function using model fitted on time series
         data = model.decision_function(data)
+
+    elif feature_set == 'pred':
+        # calculate predicted labels
+        data = model.predict(data)
 
     elif feature_set == 'coeff':
         # get coefficient from model
