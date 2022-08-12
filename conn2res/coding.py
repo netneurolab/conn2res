@@ -15,14 +15,14 @@ def get_modules(module_assignment):
     """
     #TODO
     """
-    # get module ids 
+    # get module ids
     module_ids = np.unique(module_assignment)
     readout_modules = [np.where(module_assignment == i)[0] for i in module_ids]
 
-    return  module_ids, readout_modules
+    return module_ids, readout_modules
 
 
-def encoder(reservoir_states, target, readout_modules=None,\
+def encoder(reservoir_states, target, readout_modules=None,
             readout_nodes=None, *args, **kwargs):
     """
     Function that defines the set(s) of readout nodes based on whether
@@ -65,40 +65,41 @@ def encoder(reservoir_states, target, readout_modules=None,\
 
     if readout_modules is not None:
 
-        if isinstance(readout_modules, np.ndarray): 
+        if isinstance(readout_modules, np.ndarray):
             module_ids, readout_modules = get_modules(readout_modules)
-        
+
         elif isinstance(readout_modules, dict):
-            module_ids      = list(readout_modules.keys())
+            module_ids = list(readout_modules.keys())
             readout_modules = list(readout_modules.values())
 
-        elif isinstance(readout_modules, list):            
+        elif isinstance(readout_modules, list):
             module_ids = np.arange(len(readout_modules))
-        
+
         # perform task using as readout nodes every module in readout_modules
         df_encoding = []
         for i, readout_nodes in enumerate(readout_modules):
 
-            print(f'\t   -- Module : {module_ids[i]} with {len(readout_nodes)} nodes --')
+            print(
+                f'\t   -- Module : {module_ids[i]} with {len(readout_nodes)} nodes --')
 
             # create temporal dataframe
-            df_module = run_task(reservoir_states=(reservoir_states[0][:,readout_nodes], reservoir_states[1][:,readout_nodes]), # reservoir_states[:,:,readout_nodes],
+            df_module = run_task(reservoir_states=(reservoir_states[0][:, readout_nodes], reservoir_states[1][:, readout_nodes]),  # reservoir_states[:,:,readout_nodes],
                                  target=target, **kwargs)
 
             df_module['module'] = module_ids[i]
             df_module['n_nodes'] = len(readout_nodes)
 
-            #get encoding scores
+            # get encoding scores
             df_encoding.append(df_module)
 
         df_encoding = pd.concat(df_encoding)
 
     elif readout_nodes is not None:
-        df_encoding = run_task(reservoir_states=(reservoir_states[0][:,readout_nodes], reservoir_states[1][:,readout_nodes]),
+        df_encoding = run_task(reservoir_states=(reservoir_states[0][:, readout_nodes], reservoir_states[1][:, readout_nodes]),
                                target=target, **kwargs)
 
         df_encoding['n_nodes'] = len(readout_nodes)
-    
+
     else:
         df_encoding = run_task(reservoir_states=reservoir_states,
                                target=target, **kwargs)

@@ -7,6 +7,9 @@ to perform a task using a human connectomed-informed
 Memristive network
 """
 
+from conn2res import reservoir, coding, iodata, plotting
+import pandas as pd
+import numpy as np
 import warnings
 warnings.simplefilter(action='ignore', category=FutureWarning)
 warnings.simplefilter(action='ignore', category=RuntimeWarning)
@@ -17,18 +20,13 @@ warnings.simplefilter(action='ignore', category=UserWarning)
 # connections of the reservoir.  For this we will be using the human connectome
 # parcellated into 1015 brain regions following the Desikan  Killiany atlas
 # (Desikan, et al., 2006).
-import os
-import numpy as np
-
-PROJ_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-DATA_DIR = os.path.join(PROJ_DIR, 'examples', 'data')
 
 # load connectivity data
-conn = np.load(os.path.join(DATA_DIR, 'connectivity.npy'))
+conn = iodata.load_file('connectivity.npy')
 
 # select one subject
 subj_id = 10
-conn = conn[:,:,subj_id]
+conn = conn[:, :, subj_id]
 n_reservoir_nodes = len(conn)
 
 # binarize connectivity matrix
@@ -44,7 +42,6 @@ conn = conn.astype(bool).astype(int)
 # Second let's get the data to perform the task. We first generate the data and
 # then we split it into training and test sets. 'x' corresponds to the input
 # signals and 'y' corresponds to the output labels.
-from conn2res import iodata
 
 # get trial-based dataset for task
 task = 'PerceptualDecisionMaking'
@@ -63,33 +60,36 @@ y_train, y_test = iodata.split_dataset(y)
 # generated input signal x (x_train and x_test).
 
 # define sets of internal, external and ground nodes
-ctx  = np.load(os.path.join(DATA_DIR, 'cortical.npy'))
+ctx = iodata.load_file('cortical.npy')
 
 n_features = x_train.shape[1]
 nodes = np.arange(n_reservoir_nodes)
-gr_nodes  = np.random.choice(np.where(ctx == 1)[0], 1) # we select a single random ground node from cortical regions
-ext_nodes = np.random.choice(np.where(ctx == 0)[0], n_features) # we select a random set of input nodes from subcortical regions
-int_nodes = np.setdiff1d(nodes, np.union1d(gr_nodes,ext_nodes)) # we use the reamining cortical regions as output nodes
+# we select a single random ground node from cortical regions
+gr_nodes = np.random.choice(np.where(ctx == 1)[0], 1)
+# we select a random set of input nodes from subcortical regions
+ext_nodes = np.random.choice(np.where(ctx == 0)[0], n_features)
+# we use the reamining cortical regions as output nodes
+int_nodes = np.setdiff1d(nodes, np.union1d(gr_nodes, ext_nodes))
 
-# However, because not all subcortical nodes are used as input nodes in this case, we create 
-# a new set of output nodes that include (only) all cortical regions but those corresponding 
+# However, because not all subcortical nodes are used as input nodes in this case, we create
+# a new set of output nodes that include (only) all cortical regions but those corresponding
 # to grounded nodes
-output_nodes = np.setdiff1d(np.where(ctx == 1)[0], gr_nodes) # nodes actually used to perform the task
+# nodes actually used to perform the task
+output_nodes = np.setdiff1d(np.where(ctx == 1)[0], gr_nodes)
 
 # We will use resting-state networks as readout modules. These intrinsic networks
 # define different sets of output nodes
-rsn_mapping = np.load(os.path.join(DATA_DIR, 'rsn_mapping.npy'))
-rsn_mapping = rsn_mapping[output_nodes] # we select the mapping only for output nodes 
+rsn_mapping = iodata.load_file('rsn_mapping.npy')
+# we select the mapping only for output nodes
+rsn_mapping = rsn_mapping[output_nodes]
 
 # evaluate network performance across various dynamical regimes
-# we do so by varying the value of alpha 
-import pandas as pd
-from conn2res import reservoir, coding
+# we do so by varying the value of alpha
 
-alphas = np.linspace(0,2,11)[1:]
+alphas = np.linspace(0, 2, 11)[1:]
 df_subj = []
 for alpha in alphas:
-    
+
     print(f'\n----------------------- alpha = {alpha} -----------------------')
 
     # instantiate an Memristive Network object
@@ -100,9 +100,9 @@ for alpha in alphas:
                                )
 
     # simulate reservoir states; select only readout nodes.
-    rs_train = MMN.simulate(Vext=x_train[:], mode='forward')[:,output_nodes]
-    rs_test  = MMN.simulate(Vext=x_test[:],  mode='forward')[:,output_nodes] 
-    
+    rs_train = MMN.simulate(Vext=x_train[:], mode='forward')[:, output_nodes]
+    rs_test = MMN.simulate(Vext=x_test[:],  mode='forward')[:, output_nodes]
+
     # perform task
     df = coding.encoder(reservoir_states=(rs_train, rs_test),
                         target=(y_train, y_test),
@@ -116,34 +116,11 @@ for alpha in alphas:
         df_subj.append(df[['module', 'n_nodes', 'alpha', 'score']])
     else:
         df_subj.append(df[['alpha', 'score']])
-      
+
 df_subj = pd.concat(df_subj, ignore_index=True)
 df_subj['score'] = df_subj['score'].astype(float)
-   
+
 #############################################################################
 # Now we plot the performance curve
-import matplotlib.pyplot as plt
-import seaborn as sns
 
-sns.set(style="ticks", font_scale=2.0)  
-fig = plt.figure(num=1, figsize=(12,10))
-ax = plt.subplot(111)
-
-n_modules = len(np.unique(df_subj['module']))
-palette = sns.color_palette('husl', n_modules+1)[:n_modules]
-
-if 'VIS' in list(np.unique(df_subj['module'])):
-    hue_order =['VIS', 'SM', 'DA', 'VA', 'LIM', 'FP', 'DMN']
-else:
-    hue_order = None
-
-sns.lineplot(data=df_subj, x='alpha', y='score', 
-             hue='module', 
-             hue_order=hue_order,
-             palette=palette, 
-             markers=True, 
-             ax=ax)
-sns.despine(offset=10, trim=True)
-plt.title(task)
-plt.plot()
-plt.show()
+plotting.plot_performance_curve(df_subj, task)
