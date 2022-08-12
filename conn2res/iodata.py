@@ -86,9 +86,9 @@ def unbatch(x):
 
 def encode_labels(labels):
     """
-        Binary encoding of categorical labels for classification 
+        Binary encoding of categorical labels for classification
         problems
-        #TODO
+        # TODO
     """
 
     enc_labels = -1 * \
@@ -100,14 +100,14 @@ def encode_labels(labels):
     return enc_labels
 
 
-def fetch_dataset(task, n_trials=100, *args, **kwargs):
+def fetch_dataset(task, *args, n_trials=100, add_constant=False, **kwargs):
     """
-    Fetches inputs and labels for 'task' from the NeuroGym 
+    Fetches inputs and labels for 'task' from the NeuroGym
     repository
 
     Parameters
     ----------
-    task : {'AntiReach', 'Bandit', 'ContextDecisionMaking', 
+    task : {'AntiReach', 'Bandit', 'ContextDecisionMaking',
     'DawTwoStep', 'DelayComparison', 'DelayMatchCategory',
     'DelayMatchSample', 'DelayMatchSampleDistractor1D',
     'DelayPairedAssociation', 'Detection', 'DualDelayMatchSample',
@@ -123,7 +123,7 @@ def fetch_dataset(task, n_trials=100, *args, **kwargs):
     Task to be performed
 
     unbatch_data : bool, optional
-        If True, it adds an extra dimension to inputs and labels 
+        If True, it adds an extra dimension to inputs and labels
         that corresponds to the batch_size. Otherwise, it returns an
         observations by features array for the inputs, and a one
         dimensional array for the labels.
@@ -133,7 +133,7 @@ def fetch_dataset(task, n_trials=100, *args, **kwargs):
     inputs : numpy.ndarray
         array of observations by features
     labels : numpy.ndarray
-        unidimensional array of labels 
+        unidimensional array of labels
     """
 
     if task in NEUROGYM_TASKS:
@@ -152,6 +152,10 @@ def fetch_dataset(task, n_trials=100, *args, **kwargs):
         for trial in range(n_trials):
             env.new_trial()
             ob, gt = env.ob, env.gt
+
+            # add constant term
+            if add_constant:
+                ob = np.concatenate((np.ones((ob.shape[0], 1)), ob), axis=1)
 
             # store input
             inputs.append(ob)
@@ -178,7 +182,7 @@ def create_nativet_dataset(task, tau_max=20, **kwargs):
     return x, y
 
 
-def split_dataset(data, frac_train=0.7):
+def split_dataset(*args, frac_train=0.7, axis=0):
     """
     Splits data into training and test sets according to
     'frac_train'
@@ -189,6 +193,8 @@ def split_dataset(data, frac_train=0.7):
         data array to be split
     frac_train : float, from 0 to 1
         fraction of samples in training set
+    axis: int
+        axis along which the data should be split or concatenated
 
     Returns
     -------
@@ -198,17 +204,32 @@ def split_dataset(data, frac_train=0.7):
         array with test observations
     """
 
-    n_train = int(frac_train * len(data))
+    argout = []
+    for arg in args:
+        if isinstance(arg, list):
+            n_train = int(frac_train * len(arg))
 
-    if isinstance(data, list):
-        return np.vstack(data[:n_train]), np.vstack(data[n_train:])
-    else:
-        return data[:n_train], data[n_train:]
+            if axis == 0:
+                argout.extend([np.vstack(arg[:n_train]),
+                              np.vstack(arg[n_train:])])
+            elif axis == 1:
+                argout.extend([np.hstack(arg[:n_train]),
+                              np.hstack(arg[n_train:])])
+
+        elif isinstance(arg, np.ndarray):
+            n_train = int(frac_train * arg.shape[axis])
+
+            if axis == 0:
+                argout.extend([arg[:n_train, :], arg[n_train:, :]])
+            elif axis == 1:
+                argout.extend([arg[:, :n_train], arg[:, n_train:]])
+
+    return tuple(argout)
 
 
 def visualize_data(task, x, y, plot=True):
     """
-    #TODO
+    # TODO
     Visualizes dataset for task
 
     Parameters
@@ -252,3 +273,53 @@ def visualize_data(task, x, y, plot=True):
 
     if plot:
         plotting.plot_task(x, y, task)
+
+
+def get_sample_weight(inputs, labels, sample_block=None):
+    """
+    Time averages dataset based on sample class and sample weight
+
+    Parameters
+    ----------
+    inputs : numpy.ndarray or list of numpy.ndarrays
+        input data
+    labels: numpy.ndarray or list of numpy.ndarrays
+        label data
+    sample_block : numpy.ndarray
+        block structure which is used as a basis for weighting
+        (i.e., same weights are applied within each block)
+
+    Returns
+    -------
+    sample_weight: numpy.ndarray or list of numpy.ndarrays
+        weights of samples which can be used either for averaging time
+        series or training models whilst weighting samples in the cost
+        function
+    idx_sample: numpy.ndarray or list of numpy.ndarrays
+        indexes of samples with one index per block (see sample_block)
+    """
+
+    if isinstance(inputs, np.ndarray):
+        inputs = [inputs]
+
+    if isinstance(labels, np.ndarray):
+        labels = [labels]
+
+    sample_weight = []
+    for data in inputs:
+        # sample block based on unique combinations of classes in data
+        if sample_block is None:
+            icol = [col for col in range(data.shape[1]) if np.unique(
+                data[:, col]).size <= 3]  # class is based on <=3 real values
+            _, sample_block = np.unique(
+                data[:, icol], return_inverse=True, axis=0)
+
+        # get unique sample blocks
+        _, ia, nc = np.unique(
+            sample_block, return_index=True, return_counts=True)
+
+        # sample weight
+        sample_weight.append(
+            np.hstack([np.tile(1/e, e) for e in nc[np.argsort(ia)]]))
+
+    return sample_weight

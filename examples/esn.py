@@ -7,6 +7,7 @@ to perform a task using a human connectomed-informed
 Echo-State network (Jaeger, 2000).
 """
 
+from sklearn.linear_model import RidgeClassifier
 from conn2res import reservoir, coding, plotting
 import pandas as pd
 from conn2res import iodata
@@ -52,9 +53,17 @@ x, y = iodata.fetch_dataset(task, n_trials=n_trials)
 # visualize task data
 iodata.visualize_data(task, x, y, plot=True)
 
+# length of sequence within each trial
+seq_len = x[0].shape[0]
+
+# get sample weights of data which reflect the decision time points
+sample_weight = [np.hstack((np.zeros(seq_len-1), np.ones(1)))
+                 for i in range(n_trials)]
+
 # split trials into training and test sets
-x_train, x_test = iodata.split_dataset(x)
-y_train, y_test = iodata.split_dataset(y)
+x_train, x_test, y_train, y_test = iodata.split_dataset(x, y, axis=0)
+sample_weight_train, sample_weight_test = iodata.split_dataset(
+    sample_weight, axis=1)
 
 ###############################################################################
 # Third we will simulate the dynamics of the reservoir using the previously
@@ -75,13 +84,16 @@ output_nodes = np.where(ctx == 1)[0]  # we use cortical regions as output nodes
 # coming from) and the input nodes of the reservoir.
 w_in = np.zeros((n_features, n_reservoir_nodes))
 # factor that modulates the activation state of the reservoir
-w_in[np.ix_(np.arange(n_features), input_nodes)] = 10.0
+w_in[np.ix_(np.arange(n_features), input_nodes)] = 10.0 * np.eye(n_features)
 
 # We will use resting-state networks as readout modules. These intrinsic networks
 # define different sets of output nodes
 rsn_mapping = iodata.load_file('rsn_mapping.npy')
 # we select the mapping only for output nodes
 rsn_mapping = rsn_mapping[output_nodes]
+
+# specify model to train reservoir output on (ridge classifier by default)
+model = RidgeClassifier(alpha=0.0, fit_intercept=False)
 
 # evaluate network performance across various dynamical regimes
 # we do so by varying the value of alpha
@@ -106,6 +118,8 @@ for alpha in alphas:
     df = coding.encoder(reservoir_states=(rs_train, rs_test),
                         target=(y_train, y_test),
                         readout_modules=rsn_mapping,
+                        model=model,
+                        sample_weight=(sample_weight_train, sample_weight_test)
                         )
 
     df['alpha'] = np.round(alpha, 3)

@@ -52,8 +52,7 @@ x, y = iodata.fetch_dataset(task, n_trials=n_trials)
 iodata.visualize_data(task, x, y, plot=False)
 
 # split data into training and test sets
-x_train, x_test = iodata.split_dataset(x)
-y_train, y_test = iodata.split_dataset(y)
+x_train, x_test, y_train, y_test = iodata.split_dataset(x, y)
 
 ###############################################################################
 # Third we will simulate the dynamics of the reservoir using the previously
