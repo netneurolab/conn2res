@@ -46,8 +46,7 @@ conn = conn / np.max(ew)
 
 # get trial-based dataset for task
 task = 'PerceptualDecisionMaking'
-n_trials = 1000
-x, y = iodata.fetch_dataset(task, n_trials=n_trials)
+x, y = iodata.fetch_dataset(task, n_trials=1000)
 
 # visualize task data
 iodata.visualize_data(task, x, y, plot=True)
@@ -95,7 +94,7 @@ for alpha in alphas:
     ESN = reservoir.EchoStateNetwork(w_ih=w_in,
                                      w_hh=alpha * conn.copy(),
                                      activation_function='tanh',
-                                     input_gain=10.0,
+                                     #  input_gain=10.0,
                                      input_nodes=input_nodes,
                                      output_nodes=output_nodes
                                      )
@@ -124,4 +123,5 @@ df_subj['score'] = df_subj['score'].astype(float)
 ############################################################################
 # Now we plot the performance curve
 
-plotting.plot_performance_curve(df_subj, task)
+plotting.plot_performance_curve(
+    df_subj, task, num=2, savefig=True, figsize=(12, 6))
