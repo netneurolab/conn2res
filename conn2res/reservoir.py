@@ -31,12 +31,16 @@ class Conn:
     # TODO
     """
 
-    def __init__(self, subj_id=0):
-        # load connectivity data
-        self.w = load_file('connectivity.npy')
+    def __init__(self, subj_id=0, w=None):
+        if w is not None:
+            # assign provided connectivity data
+            self.w = w
+        else:
+            # load connectivity data
+            self.w = load_file('connectivity.npy')
 
-        # select one subject
-        self.w = self.w[:, :, subj_id]
+            # select one subject
+            self.w = self.w[:, :, subj_id]
 
         # number of all active nodes
         self.n_nodes = len(self.w)
