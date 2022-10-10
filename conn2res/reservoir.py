@@ -109,7 +109,7 @@ class Conn:
         self._update_nodes(idx_node)
 
         # update component
-        self._update_component()
+        self._get_largest_component()
 
     def get_nodes(self, node_set, nodes_from=None, nodes_without=None, n_nodes=1, **kwargs):
         """
@@ -199,16 +199,18 @@ class Conn:
 
         return selected_nodes
 
-    def _update_component(self):
+    def _get_largest_component(self):
         """
         Updates a set of nodes so that they belong to one connected component
 
         #TODO
         """
 
-        # make sure that the connectivity matrix consists of one large component
+        # get all components of the connectivity matrix
         comps, comp_sizes = get_components(self.w)
-        idx_node = comps == np.where(comp_sizes != 1)[0] + 1
+
+        # get indexes pertaining to the largest component
+        idx_node = comps == np.argmax(comp_sizes) + 1
 
         # update node attributes
         self._update_nodes(idx_node)
