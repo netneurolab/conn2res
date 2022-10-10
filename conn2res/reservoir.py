@@ -93,7 +93,7 @@ class Conn:
         # binarize connectivity matrix
         self.w = self.w.astype(bool).astype(int)
 
-    def subset_nodes(self, node_set, **kwargs):
+    def subset_nodes(self, node_set='all', idx_node=None, **kwargs):
         """
         Defines subset of nodes of the connectivity matrix and reduces
         the connectivity matrix to this subset
@@ -102,8 +102,9 @@ class Conn:
         """
 
         # get nodes
-        idx_node = np.isin(np.arange(self.n_nodes),
-                           self.get_nodes(node_set, **kwargs))
+        if idx_node is None:
+            idx_node = np.isin(np.arange(self.n_nodes),
+                               self.get_nodes(node_set, **kwargs))
 
         # update node attributes
         self._update_nodes(idx_node)
