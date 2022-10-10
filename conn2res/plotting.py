@@ -108,34 +108,36 @@ def plot_task(x, y, title, num=1, figsize=(12, 10), savefig=False, block=True):
     plt.show(block=block)
 
 
-def plot_performance_curve(df, title, num=2, figsize=(12, 10), savefig=False, block=True):
+def plot_performance_curve(df, title, x='alpha', y='score', hue=None, hue_order=None, palette=None, ylim=None,
+                           norm=False, num=2, figsize=(12, 10), savefig=False, block=True):
 
     sns.set(style="ticks", font_scale=2.0)
     fig = plt.figure(num=num, figsize=figsize)
     ax = plt.subplot(111)
 
-    palette, hue, hue_order = None, None, None
-    if 'module' in df.columns:
-        hue = 'module'
-        n_modules = len(np.unique(df['module']))
+    if hue is not None:
+        n_modules = len(np.unique(df[hue]))
         palette = sns.color_palette('husl', n_modules+1)[:n_modules]
 
-        if 'VIS' in list(np.unique(df['module'])):
+        if 'VIS' in list(np.unique(df[hue])):
             hue_order = ['VIS', 'SM', 'DA', 'VA', 'LIM', 'FP', 'DMN']
-        else:
-            hue_order = None
 
-    sns.lineplot(data=df, x='alpha', y='score',
+    if norm:
+        df[y] = df[y] / max(df[y])
+
+    sns.lineplot(data=df, x=x, y=y,
                  hue=hue,
                  hue_order=hue_order,
                  palette=palette,
                  markers=True,
                  ax=ax)
 
+    if ylim is not None:
+        plt.ylim(ylim)
     sns.despine(offset=10, trim=True)
     plt.title(title)
     if savefig:
-        fig.savefig(fname=os.path.join(FIG_DIR, f'{title}_score.png'),
+        fig.savefig(fname=os.path.join(FIG_DIR, f'{title}_{y}.png'),
                     transparent=True, bbox_inches='tight', dpi=300)
     plt.show(block=block)
 
