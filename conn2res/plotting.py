@@ -144,7 +144,7 @@ def plot_performance_curve(df, title, x='alpha', y='score', hue=None, hue_order=
 
 def plot_time_series(x, feature_set='orig', idx_features=None, n_features=None, xlim=[0, 150], ylim=None,
                      scaler=1, num=1, figsize=(12, 6), subplot=None, title=None, fname='time_course',
-                     legend_label='', savefig=False, block=True, **kwargs):
+                     legend_label=None, savefig=False, block=True, **kwargs):
     # transform data
     x = transform_data(
         x, feature_set, idx_features=idx_features, n_features=n_features, scaler=scaler, **kwargs)
@@ -165,21 +165,22 @@ def plot_time_series(x, feature_set='orig', idx_features=None, n_features=None, 
             plt.xlim(ylim)
 
         # plot legend
-        if x.ndim == 2 and x.shape[1] > 1:
-            legend = [f'{legend_label} {n+1}' for n in range(x.shape[1])]
-        else:
-            legend = [f'{legend_label}']
-        try:  # quick fix to get previously plotted legends
-            lg = plt.gca().lines[-1].axes.get_legend()
-            legend = [text.get_text() for text in lg.texts] + legend
-        except:
-            pass
-        if len(legend) <= 5:
-            plt.legend(legend, loc='upper right', fontsize=12)
-        else:
-            plt.legend(legend, loc='upper right', fontsize=12, ncol=2)
-        # plt.legend(legend, loc='upper center', bbox_to_anchor=(
-        #     0.5, 1.05), fontsize=10, ncol=len(legend))
+        if legend_label is not None:
+            if x.ndim == 2 and x.shape[1] > 1:
+                legend = [f'{legend_label} {n+1}' for n in range(x.shape[1])]
+            else:
+                legend = [f'{legend_label}']
+            try:  # quick fix to get previously plotted legends
+                lg = plt.gca().lines[-1].axes.get_legend()
+                legend = [text.get_text() for text in lg.texts] + legend
+            except:
+                pass
+            if len(legend) <= 5:
+                plt.legend(legend, loc='upper right', fontsize=12)
+            else:
+                plt.legend(legend, loc='upper right', fontsize=12, ncol=2)
+            # plt.legend(legend, loc='upper center', bbox_to_anchor=(
+            #     0.5, 1.05), fontsize=10, ncol=len(legend))
 
     # set xtick/ythick fontsize
     plt.xticks(fontsize=22)
@@ -227,6 +228,10 @@ def transform_data(data, feature_set, idx_features=None, n_features=None, scaler
         data = model.predict(data)
 
     elif feature_set == 'coeff':
+        # update default number of features
+        if n_features is None:
+            n_features = 5
+
         # get coefficient from model
         if model.coef_.ndim > 1:
             idx_class = kwargs.get('idx_class', 0)
@@ -247,6 +252,8 @@ def transform_data(data, feature_set, idx_features=None, n_features=None, scaler
         data = data[:, idx_coef]
         if data.size > 0:
             data = data @ np.diag(coef[idx_coef])
+            # data = np.sum(
+            #     data @ np.diag(coef[idx_coef]), axis=1).reshape(-1, 1)
 
     # scale features
     data *= scaler
