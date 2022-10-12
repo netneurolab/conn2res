@@ -34,19 +34,14 @@ def memory_capacity_reservoir(conn, input_nodes, output_nodes, readout_modules=N
         data frame with task scores
     """
 
-    # scale conenctivity weights between [0,1]
-    conn = (conn - conn.min())/(conn.max() - conn.min())
-    n_reservoir_nodes = len(conn)
-
-    # normalize connectivity matrix by the spectral radius
-    ew, _ = eigh(conn)
-    conn = conn / np.max(ew)
+    # scale conenctivity weights between [0,1] and normalize by spectral radius
+    conn.scale_and_normalize()
 
     # get dataset for memory capacity task
     x, y = iodata.fetch_dataset('MemoryCapacity', tau_max=tau_max)
 
     # create input connectivity matrix
-    w_in = np.zeros((1, n_reservoir_nodes))
+    w_in = np.zeros((1, conn.n_nodes))
     w_in[:, input_nodes] = input_gain
 
     # specify model to train reservoir output on (ridge classifier by default)
@@ -65,7 +60,7 @@ def memory_capacity_reservoir(conn, input_nodes, output_nodes, readout_modules=N
         # instantiate an Echo State Network object
         network = reservoir.reservoir(name=resname,
                                       w_ih=w_in,
-                                      w_hh=alpha * conn.copy(),
+                                      w_hh=alpha * conn.w,
                                       **kwargs
                                       )
 
@@ -134,11 +129,10 @@ def memory_capacity_memreservoir(conn, int_nodes, ext_nodes, gr_nodes, readout_m
     """
 
     # binarize connectivity matrix
-    conn = conn.astype(bool).astype(int)
+    conn.binarize()
 
     # # normalize connectivity matrix by the spectral radius
-    # ew, _ = eigh(conn)
-    # conn  = conn / np.max(ew)
+    # conn.normalize()
 
     # get dataset for memory capacity task
     x, y, _ = iodata.fetch_dataset('MemoryCapacity', tau_max=tau_max)
@@ -156,7 +150,7 @@ def memory_capacity_memreservoir(conn, int_nodes, ext_nodes, gr_nodes, readout_m
 
         # instantiate a Memristive Network object
         network = reservoir.reservoir(name=resname,
-                                      w=alpha * conn.copy(),
+                                      w=alpha * conn.w,
                                       int_nodes=int_nodes,
                                       ext_nodes=ext_nodes,
                                       gr_nodes=gr_nodes,

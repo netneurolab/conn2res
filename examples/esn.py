@@ -11,7 +11,6 @@ from sklearn.linear_model import RidgeClassifier
 from conn2res import reservoir, coding, plotting
 import pandas as pd
 from conn2res import iodata
-from scipy.linalg import eigh
 import numpy as np
 import warnings
 warnings.simplefilter(action='ignore', category=FutureWarning)
@@ -24,21 +23,11 @@ warnings.simplefilter(action='ignore', category=UserWarning)
 # parcellated into 1015 brain regions following the Desikan  Killiany atlas
 # (Desikan, et al., 2006).
 
-# load connectivity data
-conn = iodata.load_file('connectivity.npy')
+# load connectivity data of one subject
+conn = reservoir.Conn(subj_id=0)
 
-# select one subject
-subj_id = 0
-conn = conn[:, :, subj_id]
-n_reservoir_nodes = len(conn)
-
-# scale conenctivity weights between [0,1]
-conn = (conn - conn.min())/(conn.max() - conn.min())
-
-# normalize connectivity matrix by the spectral radius.
-
-ew, _ = eigh(conn)
-conn = conn / np.max(ew)
+# scale conenctivity weights between [0,1] and normalize by spectral radius
+conn.scale_and_normalize()
 
 ###############################################################################
 # Second let's get the data to perform the task. We first generate the data and
@@ -69,20 +58,20 @@ sample_weight_train, sample_weight_test = iodata.split_dataset(
 # Third we will simulate the dynamics of the reservoir using the previously
 # generated input signal x (x_train and x_test).
 
-# define set of input nodes
-ctx = iodata.load_file('cortical.npy')
-# we use subcortical regions as input nodes
-subctx_nodes = np.where(ctx == 0)[0]
-
+# number of features in task data
 n_features = x_train.shape[1]
-# we select a randon set of input nodes
-input_nodes = np.random.choice(subctx_nodes, n_features)
-output_nodes = np.where(ctx == 1)[0]  # we use cortical regions as output nodes
+
+# we select a random set of input nodes from subcortical regions
+input_nodes = conn.get_nodes(
+    'random', nodes_from=conn.get_nodes('subctx'), n_nodes=n_features)
+
+# we use cortical regions as output nodes
+output_nodes = conn.get_nodes('ctx')
 
 # create input connectivity matrix, which defines the connec-
 # tions between the input layer (source nodes where the input signal is
 # coming from) and the input nodes of the reservoir.
-w_in = np.zeros((n_features, n_reservoir_nodes))
+w_in = np.zeros((n_features, conn.n_nodes))
 # factor that modulates the activation state of the reservoir
 w_in[np.ix_(np.arange(n_features), input_nodes)] = 10.0 * np.eye(n_features)
 
@@ -90,7 +79,7 @@ w_in[np.ix_(np.arange(n_features), input_nodes)] = 10.0 * np.eye(n_features)
 # define different sets of output nodes
 rsn_mapping = iodata.load_file('rsn_mapping.npy')
 # we select the mapping only for output nodes
-rsn_mapping = rsn_mapping[output_nodes]
+rsn_mapping = rsn_mapping[conn.idx_node][output_nodes]
 
 # specify model to train reservoir output on (ridge classifier by default)
 model = RidgeClassifier(alpha=0.0, fit_intercept=False)
@@ -106,7 +95,7 @@ for alpha in alphas:
 
     # instantiate an Echo State Network object
     ESN = reservoir.EchoStateNetwork(w_ih=w_in,
-                                     w_hh=alpha * conn.copy(),
+                                     w_hh=alpha * conn.w,
                                      activation_function='tanh',
                                      )
 

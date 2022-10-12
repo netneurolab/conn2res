@@ -21,22 +21,14 @@ warnings.simplefilter(action='ignore', category=UserWarning)
 # parcellated into 1015 brain regions following the Desikan  Killiany atlas
 # (Desikan, et al., 2006).
 
-# load connectivity data
-conn = iodata.load_file('connectivity.npy')
-
-# select one subject
-subj_id = 10
-conn = conn[:, :, subj_id]
-n_reservoir_nodes = len(conn)
+# load connectivity data of one subject
+conn = reservoir.Conn(subj_id=10)
 
 # binarize connectivity matrix
-conn = conn.astype(bool).astype(int)
+conn.binarize()
 
-# # normalize connectivity matrix by the spectral radius.
-# from scipy.linalg import eigh
-
-# ew, _ = eigh(conn)
-# conn  = conn / np.max(ew)
+# # normalize connectivity matrix by the spectral radius
+# conn.normalize()
 
 ###############################################################################
 # Second let's get the data to perform the task. We first generate the data and
@@ -61,26 +53,29 @@ x_train, x_test, y_train, y_test = iodata.split_dataset(x, y)
 # define sets of internal, external and ground nodes
 ctx = iodata.load_file('cortical.npy')
 
+# number of features in task data
 n_features = x_train.shape[1]
-nodes = np.arange(n_reservoir_nodes)
-# we select a single random ground node from cortical regions
-gr_nodes = np.random.choice(np.where(ctx == 1)[0], 1)
-# we select a random set of input nodes from subcortical regions
-ext_nodes = np.random.choice(np.where(ctx == 0)[0], n_features)
-# we use the reamining cortical regions as output nodes
-int_nodes = np.setdiff1d(nodes, np.union1d(gr_nodes, ext_nodes))
 
-# However, because not all subcortical nodes are used as input nodes in this case, we create
-# a new set of output nodes that include (only) all cortical regions but those corresponding
-# to grounded nodes
-# nodes actually used to perform the task
-output_nodes = np.setdiff1d(np.where(ctx == 1)[0], gr_nodes)
+# we select a single random ground node from cortical regions
+gr_nodes = conn.get_nodes(
+    'random', nodes_from=conn.get_nodes('ctx'), n_nodes=1)
+
+# we use the remaining cortical regions as output nodes
+output_nodes = conn.get_nodes('ctx', nodes_without=gr_nodes)
+
+# we select external nodes as random set of input nodes from subcortical regions
+ext_nodes = conn.get_nodes(
+    'random', nodes_from=conn.get_nodes('subctx'), n_nodes=n_features)
+
+# we select internal nodes as all nodes except of ground nodes external nodes
+int_nodes = conn.get_nodes(
+    'all', nodes_without=np.union1d(gr_nodes, ext_nodes))
 
 # We will use resting-state networks as readout modules. These intrinsic networks
 # define different sets of output nodes
 rsn_mapping = iodata.load_file('rsn_mapping.npy')
 # we select the mapping only for output nodes
-rsn_mapping = rsn_mapping[output_nodes]
+rsn_mapping = rsn_mapping[conn.idx_node][output_nodes]
 
 # evaluate network performance across various dynamical regimes
 # we do so by varying the value of alpha
@@ -92,7 +87,7 @@ for alpha in alphas:
     print(f'\n----------------------- alpha = {alpha} -----------------------')
 
     # instantiate an Memristive Network object
-    MMN = reservoir.MSSNetwork(w=alpha * conn.copy(),
+    MMN = reservoir.MSSNetwork(w=alpha * conn.w,
                                int_nodes=int_nodes,
                                ext_nodes=ext_nodes,
                                gr_nodes=gr_nodes
