@@ -42,7 +42,7 @@ def memory_capacity_reservoir(conn, input_nodes, output_nodes, readout_modules=N
 
     # create input connectivity matrix
     w_in = np.zeros((1, conn.n_nodes))
-    w_in[:, input_nodes] = input_gain
+    w_in[:, input_nodes] = 1
 
     # specify model to train reservoir output on (ridge classifier by default)
     model = None
@@ -61,11 +61,14 @@ def memory_capacity_reservoir(conn, input_nodes, output_nodes, readout_modules=N
         network = reservoir.reservoir(name=resname,
                                       w_ih=w_in,
                                       w_hh=alpha * conn.w,
+                                      input_gain=input_gain,
+                                      input_nodes=input_nodes,
+                                      output_nodes=output_nodes,
                                       **kwargs
                                       )
 
         # simulate reservoir states; select only output nodes
-        rs = network.simulate(ext_input=x)[:, output_nodes]
+        rs = network.simulate(ext_input=x)
 
         # remove first tau_max points from reservoir states
         rs = rs[tau_max:]

@@ -300,13 +300,26 @@ class EchoStateNetwork(Reservoir):
         dimension of the reservoir
     activation_function : {'tanh', 'piecewise'}
         type of activation function
+    input_gain: float
+        gain to scale input weights
+    input_nodes: numpy.ndarray
+        set of indexes of input nodes
+    output_nodes: numpy.ndarray
+        set of indexes of output nodes
 
     Methods
     -------
+    # TODO
+
+    simulate
+
+    set_activation_function
+
+    add_washout_time
 
     """
 
-    def __init__(self, activation_function='tanh', *args, **kwargs):
+    def __init__(self, *args, activation_function='tanh', input_gain=1.0, **kwargs):
         """
         Constructor class for Echo State Networks
 
@@ -316,18 +329,37 @@ class EchoStateNetwork(Reservoir):
             Input connectivity matrix (source, target)
             N_inputs: number of external input nodes
             N: number of nodes in the network
-        w_hh : (N, N) numpy.ndarray
+        w_hh: (N, N) numpy.ndarray
             Reservoir connectivity matrix (source, target)
             N: number of nodes in the network. If w_hh is directed, then rows
             (columns) should correspond to source (target) nodes.
-        activation_function : str {'linear', 'elu', 'relu', 'leaky_relu',
+        activation_function: str {'linear', 'elu', 'relu', 'leaky_relu',
             'sigmoid', 'tanh', 'step'}, default 'tanh'
             Activation function (nonlinearity of the system's units)
+        input_gain: float
+            gain to scale input weights
+        input_nodes: numpy.ndarray
+            set of indexes of input nodes
+        output_nodes: numpy.ndarray
+            set of indexes of output nodes
         """
+
         super().__init__(*args, **kwargs)
 
+        # activation function
         self.activation_function = self.set_activation_function(
             activation_function)
+
+        # if not provided we feed into and read out from all nodes
+        self.input_nodes = kwargs.get(
+            'input_nodes', np.arange(self.hidden_size))
+        self.output_nodes = kwargs.get(
+            'output_nodes', np.arange(self.hidden_size))
+
+        # scale the input weights
+        self.input_gain = input_gain
+        self.w_ih[:, self.input_nodes] = self.input_gain * \
+            self.w_ih[:, self.input_nodes]
 
     def simulate(self, ext_input, ic=None, threshold=0.5):
         """
@@ -360,7 +392,7 @@ class EchoStateNetwork(Reservoir):
             ext_input = np.asarray(ext_input)
 
         # initialize reservoir states
-        timesteps = range(1, len(ext_input))
+        timesteps = range(1, len(ext_input)+1)
         self._state = np.zeros((len(timesteps)+1, self.hidden_size))
 
         # set initial conditions
@@ -371,10 +403,13 @@ class EchoStateNetwork(Reservoir):
         for t in timesteps:
 
             # if (t>0) and (t%100 == 0): print(f'\t ----- timestep = {t}')
-
             synap_input = np.dot(
                 self._state[t-1, :], self.w_hh) + np.dot(ext_input[t-1, :], self.w_ih)
             self._state[t, :] = self.activation_function(synap_input)
+
+        # select output nodes and remove initial condition (to match the time index of
+        # _state and ext_input)
+        self._state = self._state[1:, self.output_nodes]
 
         return self._state
 
@@ -417,6 +452,29 @@ class EchoStateNetwork(Reservoir):
         elif function == 'step':
             return step
 
+    def add_washout_time(self, *args, idx_washout=0):
+        """
+        Add washout time to reservoir states and corresponding arrays (e.g., label, sample weight)
+        'ext_input'
+
+        Parameters
+        ----------
+        idx_washout: int
+            index up to which the values of arrays should be deleted
+        args: numpy.ndarray
+            reservoir states and any additional arrays where washout is to be applied
+
+        Returns
+        -------
+        args: numpy.ndarray
+            same arrays as in args but after washout is applied
+        """
+
+        # delete initial indexes of arrays in args
+        argout = tuple(a[idx_washout:] for a in args)
+
+        return argout
+
 
 class MemristiveReservoir:
     """
@@ -453,11 +511,11 @@ class MemristiveReservoir:
 
     Methods
     ----------
-    #TODO
+    # TODO
 
     References
     ----------
-    #TODO
+    # TODO
 
     """
 
@@ -506,7 +564,7 @@ class MemristiveReservoir:
 
     def setW(self, w):
         """
-        #TODO
+        # TODO
         This function guarantees that W is binary and symmetric. Converts
         directed connectivity matrices in undirected.
 
@@ -548,11 +606,11 @@ class MemristiveReservoir:
 
         Parameters
         ----------
-        #TODO
+        # TODO
 
         Returns
         -------
-        #TODO
+        # TODO
 
         """
 
@@ -569,11 +627,11 @@ class MemristiveReservoir:
 
         Parameters
         ----------
-        #TODO
+        # TODO
 
         Returns
         -------
-        #TODO
+        # TODO
 
         """
 
@@ -612,11 +670,11 @@ class MemristiveReservoir:
 
         Parameters
         ----------
-        #TODO
+        # TODO
 
         Returns
         -------
-        #TODO
+        # TODO
 
         """
 
@@ -716,7 +774,7 @@ class MemristiveReservoir:
 
     def iterate(self, Ve, tol=5e-2, iters=100):
         """
-        #TODO
+        # TODO
 
         """
 
@@ -828,7 +886,7 @@ class MSSNetwork(MemristiveReservoir):
 
     Methods
     ----------
-    #TODO
+    # TODO
 
     """
 
@@ -882,7 +940,7 @@ class MSSNetwork(MemristiveReservoir):
 
         noise : float. Default: 0.1
 
-        #TODO
+        # TODO
         """
         super().__init__(*args, **kwargs)
 
@@ -904,7 +962,7 @@ class MSSNetwork(MemristiveReservoir):
 
     def dG(self, V, G=None, dt=1e-4):
         """
-        #TODO
+        # TODO
         This function updates the conductance matrix G given V
 
         Parameters
@@ -995,7 +1053,7 @@ def mask(reservoir, a):
     This functions converts to zero all entries in matrix 'a' for which there is
     no existent connection
 
-    #TODO
+    # TODO
     """
 
     a[np.where(reservoir._W == 0)] = 0
@@ -1006,7 +1064,7 @@ def check_symmetric(a, tol=1e-16):
     """
     This functions checks whether matrix 'a' is symmetric
 
-    #TODO
+    # TODO
     """
     return np.allclose(a, a.T, atol=tol)
 
@@ -1022,7 +1080,7 @@ def check_square(a):
     """
     This functions checks whether matrix 'a' is square
 
-    #TODO
+    # TODO
     """
 
     s = a.shape

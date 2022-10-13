@@ -36,7 +36,7 @@ conn.scale_and_normalize()
 
 # get trial-based dataset for task
 task = 'PerceptualDecisionMaking'
-x, y = iodata.fetch_dataset(task, n_trials=1000, dt=100)
+x, y = iodata.fetch_dataset(task, n_trials=1000)
 
 # visualize task data
 iodata.visualize_data(task, x, y, plot=True)
@@ -46,7 +46,7 @@ seq_len = x[0].shape[0]
 
 # get sample weights of data which reflect the decision time points
 sample_weight = [np.hstack((np.zeros(seq_len-1), np.ones(1)))
-                 for i in range(n_trials)]
+                 for i in range(1000)]
 
 # split trials into training and test sets
 x_train, x_test, y_train, y_test = iodata.split_dataset(x, y, axis=0)
@@ -71,8 +71,7 @@ output_nodes = conn.get_nodes('ctx')
 # tions between the input layer (source nodes where the input signal is
 # coming from) and the input nodes of the reservoir.
 w_in = np.zeros((n_features, conn.n_nodes))
-# factor that modulates the activation state of the reservoir
-w_in[np.ix_(np.arange(n_features), input_nodes)] = 10.0 * np.eye(n_features)
+w_in[:, input_nodes] = np.eye(n_features)
 
 # We will use resting-state networks as readout modules. These intrinsic networks
 # define different sets of output nodes
@@ -96,11 +95,14 @@ for alpha in alphas:
     ESN = reservoir.EchoStateNetwork(w_ih=w_in,
                                      w_hh=alpha * conn.w,
                                      activation_function='tanh',
+                                     #  input_gain=10.0,
+                                     input_nodes=input_nodes,
+                                     output_nodes=output_nodes
                                      )
 
     # simulate reservoir states; select only output nodes.
-    rs_train = ESN.simulate(ext_input=x_train)[:, output_nodes]
-    rs_test = ESN.simulate(ext_input=x_test)[:, output_nodes]
+    rs_train = ESN.simulate(ext_input=x_train)
+    rs_test = ESN.simulate(ext_input=x_test)
 
     # perform task
     df = coding.encoder(reservoir_states=(rs_train, rs_test),
@@ -124,4 +126,5 @@ df_subj['score'] = df_subj['score'].astype(float)
 ############################################################################
 # Now we plot the performance curve
 
-plotting.plot_performance_curve(df_subj, task)
+plotting.plot_performance_curve(
+    df_subj, task, num=2, savefig=True, figsize=(12, 6))
