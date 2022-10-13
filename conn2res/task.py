@@ -67,7 +67,7 @@ def regression(x, y, model=None, **kwargs):
     # calculate model scores on test data
     score = model.score(x_test, y_test, sample_weight_test)
 
-    return score
+    return score, model
 
 
 def multiOutputRegression(x, y, model=None, **kwargs):
@@ -100,7 +100,7 @@ def multiOutputRegression(x, y, model=None, **kwargs):
             score.append(
                 np.abs((np.corrcoef(y_test[:, output], y_pred[:, output])[0][1])))
 
-        return np.sum(score)
+        return np.sum(score), model
     else:
         # fit model on training data
         model.fit(x_train, y_train, sample_weight_train)
@@ -108,7 +108,7 @@ def multiOutputRegression(x, y, model=None, **kwargs):
         # calculate model scores on test data
         score = model.score(x_test, y_test, sample_weight_test)
 
-        return score
+        return score, model
 
 
 def classification(x, y, model=None, **kwargs):
@@ -139,7 +139,7 @@ def classification(x, y, model=None, **kwargs):
     # plt.show()
     # plt.close()
 
-    return score
+    return score, model
 
 
 def multiClassClassification(x, y, model=None, **kwargs):
@@ -186,7 +186,7 @@ def multiClassClassification(x, y, model=None, **kwargs):
     #     cm = metrics.confusion_matrix(y_test[idx_test], model.predict(x_test[idx_test]))
     #     score = np.sum(np.diagonal(cm))/np.sum(cm)  # turned out to be equivalent to the native sklearn score
 
-    return score
+    return score, model
 
 
 def multiOutputClassification(x, y, model=None, **kwargs):
@@ -220,7 +220,7 @@ def multiOutputClassification(x, y, model=None, **kwargs):
         # calculate model scores on test data
         score = model.score(x_test, y_test, sample_weight_test)
 
-    return score
+    return score, model
 
 
 def select_model(y):
@@ -280,10 +280,10 @@ def run_task(reservoir_states, target, **kwargs):
     # select training model
     func = select_model(y=y_train)
 
-    score = func(x=(x_train, x_test), y=(y_train, y_test), **kwargs)
+    score, model = func(x=(x_train, x_test), y=(y_train, y_test), **kwargs)
     print(f'\t\t score = {score}')
 
     df_res = pd.DataFrame(data=[score],
                           columns=['score'])
 
-    return df_res
+    return df_res, model

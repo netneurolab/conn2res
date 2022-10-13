@@ -36,8 +36,7 @@ conn.scale_and_normalize()
 
 # get trial-based dataset for task
 task = 'PerceptualDecisionMaking'
-n_trials = 1000
-x, y = iodata.fetch_dataset(task, n_trials=n_trials)
+x, y = iodata.fetch_dataset(task, n_trials=1000, dt=100)
 
 # visualize task data
 iodata.visualize_data(task, x, y, plot=True)

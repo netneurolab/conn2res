@@ -80,13 +80,14 @@ def encoder(reservoir_states, target, readout_modules=None,
 
         # perform task using as readout nodes every module in readout_modules
         df_encoding = []
+        model = []
         for i, readout_nodes in enumerate(readout_modules):
 
             print(
                 f'\t   -- Module : {module_ids[i]} with {len(readout_nodes)} nodes --')
 
             # create temporal dataframe
-            df_module = run_task(reservoir_states=(
+            df_module, model_module = run_task(reservoir_states=(
                 reservoir_states[0][:, readout_nodes], reservoir_states[1][:, readout_nodes]), target=target, **kwargs)  # reservoir_states[:,:,readout_nodes],
 
             df_module['module'] = module_ids[i]
@@ -94,20 +95,24 @@ def encoder(reservoir_states, target, readout_modules=None,
 
             # get encoding scores
             df_encoding.append(df_module)
+            model.append(model_module)
 
         df_encoding = pd.concat(df_encoding)
 
     elif readout_nodes is not None:
-        df_encoding = run_task(reservoir_states=(
+        df_encoding, model = run_task(reservoir_states=(
             reservoir_states[0][:, readout_nodes], reservoir_states[1][:, readout_nodes]), target=target, **kwargs)
 
         df_encoding['n_nodes'] = len(readout_nodes)
 
     else:
-        df_encoding = run_task(reservoir_states=reservoir_states,
-                               target=target, **kwargs)
+        df_encoding, model = run_task(reservoir_states=reservoir_states,
+                                      target=target, **kwargs)
 
-    return df_encoding
+    if 'model' in kwargs:
+        return df_encoding, model
+    else:
+        return df_encoding
 
 
 def time_average_samples(seq_len, data, sample_weight, operation=None):
@@ -155,17 +160,19 @@ def time_average_samples(seq_len, data, sample_weight, operation=None):
             _, ia = np.unique(sample_weight[i][j], return_index=True)
             idx_sample = np.sort(ia)
 
-        if operation == 'time_average':
-            # reformat sample weight to enable matrix multiplication
-            idx_sample = np.append(idx_sample, sample_weight[i][j].size)
-            sample_weight[i][j] = block_diag(
-                *[sample_weight[i][j][idx_sample[ii]:idx_sample[ii+1]] for ii, _ in enumerate(idx_sample[:-1])])
+            if operation == 'time_average':
+                # reformat sample weight to enable matrix multiplication
+                idx_sample = np.append(idx_sample, sample_weight[i][j].size)
+                sample_weight[i][j] = block_diag(
+                    *[sample_weight[i][j][idx_sample[ii]:idx_sample[ii+1]] for ii, _ in enumerate(idx_sample[:-1])])
 
-            # time average based on sample weight
-            tmp.append(sample_weight[i][j] @ data[i][j])
+                # time average based on sample weight
+                tmp.append(sample_weight[i][j] @ data[i][j])
 
-        elif operation == 'subsample':
-            # subsample labels^M
-            tmp.append(data[i][j][idx_sample])
+            elif operation == 'subsample':
+                # subsample labels^M
+                tmp.append(data[i][j][idx_sample])
 
         argout.append(np.vstack(tmp))
+
+    return tuple(argout)
