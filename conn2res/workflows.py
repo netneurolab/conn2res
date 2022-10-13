@@ -44,9 +44,6 @@ def memory_capacity_reservoir(conn, input_nodes, output_nodes, readout_modules=N
     w_in = np.zeros((1, conn.n_nodes))
     w_in[:, input_nodes] = 1
 
-    # specify model to train reservoir output on (ridge classifier by default)
-    model = None
-
     # evaluate network performance across various dynamical regimes
     if alphas is None:
         alphas = np.linspace(0, 2, 11)
@@ -82,7 +79,6 @@ def memory_capacity_reservoir(conn, input_nodes, output_nodes, readout_modules=N
                                  target=(y_train, y_test),
                                  readout_modules=readout_modules,
                                  readout_nodes=readout_nodes,
-                                 model=model
                                  )
 
             df_['alpha'] = np.round(alpha, 3)
@@ -106,7 +102,7 @@ def memory_capacity_reservoir(conn, input_nodes, output_nodes, readout_modules=N
         else:
             plot_title = 'Memory Capacity'
 
-        plotting.plot_performance_curve(df, plot_title)
+        plotting.plot_performance_curve(df, plot_title, hue='module')
 
     return df
 

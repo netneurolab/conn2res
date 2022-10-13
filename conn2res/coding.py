@@ -170,7 +170,7 @@ def time_average_samples(seq_len, data, sample_weight, operation=None):
                 tmp.append(sample_weight[i][j] @ data[i][j])
 
             elif operation == 'subsample':
-                # subsample labels^M
+                # subsample labels
                 tmp.append(data[i][j][idx_sample])
 
         argout.append(np.vstack(tmp))
