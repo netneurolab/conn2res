@@ -25,7 +25,7 @@ from sklearn.ensemble import RandomForestRegressor
 def check_xy_dims(x, y):
     """
     Check that X,Y have the right dimensions
-    #TODO
+    # TODO
     """
     x_train, x_test = x
     y_train, y_test = y
@@ -43,82 +43,139 @@ def check_xy_dims(x, y):
     return x_train, x_test, y_train, y_test
 
 
-def regression(x, y, **kwargs):
+def regression(x, y, model=None, **kwargs):
     """
     Regression tasks
-    #TODO
+    # TODO
     """
+
+    # pop variables from kwargs
+    sample_weight_train, sample_weight_test = kwargs.pop(
+        'sample_weight', (None, None))
 
     x_train, x_test = x
     y_train, y_test = y
 
-    model = Ridge(fit_intercept=False, alpha=0.5,
-                  **kwargs).fit(x_train, y_train)
-    score = model.score(x_test, y_test)
+    # specify default model
+    if model is None:
+        model = Ridge(fit_intercept=False, alpha=0.5,
+                      **kwargs)
 
-    return score
+    # fit model on training data
+    model.fit(x_train, y_train, sample_weight_train)
+
+    # calculate model scores on test data
+    score = model.score(x_test, y_test, sample_weight_test)
+
+    return score, model
 
 
-def multiOutputRegression(x, y, **kwargs):
+def multiOutputRegression(x, y, model=None, **kwargs):
     """
     Multiple output regression tasks
-    #TODO
+    # TODO
     """
+
+    # pop variables from kwargs
+    sample_weight_train, sample_weight_test = kwargs.pop(
+        'sample_weight', (None, None))
 
     x_train, x_test = x
     y_train, y_test = y
 
-    model = MultiOutputRegressor(
-        Ridge(fit_intercept=False, alpha=0.5, **kwargs)).fit(x_train, y_train)
+    # specify default model
+    if model is None:
+        model = MultiOutputRegressor(
+            Ridge(fit_intercept=False, alpha=0.5, **kwargs))
 
-    y_pred = model.predict(x_test)
-    n_outputs = y_pred.shape[1]
+    if isinstance(model, MultiOutputRegressor):
+        # fit model on training data
+        model.fit(x_train, y_train)
 
-    score = []
-    for output in range(n_outputs):
-        score.append(
-            np.abs((np.corrcoef(y_test[:, output], y_pred[:, output])[0][1])))
+        # calculate model scores on test data
+        y_pred = model.predict(x_test)
+        n_outputs = y_pred.shape[1]
+        score = []
+        for output in range(n_outputs):
+            score.append(
+                np.abs((np.corrcoef(y_test[:, output], y_pred[:, output])[0][1])))
 
-    return np.sum(score)
+        return np.sum(score), model
+    else:
+        # fit model on training data
+        model.fit(x_train, y_train, sample_weight_train)
+
+        # calculate model scores on test data
+        score = model.score(x_test, y_test, sample_weight_test)
+
+        return score, model
 
 
-def classification(x, y, **kwargs):
+def classification(x, y, model=None, **kwargs):
     """
     Binary classification tasks
-    #TODO
+    # TODO
     """
+
+    # pop variables from kwargs
+    sample_weight_train, sample_weight_test = kwargs.pop(
+        'sample_weight', (None, None))
 
     x_train, x_test = x
     y_train, y_test = y
 
-    model = RidgeClassifier(alpha=0.0, fit_intercept=True,
-                            **kwargs).fit(x_train, y_train)
-    score = model.score(x_test, y_test)
+    # specify default model
+    if model is None:
+        model = RidgeClassifier(alpha=0.0, fit_intercept=True, **kwargs)
+
+    # fit model on training data
+    model.fit(x_train, y_train, sample_weight_train)
+
+    # calculate model scores on test data
+    score = model.score(x_test, y_test, sample_weight_test)
 
     # # confusion matrix
     # ConfusionMatrixDisplay.from_predictions(y_test, model.predict(x_test))
     # plt.show()
     # plt.close()
 
-    return score
+    return score, model
 
 
-def multiClassClassification(x, y, **kwargs):
+def multiClassClassification(x, y, model=None, **kwargs):
     """
     Multi-class Classification tasks
-    #TODO
+    # TODO
     """
+
+    # pop variables from kwargs
+    sample_weight_train, sample_weight_test = kwargs.pop(
+        'sample_weight', (None, None))
 
     x_train, x_test = x
     y_train, y_test = y
 
-    # capture only decision time points
-    idx_train = np.nonzero(y_train)
-    idx_test = np.nonzero(y_test)
+    # specify default model
+    if model is None:
+        model = OneVsRestClassifier(RidgeClassifier(
+            alpha=0.0, fit_intercept=False, **kwargs))
 
-    model = OneVsRestClassifier(RidgeClassifier(
-        alpha=0.0, fit_intercept=False, **kwargs)).fit(x_train[idx_train], y_train[idx_train])
-    score = model.score(x_test[idx_test], y_test[idx_test])
+    if isinstance(model, OneVsRestClassifier):
+        # select decision time points
+        idx_train = np.nonzero(y_train)
+        idx_test = np.nonzero(y_test)
+
+        # fit model on training data (OneVsRestClassifier does not support sample weights)
+        model.fit(x_train[idx_train], y_train[idx_train])
+
+        # calculate model scores on test data
+        score = model.score(x_test[idx_test], y_test[idx_test])
+    else:
+        # fit model on training data
+        model.fit(x_train, y_train, sample_weight_train)
+
+        # calculate model scores on test data
+        score = model.score(x_test, y_test, sample_weight_test)
 
     # # confusion matrix
     # ConfusionMatrixDisplay.from_predictions(y_test[idx_test], model.predict(x_test[idx_test]))
@@ -129,30 +186,48 @@ def multiClassClassification(x, y, **kwargs):
     #     cm = metrics.confusion_matrix(y_test[idx_test], model.predict(x_test[idx_test]))
     #     score = np.sum(np.diagonal(cm))/np.sum(cm)  # turned out to be equivalent to the native sklearn score
 
-    return score
+    return score, model
 
 
-def multiOutputClassification(x, y, **kwargs):
+def multiOutputClassification(x, y, model=None, **kwargs):
     """
     Multiple output (binary and multi-class) classification tasks
-    #TODO
+    # TODO
     """
+
+    # pop variables from kwargs
+    sample_weight_train, sample_weight_test = kwargs.pop(
+        'sample_weight', (None, None))
 
     x_train, x_test = x
     y_train, y_test = y
 
-    model = MultiOutputClassifier(RidgeClassifier(
-        alpha=0.5, fit_intercept=True, **kwargs)).fit(x_train, y_train)
-    score = model.score(x_test, y_test)
+    # specify default model
+    if model is None:
+        model = MultiOutputClassifier(RidgeClassifier(
+            alpha=0.5, fit_intercept=True, **kwargs))
 
-    return score
+    if isinstance(model, MultiOutputClassifier):
+        # fit model on training data (MultiOutputClassifier does not support sample weights)
+        model.fit(x_train, y_train)
+
+        # calculate model scores on test data
+        score = model.score(x_test, y_test)
+    else:
+        # fit model on training data
+        model.fit(x_train, y_train, sample_weight_train)
+
+        # calculate model scores on test data
+        score = model.score(x_test, y_test, sample_weight_test)
+
+    return score, model
 
 
 def select_model(y):
     """
     Select the right model depending on the nature of the target
     variable
-    #TODO
+    # TODO
     """
 
     if y.dtype in [np.float32, np.float64]:
@@ -173,7 +248,7 @@ def select_model(y):
 
 def run_task(reservoir_states, target, **kwargs):
     """
-    #TODO
+    # TODO
     Function that calls the method to run the task specified by 'task'
 
     Parameters
@@ -205,10 +280,10 @@ def run_task(reservoir_states, target, **kwargs):
     # select training model
     func = select_model(y=y_train)
 
-    score = func(x=(x_train, x_test), y=(y_train, y_test), **kwargs)
+    score, model = func(x=(x_train, x_test), y=(y_train, y_test), **kwargs)
     print(f'\t\t score = {score}')
 
     df_res = pd.DataFrame(data=[score],
                           columns=['score'])
 
-    return df_res
+    return df_res, model
