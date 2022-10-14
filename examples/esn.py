@@ -79,9 +79,6 @@ rsn_mapping = iodata.load_file('rsn_mapping.npy')
 # we select the mapping only for output nodes
 rsn_mapping = rsn_mapping[conn.idx_node][output_nodes]
 
-# specify model to train reservoir output on (ridge classifier by default)
-model = RidgeClassifier(alpha=0.0, fit_intercept=False)
-
 # evaluate network performance across various dynamical regimes
 # we do so by varying the value of alpha
 
@@ -108,7 +105,6 @@ for alpha in alphas:
     df = coding.encoder(reservoir_states=(rs_train, rs_test),
                         target=(y_train, y_test),
                         readout_modules=rsn_mapping,
-                        model=model,
                         sample_weight=(sample_weight_train, sample_weight_test)
                         )
 
@@ -127,4 +123,4 @@ df_subj['score'] = df_subj['score'].astype(float)
 # Now we plot the performance curve
 
 plotting.plot_performance_curve(
-    df_subj, task, num=2, savefig=True, figsize=(12, 6))
+    df_subj, task, hue='module', num=2, savefig=True, figsize=(12, 6))
