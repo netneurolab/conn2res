@@ -98,6 +98,35 @@ class Conn:
         # binarize connectivity matrix
         self.w = self.w.astype(bool).astype(int)
 
+    def add_weight(self, w, mask='triu'):
+        """
+        Add weight to binary connecivity matrix
+
+        # TODO
+        """
+
+        if mask == 'full':
+            if w.size != np.sum(self.w == 1):
+                raise ValueError(
+                    'number of elements in mask and w do not match')
+
+            # add weights to full matrix
+            self.w[self.w == 1] = w
+
+        elif mask == 'triu':
+            if not check_symmetric(self.w):
+                raise ValueError(
+                    'add_weight(w, mask=''triu'') needs a symmetric connectivity matrix')
+            if w.size != np.sum(np.triu(self.w, 1) == 1):
+                raise ValueError(
+                    'number of elements in mask and w do not match')
+
+            # add weights to upper diagonal matrix
+            self.w[np.triu(self.w, 1) == 1] = w
+
+            # copy weights to lower diagonal
+            self.w = make_symmetric(self.w, copy_lower=False)
+
     def subset_nodes(self, node_set='all', idx_node=None, **kwargs):
         """
         Defines subset of nodes of the connectivity matrix and reduces
