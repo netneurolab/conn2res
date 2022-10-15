@@ -12,7 +12,6 @@ from numpy.linalg import (pinv, matrix_rank)
 from scipy.linalg import eigh
 from bct.algorithms.clustering import get_components
 from bct.algorithms.distance import distance_bin
-
 from .iodata import load_file
 from .coding import get_modules
 
@@ -41,6 +40,12 @@ class Conn:
 
             # select one subject
             self.w = self.w[:, :, subj_id]
+
+        # set zero diagonal
+        np.fill_diagonal(self.w, 0)
+
+        # remove inf and nan
+        self.w[np.logical_or(np.isinf(self.w), np.isnan(self.w))] = 0
 
         # number of all active nodes
         self.n_nodes = len(self.w)
