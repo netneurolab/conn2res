@@ -81,7 +81,7 @@ class Conn:
 
         # divide connectivity matrix by spectral radius
         ew, _ = eigh(self.w)
-        self.w = self.w / np.max(ew)
+        self.w = self.w / np.abs(ew).max()
 
     def binarize(self):
         """
