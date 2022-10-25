@@ -203,12 +203,7 @@ def transform_data(data, feature_set, idx_features=None, n_features=None, scaler
 
     if feature_set == 'pc':
         # transform data into principal components
-        data = PCA(idx_pcs=idx_features,
-                   n_pcs=n_features).fit_transform(data, **kwargs)
-
-    elif feature_set == 'idx':
-        # select given features
-        data = data[:, idx_features]
+        data = PCA(n_pcs=n_features).fit_transform(data, **kwargs)
 
     elif feature_set == 'rnd':
         # update default number of features
@@ -225,7 +220,7 @@ def transform_data(data, feature_set, idx_features=None, n_features=None, scaler
 
     elif feature_set == 'pred':
         # calculate predicted labels
-        data = model.predict(data)
+        data = model.predict(data)[:, np.newaxis]
 
     elif feature_set == 'coeff':
         # update default number of features
@@ -254,6 +249,10 @@ def transform_data(data, feature_set, idx_features=None, n_features=None, scaler
             data = data @ np.diag(coef[idx_coef])
             # data = np.sum(
             #     data @ np.diag(coef[idx_coef]), axis=1).reshape(-1, 1)
+
+    # select given features
+    if idx_features is not None:
+        data = data[:, idx_features]
 
     # scale features
     data *= scaler
