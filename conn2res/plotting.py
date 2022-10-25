@@ -162,7 +162,7 @@ def plot_time_series(x, feature_set='orig', idx_features=None, n_features=None, 
         # add x and y limits
         plt.xlim(xlim)
         if ylim is not None:
-            plt.xlim(ylim)
+            plt.ylim(ylim)
 
         # plot legend
         if legend_label is not None:
