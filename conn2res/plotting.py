@@ -4,12 +4,11 @@ Plotting functions
 
 @author: Estefany Suarez
 """
-
 import os
 import seaborn as sns
 import matplotlib.pyplot as plt
 import numpy as np
-from numpy.linalg import svd
+from numpy.linalg import svd, norm
 
 PROJ_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 FIG_DIR = os.path.join(PROJ_DIR, 'figs')
@@ -143,11 +142,11 @@ def plot_performance_curve(df, title, x='alpha', y='score', hue=None, hue_order=
 
 
 def plot_time_series(x, feature_set='orig', idx_features=None, n_features=None, xlim=[0, 150], ylim=None,
-                     scaler=1, num=1, figsize=(12, 6), subplot=None, title=None, fname='time_course',
+                     num=1, figsize=(12, 6), subplot=None, title=None, fname='time_course',
                      legend_label=None, savefig=False, block=True, **kwargs):
     # transform data
-    x = transform_data(
-        x, feature_set, idx_features=idx_features, n_features=n_features, scaler=scaler, **kwargs)
+    x = transform_data(x, feature_set, idx_features=idx_features,
+                       n_features=n_features, **kwargs)
 
     # open figure and create subplot
     plt.figure(num=num, figsize=figsize)
@@ -199,7 +198,7 @@ def plot_time_series(x, feature_set='orig', idx_features=None, n_features=None, 
     plt.show(block=block)
 
 
-def transform_data(data, feature_set, idx_features=None, n_features=None, scaler=1, model=None, **kwargs):
+def transform_data(data, feature_set, idx_features=None, n_features=None, scaler=None, model=None, **kwargs):
 
     if feature_set == 'pc':
         # transform data into principal components
@@ -255,6 +254,15 @@ def transform_data(data, feature_set, idx_features=None, n_features=None, scaler
         data = data[:, idx_features]
 
     # scale features
-    data *= scaler
+    if scaler is not None:
+        if scaler == 'l1-norm':
+            scaler = norm(data, ord=1, axis=0)
+        if scaler == 'l2-norm':
+            scaler = norm(data, ord=2, axis=0)
+        elif scaler == 'max':
+            scaler = norm(data, ord=np.inf, axis=0)
+        elif isinstance(scaler, int):
+            scaler = np.array([int])
+        data /= scaler
 
     return data
