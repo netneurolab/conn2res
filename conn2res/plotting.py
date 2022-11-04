@@ -7,6 +7,8 @@ Plotting functions
 import os
 import seaborn as sns
 import matplotlib.pyplot as plt
+import matplotlib.colors as colors
+from mpl_toolkits.axes_grid1 import make_axes_locatable
 import numpy as np
 from numpy.linalg import svd, norm
 
@@ -191,6 +193,58 @@ def plot_time_series(x, feature_set='orig', idx_features=None, n_features=None, 
 
     # set tight layout in case there are different subplots
     plt.tight_layout()
+
+    if savefig:
+        plt.savefig(fname=os.path.join(FIG_DIR, f'{fname}.png'),
+                    transparent=True, bbox_inches='tight', dpi=300)
+    plt.show(block=block)
+
+
+def plot_time_series_raster(x, feature_set='orig', idx_features=None, n_features=None, xlim=[0, 150],
+                            cmap='viridis', cbar_norm='norm', cbar_pad=0.02,
+                            num=1, figsize=(12, 6), subplot=None, title=None, fname='time_course_raster',
+                            savefig=False, block=True, **kwargs):
+
+    # transform data
+    x = transform_data(x, feature_set, idx_features=idx_features,
+                       n_features=n_features, **kwargs)
+
+    # open figure and create subplot
+    fig = plt.figure(num=num, figsize=figsize)
+    if subplot is None:
+        subplot = (1, 1, 1)
+    ax = plt.subplot(*subplot)
+
+    # plot data
+    if x.size > 0:
+        plt.imshow(x.T, aspect='auto')
+
+        # set xtick/ythick fontsize
+        ax.tick_params(axis='both', labelsize=22)
+
+        # set tight layout in case there are different subplots
+        plt.tight_layout()
+
+        # add colorbar
+        vmin = x[x != 0].min()
+        vmax = x.max()
+        if cbar_norm == 'lognorm' and vmax/vmin > 10:
+            # use log scale if data spread more than 1 magnitude
+            pcm = ax.pcolormesh(x.T, norm=colors.LogNorm(
+                vmin=vmin, vmax=vmax), cmap=getattr(plt.cm, cmap))
+        else:
+            # use linear scale by default
+            pcm = ax.pcolormesh(x.T, cmap=getattr(plt.cm, cmap))
+        divider = make_axes_locatable(ax)
+        cbar_width = 1 - x.shape[0]/xlim[-1] - cbar_pad
+        cax = divider.append_axes(
+            "right", f'{cbar_width*100:.2f}%', pad=f'{cbar_pad*100:.2f}%')
+
+        plt.colorbar(pcm, cax=cax)
+
+    # add title
+    if title is not None:
+        plt.title(f'{title} time course', fontsize=22)
 
     if savefig:
         plt.savefig(fname=os.path.join(FIG_DIR, f'{fname}.png'),
