@@ -181,7 +181,7 @@ def create_nativet_dataset(task, tau_max=20, **kwargs):
     return x, y
 
 
-def split_dataset(*args, frac_train=0.7, axis=0):
+def split_dataset(*args, frac_train=0.7, axis=0, n_train=None):
     """
     Splits data into training and test sets according to
     'frac_train'
@@ -194,6 +194,8 @@ def split_dataset(*args, frac_train=0.7, axis=0):
         fraction of samples in training set
     axis: int
         axis along which the data should be split or concatenated
+    n_train: int
+        number of samples in training set
 
     Returns
     -------
@@ -206,7 +208,8 @@ def split_dataset(*args, frac_train=0.7, axis=0):
     argout = []
     for arg in args:
         if isinstance(arg, list):
-            n_train = int(frac_train * len(arg))
+            if n_train is None:
+                n_train = int(frac_train * len(arg))
 
             if axis == 0:
                 argout.extend([np.vstack(arg[:n_train]),
@@ -216,7 +219,8 @@ def split_dataset(*args, frac_train=0.7, axis=0):
                               np.hstack(arg[n_train:])])
 
         elif isinstance(arg, np.ndarray):
-            n_train = int(frac_train * arg.shape[axis])
+            if n_train is None:
+                n_train = int(frac_train * arg.shape[axis])
 
             if axis == 0:
                 argout.extend([arg[:n_train, :], arg[n_train:, :]])
