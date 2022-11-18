@@ -113,7 +113,7 @@ class Conn:
 
     def add_weight(self, w, mask='triu'):
         """
-        Add weight to binary connecivity matrix
+        Add weight to either a binary or weighted connecivity matrix
 
         # TODO
         """
@@ -124,18 +124,18 @@ class Conn:
                     'number of elements in mask and w do not match')
 
             # add weights to full matrix
-            self.w[self.w == 1] = w
+            self.w[self.w != 0] = w
 
         elif mask == 'triu':
             if not check_symmetric(self.w):
                 raise ValueError(
                     'add_weight(w, mask=''triu'') needs a symmetric connectivity matrix')
-            if w.size != np.sum(np.triu(self.w, 1) == 1):
+            if w.size != np.sum(np.triu(self.w, 1) != 0):
                 raise ValueError(
                     'number of elements in mask and w do not match')
 
             # add weights to upper diagonal matrix
-            self.w[np.triu(self.w, 1) == 1] = w
+            self.w[np.triu(self.w, 1) != 0] = w
 
             # copy weights to lower diagonal
             self.w = make_symmetric(self.w, copy_lower=False)
