@@ -109,7 +109,7 @@ class Conn:
         """
 
         # binarize connectivity matrix
-        self.w = self.w.astype(bool).astype(int)
+        self.w = self.w.astype(bool).astype(float)
 
     def add_weight(self, w, mask='triu'):
         """
