@@ -53,6 +53,12 @@ class Conn:
         # number of all active nodes
         self.n_nodes = len(self.w)
 
+        # number of edges (in symmetric networks edges are counted twice!)
+        self.n_edges = np.sum(self.w != 0)
+
+        # density of network
+        self.density = self.n_edges / (self.n_nodes * (self.n_nodes - 1))
+
         # indexes of set of active nodes
         self.idx_node = np.full(self.n_nodes, True)
 
@@ -143,8 +149,8 @@ class Conn:
             idx_node = np.isin(np.arange(self.n_nodes),
                                self.get_nodes(node_set, **kwargs))
 
-        # update node attributes
-        self._update_nodes(idx_node)
+        # update class attributes
+        self._update_attributes(idx_node)
 
         # update component
         self._get_largest_component()
@@ -250,12 +256,12 @@ class Conn:
         # get indexes pertaining to the largest component
         idx_node = comps == np.argmax(comp_sizes) + 1
 
-        # update node attributes
-        self._update_nodes(idx_node)
+        # update class attributes
+        self._update_attributes(idx_node)
 
-    def _update_nodes(self, idx_node):
+    def _update_attributes(self, idx_node):
         """
-        Updates attributes of a new subset of nodes
+        Updates network attributes
 
         #TODO
         """
@@ -265,8 +271,12 @@ class Conn:
             self.n_nodes = sum(idx_node)
             self.idx_node[self.idx_node] = idx_node
 
-            # update weights
+            # update edge attributes
             self.w = self.w[np.ix_(idx_node, idx_node)]
+            self.n_edges = np.sum(self.w != 0)
+
+            # update density
+            self.density = self.n_edges / (self.n_nodes * (self.n_nodes - 1))
         else:
             raise NotImplementedError
 
