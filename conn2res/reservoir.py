@@ -62,6 +62,10 @@ class Conn:
         # indexes of set of active nodes
         self.idx_node = np.full(self.n_nodes, True)
 
+        # make sure that all nodes are connected to the rest of the network
+        self.subset_nodes(idx_node=np.logical_or(
+            np.any(self.w != 0, axis=0), np.any(self.w != 0, axis=1)))
+
     def scale_and_normalize(self):
         """
         Scales the connectivity matrix between [0, 1] and divides by spectral
