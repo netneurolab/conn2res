@@ -30,13 +30,16 @@ class Conn:
     # TODO
     """
 
-    def __init__(self, subj_id=0, w=None):
+    def __init__(self, filename=None, subj_id=0, w=None):
         if w is not None:
             # assign provided connectivity data
             self.w = w
         else:
             # load connectivity data
-            self.w = load_file('connectivity.npy')
+            if filename is not None:
+                self.w = np.load(filename)
+            else:
+                self.w = load_file('connectivity.npy')
 
             # select one subject
             self.w = self.w[:, :, subj_id]
