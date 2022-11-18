@@ -136,6 +136,7 @@ def plot_performance_curve(df, title, x='alpha', y='score', hue=None, hue_order=
     if ylim is not None:
         plt.ylim(ylim)
     sns.despine(offset=10, trim=True)
+    plt.legend(title=hue, loc='upper right')
     plt.title(title)
     if savefig:
         fig.savefig(fname=os.path.join(FIG_DIR, f'{title}_{y}.png'),
