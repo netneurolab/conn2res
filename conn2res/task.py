@@ -6,6 +6,7 @@ tasks
 @author: Estefany Suarez
 """
 
+import sys
 import numpy as np
 import pandas as pd
 import scipy as sp
@@ -16,7 +17,6 @@ from sklearn.model_selection import ParameterGrid
 from sklearn.linear_model import Ridge, RidgeClassifier
 from sklearn.multiclass import OneVsRestClassifier
 from sklearn.multioutput import MultiOutputRegressor, MultiOutputClassifier
-from sklearn.metrics import accuracy_score, confusion_matrix, ConfusionMatrixDisplay
 from sklearn.ensemble import RandomForestRegressor
 
 # import matplotlib.pyplot as plt
@@ -43,7 +43,47 @@ def check_xy_dims(x, y):
     return x_train, x_test, y_train, y_test
 
 
-def regression(x, y, model=None, **kwargs):
+def corrcoef(y_true, y_pred):
+    """Absolute Pearson's correlation between true and predicted label
+
+    Parameters
+    ----------
+    y_true : numpy.ndarray
+        Ground truth target values.
+    y_pred : numpy.ndarray
+        Predicted target values.
+
+    Returns
+    -------
+    float
+        Absolute Pearson's correlation.  
+    """
+
+    return np.abs(np.corrcoef(y_true, y_pred)[0][1])
+
+
+def nrmse(y_true, y_pred):
+    """Normalized root mean squared error
+
+    Parameters
+    ----------
+    y_true : numpy.ndarray
+        Ground truth target values.
+    y_pred : numpy.ndarray
+        Predicted target values.
+
+    Returns
+    -------
+    float
+        Root mean squared error normalized by variance.
+    """
+
+    error = metrics.mean_squared_error(y_true, y_pred, squared=False)
+
+    return error / y_true.var()
+
+
+def regression(x, y, model=None, metric='score', **kwargs):
     """
     Regression tasks
     # TODO
@@ -64,13 +104,24 @@ def regression(x, y, model=None, **kwargs):
     # fit model on training data
     model.fit(x_train, y_train, sample_weight_train)
 
-    # calculate model scores on test data
-    score = model.score(x_test, y_test, sample_weight_test)
+    # calculate model metric on test data
+    if metric == 'score':
+        # by default, use score method of model
+        metric_value = model.score(x_test, y_test, sample_weight_test)
+    else:
+        y_pred = model.predict(x_test)
+        try:
+            # fall back option is to use sklearn.metrics function
+            func = getattr(metrics, metric)
+        except AttributeError:
+            # finally, try functions from current module
+            func = getattr(sys.modules[__name__], metric)
+        metric_value = func(y_test, y_pred)
 
-    return score, model
+    return metric_value, model
 
 
-def multiOutputRegression(x, y, model=None, **kwargs):
+def multiOutputRegression(x, y, model=None, metric='corrcoef', **kwargs):
     """
     Multiple output regression tasks
     # TODO
@@ -92,30 +143,42 @@ def multiOutputRegression(x, y, model=None, **kwargs):
         # fit model on training data
         model.fit(x_train, y_train)
 
-        # calculate model scores on test data
-        y_pred = model.predict(x_test)
-        n_outputs = y_pred.shape[1]
-        score = []
-        for output in range(n_outputs):
-            score.append(
-                np.abs((np.corrcoef(y_test[:, output], y_pred[:, output])[0][1])))
+        # calculate model metric on test data
+        if metric == 'corrcoef':
+            y_pred = model.predict(x_test)
+            n_outputs = y_pred.shape[1]
 
-        return np.sum(score), model
+            corrcoef = []
+            for output in range(n_outputs):
+                corrcoef.append(corrcoef(y_test[:, output], y_pred[:, output]))
+
+            metric_value = np.sum(corrcoef)
+        else:
+            raise NotImplementedError(
+                'This metric is not yet implemented to evaluate the current model.')
     else:
         # fit model on training data
         model.fit(x_train, y_train, sample_weight_train)
 
         # calculate model scores on test data
-        score = model.score(x_test, y_test, sample_weight_test)
+        if metric == 'score':
+            metric_value = model.score(x_test, y_test, sample_weight_test)
+        else:
+            raise NotImplementedError(
+                'This metric is not yet implemented to evaluate the current model.')
 
-        return score, model
+    return metric_value, model
 
 
-def classification(x, y, model=None, **kwargs):
+def classification(x, y, model=None, metric='score', **kwargs):
     """
     Binary classification tasks
     # TODO
     """
+
+    if metric != 'score':
+        raise NotImplementedError(
+            'This metric is not yet implemented to evaluate the current model.')
 
     # pop variables from kwargs
     sample_weight_train, sample_weight_test = kwargs.pop(
@@ -132,21 +195,25 @@ def classification(x, y, model=None, **kwargs):
     model.fit(x_train, y_train, sample_weight_train)
 
     # calculate model scores on test data
-    score = model.score(x_test, y_test, sample_weight_test)
+    metric_value = model.score(x_test, y_test, sample_weight_test)
 
     # # confusion matrix
     # ConfusionMatrixDisplay.from_predictions(y_test, model.predict(x_test))
     # plt.show()
     # plt.close()
 
-    return score, model
+    return metric_value, model
 
 
-def multiClassClassification(x, y, model=None, **kwargs):
+def multiClassClassification(x, y, model=None, metric='score', **kwargs):
     """
     Multi-class Classification tasks
     # TODO
     """
+
+    if metric != 'score':
+        raise NotImplementedError(
+            'This metric is not yet implemented to evaluate the current model.')
 
     # pop variables from kwargs
     sample_weight_train, sample_weight_test = kwargs.pop(
@@ -169,13 +236,13 @@ def multiClassClassification(x, y, model=None, **kwargs):
         model.fit(x_train[idx_train], y_train[idx_train])
 
         # calculate model scores on test data
-        score = model.score(x_test[idx_test], y_test[idx_test])
+        metric_value = model.score(x_test[idx_test], y_test[idx_test])
     else:
         # fit model on training data
         model.fit(x_train, y_train, sample_weight_train)
 
         # calculate model scores on test data
-        score = model.score(x_test, y_test, sample_weight_test)
+        metric_value = model.score(x_test, y_test, sample_weight_test)
 
     # # confusion matrix
     # ConfusionMatrixDisplay.from_predictions(y_test[idx_test], model.predict(x_test[idx_test]))
@@ -186,14 +253,18 @@ def multiClassClassification(x, y, model=None, **kwargs):
     #     cm = metrics.confusion_matrix(y_test[idx_test], model.predict(x_test[idx_test]))
     #     score = np.sum(np.diagonal(cm))/np.sum(cm)  # turned out to be equivalent to the native sklearn score
 
-    return score, model
+    return metric_value, model
 
 
-def multiOutputClassification(x, y, model=None, **kwargs):
+def multiOutputClassification(x, y, model=None, metric='score', **kwargs):
     """
     Multiple output (binary and multi-class) classification tasks
     # TODO
     """
+
+    if metric != 'score':
+        raise NotImplementedError(
+            'This metric is not yet implemented to evaluate the current model.')
 
     # pop variables from kwargs
     sample_weight_train, sample_weight_test = kwargs.pop(
@@ -212,15 +283,15 @@ def multiOutputClassification(x, y, model=None, **kwargs):
         model.fit(x_train, y_train)
 
         # calculate model scores on test data
-        score = model.score(x_test, y_test)
+        metric_value = model.score(x_test, y_test)
     else:
         # fit model on training data
         model.fit(x_train, y_train, sample_weight_train)
 
         # calculate model scores on test data
-        score = model.score(x_test, y_test, sample_weight_test)
+        metric_value = model.score(x_test, y_test, sample_weight_test)
 
-    return score, model
+    return metric_value, model
 
 
 def select_model(y):
@@ -246,7 +317,7 @@ def select_model(y):
             return multiOutputClassification  # multilabel and/or multiclass classification
 
 
-def run_task(reservoir_states, target, **kwargs):
+def run_task(reservoir_states, target, metric, **kwargs):
     """
     # TODO
     Function that calls the method to run the task specified by 'task'
@@ -280,10 +351,17 @@ def run_task(reservoir_states, target, **kwargs):
     # select training model
     func = select_model(y=y_train)
 
-    score, model = func(x=(x_train, x_test), y=(y_train, y_test), **kwargs)
-    print(f'\t\t score = {score}')
+    # make metric a tuple to enable different metrics on the same model
+    if isinstance(metric, str):
+        metric = (metric,)
 
-    df_res = pd.DataFrame(data=[score],
-                          columns=['score'])
+    # fit model
+    metrics = dict()
+    for m in metric:
+        metrics[m], model = func(x=(x_train, x_test), y=(
+            y_train, y_test), metric=m, **kwargs)
+        print(f'\t\t {m} = {metrics[m]}')
+
+    df_res = pd.DataFrame(data=metrics, index=[0])
 
     return df_res, model
