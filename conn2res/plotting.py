@@ -144,9 +144,10 @@ def plot_performance_curve(df, title, x='alpha', y='score', hue=None, hue_order=
     plt.show(block=block)
 
 
-def plot_time_series(x, feature_set='orig', idx_features=None, n_features=None, xlim=[0, 150], ylim=None,
-                     num=1, figsize=(12, 6), subplot=None, title=None, fname='time_course',
+def plot_time_series(x, feature_set='orig', idx_features=None, n_features=None, sample=None, xlim=[0, 150], ylim=None,
+                     cmap=None, scaler=1, num=1, figsize=(12, 6), subplot=None, title=None, fname='time_course',
                      legend_label=None, savefig=False, block=True, **kwargs):
+
     # transform data
     x = transform_data(x, feature_set, idx_features=idx_features,
                        n_features=n_features, **kwargs)
@@ -159,7 +160,16 @@ def plot_time_series(x, feature_set='orig', idx_features=None, n_features=None, 
 
     # plot data
     if x.size > 0:
-        plt.plot(x)
+        if sample is None:
+            plt.plot(x)
+        else:
+            t = np.arange(*sample)
+            if cmap is None:
+                plt.plot(t, x[t])
+            else:
+                for i, _ in enumerate(t[:-1]):
+                    plt.plot(t[i:i+2], x[t[i:i+2]],
+                             color=getattr(plt.cm, cmap)(255*i//np.diff(sample)))
 
         # add x and y limits
         plt.xlim(xlim)
