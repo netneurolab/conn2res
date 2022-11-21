@@ -331,3 +331,46 @@ def transform_data(data, feature_set, idx_features=None, n_features=None, scaler
         data /= scaler
 
     return data
+
+
+def plot_mackey_glass_phase_space(x, y, sample=None, xlim=None, ylim=None, subplot=None, cmap=None,
+                                  num=1, figsize=(13, 5), title=None, fname='phase_space', savefig=False, block=False):
+    # open figure and create subplot
+    plt.figure(num=num, figsize=figsize)
+    if subplot is None:
+        subplot = (1, 1, 1)
+    plt.subplot(*subplot)
+
+    # plot data
+    if sample is None:
+        plt.plot(x)
+    else:
+        t = np.arange(*sample)
+        if cmap is None:
+            plt.plot(t, x[t])
+        else:
+            for i, _ in enumerate(t[:-1]):
+                plt.plot(x[t[i:i+2]], y[t[i:i+2]],
+                         color=getattr(plt.cm, cmap)(255*i//np.diff(sample)))
+
+    # add x and y limits
+    if xlim is not None:
+        plt.xlim(xlim)
+    if ylim is not None:
+        plt.xlim(ylim)
+
+    # set xtick/ythick fontsize
+    plt.xticks(fontsize=22)
+    plt.yticks(fontsize=22)
+
+    # add title
+    if title is not None:
+        plt.title(f'{title} phase space', fontsize=22)
+
+    # set tight layout in case there are different subplots
+    plt.tight_layout()
+
+    if savefig:
+        plt.savefig(fname=os.path.join(FIG_DIR, f'{fname}.png'),
+                    transparent=True, bbox_inches='tight', dpi=300)
+    plt.show(block=block)
