@@ -9,6 +9,7 @@ import os
 from re import I
 import numpy as np
 import neurogym as ngym
+from reservoirpy import datasets
 
 from .task import select_model
 from . import plotting
@@ -50,10 +51,22 @@ NEUROGYM_TASKS = [
     # 'ToneDetection'  # TODO: Temporary removing until bug fixed
 ]
 
-
 NATIVE_TASKS = [
     'MemoryCapacity',
     # 'TemporalPatternRecognition'
+]
+
+RESERVOIRPY_TASKS = [
+    'henon_map',
+    'logistic_map',
+    'lorenz',
+    'mackey_glass',
+    'multiscroll',
+    'doublescroll',
+    'rabinovich_fabrikant',
+    'narma',
+    'lorenz96',
+    'rossler'
 ]
 
 
@@ -62,7 +75,7 @@ def load_file(filename):
 
 
 def get_available_tasks():
-    return NEUROGYM_TASKS  # + NATIVE_TASKS
+    return NEUROGYM_TASKS + NATIVE_TASKS + RESERVOIRPY_TASKS
 
 
 def unbatch(x):
@@ -100,7 +113,7 @@ def encode_labels(labels):
     return enc_labels
 
 
-def fetch_dataset(task, *args, n_trials=100, add_constant=False, **kwargs):
+def fetch_dataset(task, **kwargs):
     """
     Fetches inputs and labels for 'task' from the NeuroGym
     repository
@@ -137,48 +150,100 @@ def fetch_dataset(task, *args, n_trials=100, add_constant=False, **kwargs):
     """
 
     if task in NEUROGYM_TASKS:
+        # create a conn2res Dataset
+        return create_neurogymn_dataset(task, **kwargs)
 
-        # create a Dataset object from NeuroGym
-        dataset = ngym.Dataset(task+'-v0', env_kwargs=kwargs)
+    elif task in NATIVE_TASKS + RESERVOIRPY_TASKS:
+        # create a conn2res Dataset
+        return create_dataset(task, **kwargs)
 
-        # get environment object
-        env = dataset.env
 
-        # generate per trial dataset
-        _ = env.reset()
-        inputs = []
-        labels = []
-        for trial in range(n_trials):
-            env.new_trial()
-            ob, gt = env.ob, env.gt
+def create_neurogymn_dataset(task, n_trials=100, add_constant=False, **kwargs):
+    # create a Dataset object from NeuroGym
+    dataset = ngym.Dataset(task+'-v0', env_kwargs=kwargs)
 
-            # add constant term
-            if add_constant:
-                ob = np.concatenate((np.ones((ob.shape[0], 1)), ob), axis=1)
+    # get environment object
+    env = dataset.env
 
-            # store input
-            inputs.append(ob)
+    # generate per trial dataset
+    _ = env.reset()
+    inputs = []
+    labels = []
+    if task == 'ContextDecisionMaking':
+        sample_class = []
+    for trial in range(n_trials):
+        env.new_trial()
+        ob, gt = env.ob, env.gt
 
-            # store labels
-            if gt.ndim == 1:
-                labels.append(gt[:, np.newaxis])
+        # add constant term
+        if add_constant:
+            ob = np.concatenate((np.ones((ob.shape[0], 1)), ob), axis=1)
+
+        # store input
+        inputs.append(ob)
+
+        # store labels
+        if gt.ndim == 1:
+            labels.append(gt[:, np.newaxis])
+        else:
+            labels.append(gt)
+
+        # extra label for context dependent decision making task
+        if task == 'ContextDecisionMaking':
+            _class = ob[:, -1, np.newaxis]
+            if np.mean(ob[:, 2] - ob[:, 1]) > 0:
+                _class = np.hstack((_class, np.ones((gt.size, 1))))
             else:
-                labels.append(gt)
+                _class = np.hstack((_class, np.zeros((gt.size, 1))))
+            if np.mean(ob[:, 4] - ob[:, 3]) > 0:
+                _class = np.hstack((_class, np.ones((gt.size, 1))))
+            else:
+                _class = np.hstack((_class, np.zeros((gt.size, 1))))
+            sample_class.append(_class)
 
-    elif task in NATIVE_TASKS:
-        # create a native conn2res Dataset
-        inputs, labels = create_nativet_dataset(task, **kwargs)
+    if task == 'ContextDecisionMaking':
+        return inputs, labels, sample_class
+    else:
+        return inputs, labels
 
-    return inputs, labels
 
+def create_dataset(task, n_timesteps=1000, horizon=1, **kwargs):
 
-def create_nativet_dataset(task, tau_max=20, **kwargs):
+    # make sure horizon is a list
+    if isinstance(horizon, int):
+        horizon = [horizon]
+
+    # check that horizon has elements with same sign
+    horizon_sign = np.unique(np.sign(horizon))
+    if horizon_sign.size == 1:
+        horizon_sign = horizon_sign[0]
+    else:
+        raise ValueError('horizon should have elements with same sign')
+
+    # transform horizon elements to positive values (and nd.array)
+    horizon = np.abs(horizon)
+
+    # calculate maximum horizon
+    horizon_max = np.max(horizon)
 
     if task == 'MemoryCapacity':
-        x = np.random.uniform(-1, 1, (1000+tau_max))[:, np.newaxis]
-        y = np.hstack([x[tau_max-tau:-tau] for tau in range(1, tau_max+1)])
+        x = np.random.uniform(-1, 1, (n_timesteps+horizon_max))[:, np.newaxis]
 
-    return x, y
+    elif task in RESERVOIRPY_TASKS:
+        func = getattr(datasets, task)
+        n_timesteps = n_timesteps + horizon_max
+        x = func(n_timesteps=n_timesteps, **kwargs)
+
+    y = np.hstack([x[horizon_max-h:-h] for h in horizon])
+    x = x[horizon_max:]
+
+    if horizon_sign == -1:
+        return x, y
+    elif horizon_sign == 1:
+        if y.shape[1] == 1:
+            return y, x
+        else:
+            raise ValueError('positive horizon should be integer not list')
 
 
 def split_dataset(*args, frac_train=0.7, axis=0, n_train=None):
