@@ -38,7 +38,8 @@ def memory_capacity_reservoir(conn, input_nodes, output_nodes, readout_modules=N
     conn.scale_and_normalize()
 
     # get dataset for memory capacity task
-    x, y = iodata.fetch_dataset('MemoryCapacity', tau_max=tau_max)
+    x, y = iodata.fetch_dataset(
+        'MemoryCapacity', horizon=np.arange(-1, -tau_max, -1))
 
     # create input connectivity matrix
     w_in = np.zeros((1, conn.n_nodes))
@@ -67,9 +68,6 @@ def memory_capacity_reservoir(conn, input_nodes, output_nodes, readout_modules=N
         # simulate reservoir states; select only output nodes
         rs = network.simulate(ext_input=x)
 
-        # remove first tau_max points from reservoir states
-        rs = rs[tau_max:]
-
         # split data into training and test sets
         rs_train, rs_test, y_train, y_test = iodata.split_dataset(rs, y)
 
@@ -79,6 +77,7 @@ def memory_capacity_reservoir(conn, input_nodes, output_nodes, readout_modules=N
                                  target=(y_train, y_test),
                                  readout_modules=readout_modules,
                                  readout_nodes=readout_nodes,
+                                 metric='corrcoef'
                                  )
 
             df_['alpha'] = np.round(alpha, 3)
@@ -88,13 +87,13 @@ def memory_capacity_reservoir(conn, input_nodes, output_nodes, readout_modules=N
                 df_['module'] = 'NA'
             if 'n_nodes' not in df_.columns:
                 df_['n_nodes'] = 'NA'
-            df.append(df_[['module', 'n_nodes', 'alpha', 'score']])
+            df.append(df_[['module', 'n_nodes', 'alpha', 'corrcoef']])
 
         except:
             pass
 
     df = pd.concat(df, ignore_index=True)
-    df['score'] = df['score'].astype(float)
+    df['corrcoef'] = df['corrcoef'].astype(float)
 
     if plot_res:
         if plot_title is not None:
@@ -102,7 +101,8 @@ def memory_capacity_reservoir(conn, input_nodes, output_nodes, readout_modules=N
         else:
             plot_title = 'Memory Capacity'
 
-        plotting.plot_performance_curve(df, plot_title, hue='module')
+        plotting.plot_performance_curve(
+            df, plot_title, y='corrcoef', hue='module', figsize=(12, 6))
 
     return df
 
