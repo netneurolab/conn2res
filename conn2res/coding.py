@@ -26,7 +26,7 @@ def get_modules(module_assignment):
 
 
 def encoder(reservoir_states, target, readout_modules=None,
-            readout_nodes=None, *args, **kwargs):
+            readout_nodes=None, metric='score', **kwargs):
     """
     Function that defines the set(s) of readout nodes based on whether
     'readout_nodes', 'readout_modules' or None is provided. It then calls
@@ -88,7 +88,7 @@ def encoder(reservoir_states, target, readout_modules=None,
 
             # create temporal dataframe
             df_module, model_module = run_task(reservoir_states=(
-                reservoir_states[0][:, readout_nodes], reservoir_states[1][:, readout_nodes]), target=target, **kwargs)  # reservoir_states[:,:,readout_nodes],
+                reservoir_states[0][:, readout_nodes], reservoir_states[1][:, readout_nodes]), target=target, metric=metric, **kwargs)  # reservoir_states[:,:,readout_nodes],
 
             df_module['module'] = module_ids[i]
             df_module['n_nodes'] = len(readout_nodes)
@@ -101,13 +101,13 @@ def encoder(reservoir_states, target, readout_modules=None,
 
     elif readout_nodes is not None:
         df_encoding, model = run_task(reservoir_states=(
-            reservoir_states[0][:, readout_nodes], reservoir_states[1][:, readout_nodes]), target=target, **kwargs)
+            reservoir_states[0][:, readout_nodes], reservoir_states[1][:, readout_nodes]), target=target, metric=metric, **kwargs)
 
         df_encoding['n_nodes'] = len(readout_nodes)
 
     else:
         df_encoding, model = run_task(reservoir_states=reservoir_states,
-                                      target=target, **kwargs)
+                                      target=target, metric=metric, **kwargs)
 
     if 'model' in kwargs:
         return df_encoding, model
