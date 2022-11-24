@@ -31,7 +31,7 @@ NEUROGYM_TASKS = [
     'DualDelayMatchSample',
     # 'EconomicDecisionMaking',
     'GoNogo',
-    # 'HierarchicalReasoning',
+    'HierarchicalReasoning',
     'IntervalDiscrimination',
     'MotorTiming',
     'MultiSensoryIntegration',
@@ -95,22 +95,6 @@ def unbatch(x):
     """
     # TODO right now it only works when x is (batch_first = False)
     return np.concatenate(x, axis=0)
-
-
-def encode_labels(labels):
-    """
-        Binary encoding of categorical labels for classification
-        problems
-        # TODO
-    """
-
-    enc_labels = -1 * \
-        np.ones((labels.shape[0], len(np.unique(labels))), dtype=np.int16)
-
-    for i, label in enumerate(labels):
-        enc_labels[i][label] = 1
-
-    return enc_labels
 
 
 def fetch_dataset(task, **kwargs):
