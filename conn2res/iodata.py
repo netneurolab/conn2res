@@ -358,9 +358,9 @@ def get_sample_weight(inputs, labels, sample_block=None):
         labels = [labels]
 
     sample_weight = []
-    for data in inputs:
-        # sample block based on unique combinations of classes in data
-        if sample_block is None:
+    if sample_block is None:
+        for data in inputs:
+            # sample block based on unique combinations of classes in data
             icol = [col for col in range(data.shape[1]) if np.unique(
                 data[:, col]).size <= 3]  # class is based on <=3 real values
             _, sample_block = np.unique(
@@ -373,5 +373,15 @@ def get_sample_weight(inputs, labels, sample_block=None):
         # sample weight
         sample_weight.append(
             np.hstack([np.tile(1/e, e) for e in nc[np.argsort(ia)]]))
+    else:
+        # get unique sample blocks
+        _, ia, nc = np.unique(
+            sample_block, return_index=True, return_counts=True)
+
+        for data in inputs:
+            # sample weight
+            sample_weight.append(
+                np.hstack([np.tile(1/e, e) for e in nc[np.argsort(ia)]]))
+
 
     return sample_weight
