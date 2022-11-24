@@ -56,7 +56,7 @@ def corrcoef(y_true, y_pred):
     Returns
     -------
     float
-        Absolute Pearson's correlation.  
+        Absolute Pearson's correlation.
     """
 
     return np.abs(np.corrcoef(y_true, y_pred)[0][1])
@@ -300,15 +300,14 @@ def select_model(y):
     variable
     # TODO
     """
-
     if y.dtype in [np.float32, np.float64]:
-        if y.ndim == 1:
+        if y.squeeze().ndim == 1:
             return regression  # regression
         else:
             return multiOutputRegression  # multilabel regression
 
     elif y.dtype in [np.int32, np.int64]:
-        if y.ndim == 1:
+        if y.squeeze().ndim == 1:
             if len(np.unique(y)) == 2:  # binary classification
                 return classification
             else:
