@@ -26,7 +26,7 @@ def get_modules(module_assignment):
 
 
 def encoder(reservoir_states, target, readout_modules=None,
-            readout_nodes=None, metric='score', **kwargs):
+            readout_nodes=None, metric='score', return_model=True, **kwargs):
     """
     Function that defines the set(s) of readout nodes based on whether
     'readout_nodes', 'readout_modules' or None is provided. It then calls
@@ -109,7 +109,7 @@ def encoder(reservoir_states, target, readout_modules=None,
         df_encoding, model = run_task(reservoir_states=reservoir_states,
                                       target=target, metric=metric, **kwargs)
 
-    if 'model' in kwargs:
+    if return_model:
         return df_encoding, model
     else:
         return df_encoding
