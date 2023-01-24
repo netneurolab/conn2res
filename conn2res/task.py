@@ -6,20 +6,14 @@ tasks
 @author: Estefany Suarez
 """
 
-import sys
 import numpy as np
 import pandas as pd
-import scipy as sp
-# import mdp
 
-
-from sklearn.metrics import make_scorer
-from sklearn import metrics
-from sklearn.multiclass import OneVsRestClassifier
-from sklearn.multioutput import MultiOutputRegressor, MultiOutputClassifier
 from sklearn.linear_model import Ridge, RidgeClassifier
-from sklearn.ensemble import RandomForestRegressor
+# from sklearn.multiclass import OneVsRestClassifier
+# from sklearn.multioutput import MultiOutputRegressor, MultiOutputClassifier
 
+from . import performance
 
 
 def check_xy_dims(x, y):
@@ -43,47 +37,9 @@ def check_xy_dims(x, y):
     return x_train, x_test, y_train, y_test
 
 
-def corrcoef(y_true, y_pred):
-    """Absolute Pearson's correlation between true and predicted label
-
-    Parameters
-    ----------
-    y_true : numpy.ndarray
-        Ground truth target values.
-    y_pred : numpy.ndarray
-        Predicted target values.
-
-    Returns
-    -------
-    float
-        Absolute Pearson's correlation.
-    """
-
-    return np.abs(np.corrcoef(y_true, y_pred)[0][1])
-
-
-def nrmse(y_true, y_pred):
-    """Normalized root mean squared error
-
-    Parameters
-    ----------
-    y_true : numpy.ndarray
-        Ground truth target values.
-    y_pred : numpy.ndarray
-        Predicted target values.
-
-    Returns
-    -------
-    float
-        Root mean squared error normalized by variance.
-    """
-
-    error = metrics.mean_squared_error(y_true, y_pred, squared=False)
-
-    return error / y_true.var()
-
-
-def regression(x, y, model=None, metric='score', **kwargs):
+def regression(x, y, model=None, metric='score',
+                model_kws={'alpha':0.5, 'fit_intercept':True},
+                metric_kws={'multioutput':'uniform_average'}, **kwargs):
     """
     Regression tasks
     # TODO
@@ -93,13 +49,13 @@ def regression(x, y, model=None, metric='score', **kwargs):
     sample_weight_train, sample_weight_test = kwargs.pop(
         'sample_weight', (None, None))
 
+    # get train and test samples
     x_train, x_test = x
     y_train, y_test = y
 
     # specify default model
     if model is None:
-        model = Ridge(fit_intercept=False, alpha=0.5,
-                      **kwargs)
+        model = Ridge(**model_kws)
 
     # fit model on training data
     model.fit(x_train, y_train, sample_weight_train)
@@ -107,190 +63,52 @@ def regression(x, y, model=None, metric='score', **kwargs):
     # calculate model metric on test data
     if metric == 'score':
         # by default, use score method of model
-        metric_value = model.score(x_test, y_test, sample_weight_test)
+        metric_value = model.score(x_test, y_test, 
+            sample_weight=sample_weight_test)
     else:
+        func = getattr(performance, metric)
         y_pred = model.predict(x_test)
-        try:
-            # fall back option is to use sklearn.metrics function
-            func = getattr(metrics, metric)
-        except AttributeError:
-            # finally, try functions from current module
-            func = getattr(sys.modules[__name__], metric)
-        metric_value = func(y_test, y_pred)
+        metric_value = func(y_test, y_pred, 
+            sample_weight=sample_weight_test, **metric_kws)
 
     return metric_value, model
 
 
-def classification(x, y, model=None, metric='score', **kwargs):
+def classification(x, y, model=None, metric='score', 
+                    model_kws={'alpha':0.5, 'fit_intercept':True},
+                    # metric_kws={'average':'weighted'}, **kwargs):
+                    metric_kws={}, **kwargs):    
     """
     Binary classification tasks
     # TODO
     """
 
-    if metric != 'score':
-        raise NotImplementedError(
-            'This metric is not yet implemented to evaluate the current model.')
-
     # pop variables from kwargs
     sample_weight_train, sample_weight_test = kwargs.pop(
         'sample_weight', (None, None))
 
+    # get train and test samples
     x_train, x_test = x
     y_train, y_test = y
 
     # specify default model
     if model is None:
-        model = RidgeClassifier(alpha=0.0, fit_intercept=True, **kwargs)
+        model = RidgeClassifier(**model_kws)
 
     # fit model on training data
     model.fit(x_train, y_train, sample_weight_train)
 
-    # calculate model scores on test data
-    metric_value = model.score(x_test, y_test, sample_weight_test)
-
-    # # confusion matrix
-    # ConfusionMatrixDisplay.from_predictions(y_test, model.predict(x_test))
-    # plt.show()
-    # plt.close()
-
-    return metric_value, model
-
-
-def multiClassClassification(x, y, model=None, metric='score', **kwargs):
-    """
-    Multi-class Classification tasks
-    # TODO
-    """
-
-    if metric != 'score':
-        raise NotImplementedError(
-            'This metric is not yet implemented to evaluate the current model.')
-
-    # pop variables from kwargs
-    sample_weight_train, sample_weight_test = kwargs.pop(
-        'sample_weight', (None, None))
-
-    x_train, x_test = x
-    y_train, y_test = y
-
-    # specify default model
-    if model is None:
-        model = OneVsRestClassifier(RidgeClassifier(
-            alpha=0.0, fit_intercept=False, **kwargs))
-
-    if isinstance(model, OneVsRestClassifier):
-        # select decision time points
-        idx_train = np.nonzero(y_train)
-        idx_test = np.nonzero(y_test)
-
-        # fit model on training data (OneVsRestClassifier does not support sample weights)
-        model.fit(x_train[idx_train], y_train[idx_train])
-
-        # calculate model scores on test data
-        metric_value = model.score(x_test[idx_test], y_test[idx_test])
+    # calculate model metric on test data
+    if metric == 'score':
+        # by default, use score method of model
+        metric_value = model.score(x_test, y_test, 
+            sample_weight=sample_weight_test)
     else:
-        # fit model on training data
-        model.fit(x_train, y_train, sample_weight_train)
-
-        # calculate model scores on test data
-        metric_value = model.score(x_test, y_test, sample_weight_test)
-
-    # # confusion matrix
-    # ConfusionMatrixDisplay.from_predictions(y_test[idx_test], model.predict(x_test[idx_test]))
-    # plt.show()
-    # plt.close()
-
-    # with np.errstate(divide='ignore', invalid='ignore'):
-    #     cm = metrics.confusion_matrix(y_test[idx_test], model.predict(x_test[idx_test]))
-    #     score = np.sum(np.diagonal(cm))/np.sum(cm)  # turned out to be equivalent to the native sklearn score
-
-    return metric_value, model
-
-
-def multiOutputRegression(x, y, model=None, metric='corrcoef', **kwargs):
-    """
-    Multiple output regression tasks
-    # TODO
-    """
-
-    # pop variables from kwargs
-    sample_weight_train, sample_weight_test = kwargs.pop(
-        'sample_weight', (None, None))
-
-    x_train, x_test = x
-    y_train, y_test = y
-
-    # specify default model
-    if model is None:
-        model = MultiOutputRegressor(
-            Ridge(fit_intercept=False, alpha=0.5, **kwargs))
-
-    if isinstance(model, MultiOutputRegressor):
-        # fit model on training data
-        model.fit(x_train, y_train)
-
-        # calculate model metric on test data
-        if metric == 'corrcoef':
-            y_pred = model.predict(x_test)
-            n_outputs = y_pred.shape[1]
-
-            metric_value = []
-            for output in range(n_outputs):
-                metric_value.append(corrcoef(y_test[:, output], y_pred[:, output]))
-
-            metric_value = np.sum(metric_value)
-        else:
-            raise NotImplementedError(
-                'This metric is not yet implemented to evaluate the current model.')
-    else:
-        # fit model on training data
-        model.fit(x_train, y_train, sample_weight_train)
-
-        # calculate model scores on test data
-        if metric == 'score':
-            metric_value = model.score(x_test, y_test, sample_weight_test)
-        else:
-            raise NotImplementedError(
-                'This metric is not yet implemented to evaluate the current model.')
-
-    return metric_value, model
-
-
-def multiOutputClassification(x, y, model=None, metric='score', **kwargs):
-    """
-    Multiple output (binary and multi-class) classification tasks
-    # TODO
-    """
-
-    if metric != 'score':
-        raise NotImplementedError(
-            'This metric is not yet implemented to evaluate the current model.')
-
-    # pop variables from kwargs
-    sample_weight_train, sample_weight_test = kwargs.pop(
-        'sample_weight', (None, None))
-
-    x_train, x_test = x
-    y_train, y_test = y
-
-    # specify default model
-    if model is None:
-        model = MultiOutputClassifier(RidgeClassifier(
-            alpha=0.5, fit_intercept=True, **kwargs))
-
-    if isinstance(model, MultiOutputClassifier):
-        # fit model on training data (MultiOutputClassifier does not support sample weights)
-        model.fit(x_train, y_train)
-
-        # calculate model scores on test data
-        metric_value = model.score(x_test, y_test)
-    else:
-        # fit model on training data
-        model.fit(x_train, y_train, sample_weight_train)
-
-        # calculate model scores on test data
-        metric_value = model.score(x_test, y_test, sample_weight_test)
-
+        func = getattr(performance, metric)        
+        y_pred = model.predict(x_test)
+        metric_value = func(y_test, y_pred, 
+            sample_weight=sample_weight_test, **metric_kws)
+         
     return metric_value, model
 
 
@@ -304,16 +122,16 @@ def select_model(y):
         if y.squeeze().ndim == 1:
             return regression  # regression
         else:
-            return multiOutputRegression  # multilabel regression
+            return regression #multiOutputRegression  # multilabel regression
 
     elif y.dtype in [np.int32, np.int64]:
         if y.squeeze().ndim == 1:
             if len(np.unique(y)) == 2:  # binary classification
                 return classification
             else:
-                return multiClassClassification  # multiclass classification
+                return classification #multiClassClassification  # multiclass classification
         else:
-            return multiOutputClassification  # multilabel and/or multiclass classification
+            return classification #multiOutputClassification  # multilabel and/or multiclass classification
 
 
 def run_task(reservoir_states, target, metric, **kwargs):
@@ -364,40 +182,3 @@ def run_task(reservoir_states, target, metric, **kwargs):
     df_res = pd.DataFrame(data=metrics, index=[0])
 
     return df_res, model
-
-if __name__ == '__main__':
-
-    # X = np.random.rand(100,50)
-
-    func = getattr(metrics,'accuracy_score')
-    print(func)
-    print(type(func))
-
-    y_pred = np.random.randint(0, 2, (100)) # binary, single output
-    y_test  = np.random.randint(0, 2, (100)) # binary, single output
-    print(func(y_pred, y_test))
-
-    y_pred = np.random.randint(0, 10, (100)) # multi-class, single output
-    y_test  = np.random.randint(0, 10, (100)) # multi-class, single output
-    print(func(y_pred, y_test))
-
-    y_pred = np.random.randint(0, 2, (100,5)) # binary, multi output = multilabel
-    y_test = np.random.randint(0, 2, (100,5)) # binary, multi output = multilabel
-    print(func(y_pred, y_test))
-
-    # y_pred = np.random.randint(0, 10, (100,5)) # multi-class, multi output
-    # y_test = np.random.randint(0, 10, (100,5)) # multi-class, multi output
-    # print(func(y_pred, y_test))
-
-    func = getattr(metrics, 'mean_squared_error')
-    # func = getattr(metrics,'r2')
-    print(func)
-    print(type(func))
-
-    y_pred = np.random.rand(100) # regression, single output
-    y_test = np.random.rand(100) # regression, single output
-    print(func(y_pred, y_test))
-
-    y_pred = np.random.rand(100,5) # regression, multi output
-    y_test = np.random.rand(100,5) # regression, multi output
-    print(func(y_pred, y_test))
