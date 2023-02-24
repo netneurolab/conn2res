@@ -6,7 +6,6 @@ Functions for generating input/output data for tasks
 """
 
 import os
-from re import I
 import numpy as np
 import neurogym as ngym
 from reservoirpy import datasets
@@ -53,7 +52,7 @@ NEUROGYM_TASKS = [
 
 NATIVE_TASKS = [
     'MemoryCapacity',
-    # 'TemporalPatternRecognition'
+    # 'PatternRecognition'
 ]
 
 RESERVOIRPY_TASKS = [
@@ -71,10 +70,33 @@ RESERVOIRPY_TASKS = [
 
 
 def load_file(filename):
+    """
+    #TODO
+    _summary_
+
+    Parameters
+    ----------
+    filename : _type_
+        _description_
+
+    Returns
+    -------
+    _type_
+        _description_
+    """
     return np.load(os.path.join(DATA_DIR, filename))
 
 
 def get_available_tasks():
+    """
+    #TODO
+    _summary_
+
+    Returns
+    -------
+    _type_
+        _description_
+    """
     return NEUROGYM_TASKS + NATIVE_TASKS + RESERVOIRPY_TASKS
 
 
@@ -97,7 +119,7 @@ def unbatch(x):
     return np.concatenate(x, axis=0)
 
 
-def fetch_dataset(task, **kwargs):
+def fetch_dataset(task, report=True, **kwargs):
     """
     Fetches inputs and labels for 'task' from the NeuroGym
     repository
@@ -119,11 +141,8 @@ def fetch_dataset(task, **kwargs):
     'ToneDetection'}
     Task to be performed
 
-    unbatch_data : bool, optional
-        If True, it adds an extra dimension to inputs and labels
-        that corresponds to the batch_size. Otherwise, it returns an
-        observations by features array for the inputs, and a one
-        dimensional array for the labels.
+    report : bool, optional
+        If True, print a short report on task dataset.
 
     Returns
     -------
@@ -134,11 +153,11 @@ def fetch_dataset(task, **kwargs):
     """
 
     if task in NEUROGYM_TASKS:
-        # create a conn2res Dataset
+        # create a neurogym dataset
         return create_neurogymn_dataset(task, **kwargs)
 
     elif task in NATIVE_TASKS + RESERVOIRPY_TASKS:
-        # create a conn2res Dataset
+        # create a conn2res or reservoirpy dataset
         return create_dataset(task, **kwargs)
 
 
@@ -151,11 +170,13 @@ def create_neurogymn_dataset(task, n_trials=100, add_constant=False, **kwargs):
 
     # generate per trial dataset
     _ = env.reset()
-    inputs = []
-    labels = []
+    
+    x = []
+    y = []
     if task == 'ContextDecisionMaking':
         sample_class = []
-    for trial in range(n_trials):
+    
+    for _ in range(n_trials):
         env.new_trial()
         ob, gt = env.ob, env.gt
 
@@ -164,13 +185,13 @@ def create_neurogymn_dataset(task, n_trials=100, add_constant=False, **kwargs):
             ob = np.concatenate((np.ones((ob.shape[0], 1)), ob), axis=1)
 
         # store input
-        inputs.append(ob)
+        x.append(ob)
 
         # store labels
         if gt.ndim == 1:
-            labels.append(gt[:, np.newaxis])
+            y.append(gt[:, np.newaxis])
         else:
-            labels.append(gt)
+            y.append(gt)
 
         # extra label for context dependent decision making task
         if task == 'ContextDecisionMaking':
@@ -185,15 +206,42 @@ def create_neurogymn_dataset(task, n_trials=100, add_constant=False, **kwargs):
                 _class = np.hstack((_class, np.zeros((gt.size, 1))))
             sample_class.append(_class)
 
+    get_info_data(task, x, y)
+
     if task == 'ContextDecisionMaking':
-        return inputs, labels, sample_class
+        return x, y#, sample_class
     else:
-        return inputs, labels
+        return x, y
 
 
 def create_dataset(task, n_timesteps=1000, horizon=1, **kwargs):
+    """
+    #TODO
+    _summary_
 
-    # make sure horizon is a list
+    Parameters
+    ----------
+    task : _type_
+        _description_
+    n_timesteps : int, optional
+        _description_, by default 1000
+    horizon : int, optional
+        _description_, by default 1
+
+    Returns
+    -------
+    _type_
+        _description_
+
+    Raises
+    ------
+    ValueError
+        _description_
+    ValueError
+        _description_
+    """
+
+    # make sure horizon is a list. Exclude 0. 
     if isinstance(horizon, int):
         horizon = [horizon]
 
@@ -215,11 +263,13 @@ def create_dataset(task, n_timesteps=1000, horizon=1, **kwargs):
 
     elif task in RESERVOIRPY_TASKS:
         func = getattr(datasets, task)
-        n_timesteps = n_timesteps + horizon_max
+        n_timesteps += horizon_max
         x = func(n_timesteps=n_timesteps, **kwargs)
 
     y = np.hstack([x[horizon_max-h:-h] for h in horizon])
     x = x[horizon_max:]
+
+    get_info_data(task, x, y)
 
     if horizon_sign == -1:
         return x, y
@@ -228,6 +278,13 @@ def create_dataset(task, n_timesteps=1000, horizon=1, **kwargs):
             return y, x
         else:
             raise ValueError('positive horizon should be integer not list')
+
+
+def get_n_features(task):
+
+    x, _ = fetch_dataset(task, n_trials=1)
+
+    return x[0].shape[1]
 
 
 def split_dataset(*args, frac_train=0.7, axis=0, n_train=None):
@@ -279,7 +336,7 @@ def split_dataset(*args, frac_train=0.7, axis=0, n_train=None):
     return tuple(argout)
 
 
-def visualize_data(task, x, y, plot=True):
+def get_info_data(task, x, y):
     """
     # TODO
     Visualizes dataset for task
@@ -290,41 +347,38 @@ def visualize_data(task, x, y, plot=True):
     x,y  : list or numpy.ndarray
 
     """
-
     print(f'\n----- {task.upper()} -----')
     print(f'\tNumber of trials = {len(x)}')
 
-    # convert x and y to arrays for visualization
+    # convert x and y to arrays
     if isinstance(x, list):
-        x = np.vstack(x[:5])
+        x = np.vstack(x[:10])
     if isinstance(y, list):
-        y = np.vstack(y[:5]).squeeze()
+        y = np.vstack(y[:10]).squeeze()
 
-    print(f'\tinputs shape = {x.shape}')
-    print(f'\tlabels shape = {y.shape}')
+    print(f'\tshape inputs (x)  = {x.shape}')
+    print(f'\tshape targets (y) = {y.shape}')
 
     # number of features, labels and classes
-    try:
+    if x.squeeze().ndim > 1:
         n_features = x.shape[1]
-    except:
+    else:
         n_features = 1
 
-    try:
+    if y.squeeze().ndim > 1:
         n_labels = y.shape[1]
-    except:
+    else:
         n_labels = 1
+
     n_classes = len(np.unique(y))
 
-    model = select_model(y)
-
-    print(f'\t  n_features = {n_features}')
+    print(f'\tn_features = {n_features}')
     print(f'\tn_labels   = {n_labels}')
     print(f'\tn_classes  = {n_classes}')
+
+    model = select_model(y)
     print(f'\tlabel type : {y.dtype}')
     print(f'\tmodel = {model.__name__}')
-
-    if plot:
-        plotting.plot_task(x, y, task)
 
 
 def get_sample_weight(inputs, labels, sample_block=None):

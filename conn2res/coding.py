@@ -26,7 +26,7 @@ def get_modules(module_assignment):
 
 
 def encoder(reservoir_states, target, readout_modules=None,
-            readout_nodes=None, metric='score', return_model=True, **kwargs):
+            readout_nodes=None, metric='score', return_model=False, **kwargs):
     """
     Function that defines the set(s) of readout nodes based on whether
     'readout_nodes', 'readout_modules' or None is provided. It then calls
@@ -42,10 +42,9 @@ def encoder(reservoir_states, target, readout_modules=None,
     reservoir_states : list or tuple of numpy.ndarrays
         simulated reservoir states for training and test; the shape of each
         numpy.ndarray is n_samples, n_reservoir_nodes
-    target : listo or tuple of numpy.ndarrays
+    target : list or tuple of numpy.ndarrays
         training and test targets or output labels; the shape of each
         numpy.ndarray is n_samples, n_labels
-
     # TODO update readout_modules doc
     readout_modules : (N,) list or numpy.ndarray, optional
         an array that specifies to which module each of the nodes in the
@@ -88,7 +87,7 @@ def encoder(reservoir_states, target, readout_modules=None,
 
             # create temporal dataframe
             df_module, model_module = run_task(reservoir_states=(
-                reservoir_states[0][:, readout_nodes], reservoir_states[1][:, readout_nodes]), target=target, metric=metric, **kwargs)  # reservoir_states[:,:,readout_nodes],
+                reservoir_states[0][:, readout_nodes], reservoir_states[1][:, readout_nodes]), y=target, metric=metric, **kwargs)  # reservoir_states[:,:,readout_nodes],
 
             df_module['module'] = module_ids[i]
             df_module['n_nodes'] = len(readout_nodes)
@@ -101,13 +100,13 @@ def encoder(reservoir_states, target, readout_modules=None,
 
     elif readout_nodes is not None:
         df_encoding, model = run_task(reservoir_states=(
-            reservoir_states[0][:, readout_nodes], reservoir_states[1][:, readout_nodes]), target=target, metric=metric, **kwargs)
+            reservoir_states[0][:, readout_nodes], reservoir_states[1][:, readout_nodes]), y=target, metric=metric, **kwargs)
 
         df_encoding['n_nodes'] = len(readout_nodes)
 
     else:
         df_encoding, model = run_task(reservoir_states=reservoir_states,
-                                      target=target, metric=metric, **kwargs)
+                                      y=target, metric=metric, **kwargs)
 
     if return_model:
         return df_encoding, model
