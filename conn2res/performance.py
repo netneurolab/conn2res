@@ -85,7 +85,7 @@ def mean_squared_error(
 
 def root_mean_squared_error(
     y_true, y_pred, sample_weight=None, multioutput='uniform_average',
-    normalize=False, **kwargs
+    normalize=True, **kwargs
 ):
     """
     Root mean squared error. If normalize is True, the error is
