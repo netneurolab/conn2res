@@ -21,7 +21,7 @@ import sys
 # Add project name, copyright holder, and author(s)
 project = 'conn2res'
 author = '{} developers'.format(project)
-copyright = '2021-{}, {}'.format(datetime.now().year, author)
+copyright = '2023-{}, {}'.format(datetime.now().year, author)
 # author = 'Laura Suarez'
 
 # Import project to get version info
@@ -83,10 +83,10 @@ pygments_style = 'sphinx'
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
-#
 import sphinx_rtd_theme  # noqa
 html_theme = 'sphinx_rtd_theme' #'alabaster'
 html_show_sourcelink = False
+# html_logo = '_static/conn2res_logo.png'
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the

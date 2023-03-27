@@ -6,11 +6,13 @@ Functions measure learning performance
 """
 
 import numpy as np
-
 from sklearn import metrics
 
 
-def r2_score(y_true, y_pred, sample_weight=None, multioutput='uniform_average', **kwargs):
+def r2_score(
+    y_true, y_pred, sample_weight=None, multioutput='uniform_average',
+    **kwargs
+):
     """
     Coefficient of determination of the regression R^2.
 
@@ -47,7 +49,10 @@ def r2_score(y_true, y_pred, sample_weight=None, multioutput='uniform_average', 
     return func(y_true, y_pred, sample_weight=sample_weight, multioutput=multioutput)
 
 
-def mean_squared_error(y_true, y_pred, sample_weight=None, multioutput='uniform_average', **kwargs):
+def mean_squared_error(
+    y_true, y_pred, sample_weight=None, multioutput='uniform_average',
+    **kwargs
+):
     """
     Mean squared error.
 
@@ -80,7 +85,10 @@ def mean_squared_error(y_true, y_pred, sample_weight=None, multioutput='uniform_
     return func(y_true, y_pred, sample_weight=sample_weight, multioutput=multioutput, squared=True)
 
 
-def root_mean_squared_error(y_true, y_pred, sample_weight=None, multioutput='uniform_average', normalize=False, **kwargs):
+def root_mean_squared_error(
+    y_true, y_pred, sample_weight=None, multioutput='uniform_average',
+    normalize=True, **kwargs
+):
     """
     Root mean squared error. If normalize is True, the error is
     normalized by the variance of y_true.
@@ -119,7 +127,10 @@ def root_mean_squared_error(y_true, y_pred, sample_weight=None, multioutput='uni
         return func(y_true, y_pred, sample_weight=sample_weight, multioutput=multioutput, squared=False)
 
 
-def mean_absolute_error(y_true, y_pred, sample_weight=None, multioutput='uniform_average', **kwargs):
+def mean_absolute_error(
+    y_true, y_pred, sample_weight=None, multioutput='uniform_average',
+    **kwargs
+):
     """
     Mean absolute error.
 
@@ -152,9 +163,12 @@ def mean_absolute_error(y_true, y_pred, sample_weight=None, multioutput='uniform
     return func(y_true, y_pred, sample_weight=sample_weight, multioutput=multioutput)
 
 
-def corrcoef(y_true, y_pred, multioutput='uniform_average', nonnegative=None, **kwargs): 
+def corrcoef(
+    y_true, y_pred, multioutput='uniform_average', nonnegative=None,
+    **kwargs
+): 
     """
-    Pearson's correlation coefficient. 
+    Pearson's correlation coefficient.
 
     Parameters
     ----------
@@ -162,10 +176,17 @@ def corrcoef(y_true, y_pred, multioutput='uniform_average', nonnegative=None, **
         Ground truth target values.
     y_pred : numpy.ndarray
         Predicted target values.
-    multioutput : str 
+    multioutput : str
         Defines aggregating of multiple output scores.
-    normalize : str 
-       
+    nonnegative : str
+        Defines whether return the abosulate or 
+        squared value:
+
+        'squared' :
+        Squares the values of the correlations
+
+        'absolute' :
+        Takes the absolute value of the correlations
 
     Returns
     -------
@@ -183,14 +204,14 @@ def corrcoef(y_true, y_pred, multioutput='uniform_average', nonnegative=None, **
             return abs(r)
         else:
             return r
-    
+
     elif y_true.ndim == 2:
         n_outputs = y_pred.shape[1]
 
         r = []
         for output in range(n_outputs):
-            r.append(corrcoef(y_true[:, output], y_pred[:, output])[0][1])
-    
+            r.append(np.corrcoef(y_true[:, output], y_pred[:, output])[0][1])
+
         if nonnegative == 'squared':
             r = np.square(r)
         elif nonnegative == 'absolute':
@@ -202,9 +223,12 @@ def corrcoef(y_true, y_pred, multioutput='uniform_average', nonnegative=None, **
             return r
         elif multioutput == 'sum':
             return np.sum(r)
-    
 
-def accuracy_score(y_true, y_pred, sample_weight=None, normalize=True, **kwargs):
+
+def accuracy_score(
+    y_true, y_pred, sample_weight=None, normalize=True,
+    **kwargs
+):
     """
     Accuracy score.
 
@@ -231,7 +255,10 @@ def accuracy_score(y_true, y_pred, sample_weight=None, normalize=True, **kwargs)
     return func(y_true, y_pred, sample_weight=sample_weight, normalize=normalize)
 
 
-def balanced_accuracy_score(y_true, y_pred, sample_weight=None, adjusted=None, **kwargs):
+def balanced_accuracy_score(
+    y_true, y_pred, sample_weight=None, adjusted=None,
+    **kwargs
+):
     """
     Balance accuracy score. Good to deal with 
     imbalanced datasets.
@@ -259,7 +286,9 @@ def balanced_accuracy_score(y_true, y_pred, sample_weight=None, adjusted=None, *
     return func(y_true, y_pred, sample_weight=sample_weight, adjusted=adjusted)
 
 
-def f1_score(y_true, y_pred, sample_weight=None, average='weighted', **kwargs):
+def f1_score(
+    y_true, y_pred, sample_weight=None, average='weighted', **kwargs
+):
     """
     F1-score.
 
@@ -299,7 +328,10 @@ def f1_score(y_true, y_pred, sample_weight=None, average='weighted', **kwargs):
     return func(y_true, y_pred, sample_weight=sample_weight, average=average, zero_division='warn')
 
 
-def precision_score(y_true, y_pred, sample_weight=None, average='weighted', **kwargs):
+def precision_score(
+    y_true, y_pred, sample_weight=None, average='weighted',
+    **kwargs
+):
     """
     Precision score. 
 
@@ -339,7 +371,10 @@ def precision_score(y_true, y_pred, sample_weight=None, average='weighted', **kw
     return func(y_true, y_pred, sample_weight=sample_weight, average=average, zero_division='warn')
 
 
-def recall_score(y_true, y_pred, sample_weight=None, average='weighted', **kwargs):
+def recall_score(
+    y_true, y_pred, sample_weight=None, average='weighted',
+    **kwargs
+):
     """
     Recall score. 
 
@@ -368,7 +403,7 @@ def recall_score(y_true, y_pred, sample_weight=None, average='weighted', **kwarg
         'weighted':
         Calculate metrics for each label, and find their average 
         weighted by support (the number of true instances for each label). This alters ‘macro’ to account for label imbalance; it can result in an F-score that is not between precision and recall.
-    
+
     Returns
     -------
     score : float.
@@ -377,5 +412,3 @@ def recall_score(y_true, y_pred, sample_weight=None, average='weighted', **kwarg
 
     func = getattr(metrics, 'recall_score')
     return func(y_true, y_pred, sample_weight=sample_weight, average=average, zero_division='warn')
-
-
