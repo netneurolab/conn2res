@@ -23,7 +23,7 @@ TASKS = [
     'AntiReach',
     'ReachingDelayResponse'
 ]
-TASK = TASKS[2]
+TASK = TASKS[0]
 METRICS = {
     'ContextDecisionMaking': ['score', 'balanced_accuracy_score', 'f1_score'],
     'SingleContextDecisionMaking': ['score', 'balanced_accuracy_score', 'f1_score'],

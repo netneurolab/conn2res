@@ -16,7 +16,17 @@ from .task import run_task
 
 def get_modules(module_assignment):
     """
-    # TODO
+    _summary_
+
+    Parameters
+    ----------
+    module_assignment : _type_
+        _description_
+
+    Returns
+    -------
+    _type_
+        _description_
     """
     # get module ids
     module_ids = np.unique(module_assignment)
@@ -65,7 +75,7 @@ def encoder(reservoir_states, target, readout_modules=None,
 
     """
 
-    # use multiple subsets of readout nodes designated by readout_modules 
+    # use multiple subsets of readout nodes designated by readout_modules
     if readout_modules is not None:
 
         if isinstance(readout_modules, np.ndarray):

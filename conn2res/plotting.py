@@ -115,8 +115,7 @@ def transform_data(
 
 
 def plot_iodata(
-    x, y, n_trials=7, title=None, show=True, savefig=False, fname=None,
-    **kwargs
+    x, y, n_instances=7, title=None, show=True, savefig=False, fname=None, **kwargs
 ):
     """
     #TODO
@@ -136,23 +135,14 @@ def plot_iodata(
         _description_, by default False
     fname : _type_, optional
         _description_, by default None
-
+    
     """
-    x = x[:n_trials]
-    y = y[:n_trials]
-
-    # get end points for trials to plot trial separators
-    end_points = []
-    tf = 0
-    for i in range(n_trials):
-        tf += len(x[i])
-        end_points.append(tf)
 
     # convert x and y to arrays for visualization
     if isinstance(x, list):
-        x = np.vstack(x)
+        x = np.vstack(x[:n_instances])
     if isinstance(y, list):
-        y = np.vstack(y).squeeze()
+        y = np.vstack(y[:n_instances]).squeeze()
 
     # set plotting theme
     sns.set(style="ticks", font_scale=1.0)
@@ -161,11 +151,13 @@ def plot_iodata(
     # set color palette
     palette = kwargs.pop('palette', None)
 
-    # plot inputs (x) and outputs (y)
+    # plot
     sns.lineplot(
-        data=x, palette=palette, dashes=False, legend=False, ax=ax, **kwargs)
+        data=x, palette=palette, dashes=False, legend=False,
+        ax=ax, **kwargs)
     sns.lineplot(
-        data=y, palette=palette, dashes=False, legend=False, ax=ax, **kwargs)
+        data=y, palette=palette, dashes=False, legend=False,
+        ax=ax, **kwargs)
 
     # set axis labels
     ax.set_xlabel('time steps', fontsize=11)
@@ -185,11 +177,6 @@ def plot_iodata(
     new_labels = x_labels + y_labels
     ax.legend(handles=ax.lines, labels=new_labels, loc='best',
               fontsize=8)
-
-    # plot trial line separators
-    for tf in end_points:
-        plt.plot(
-            tf * np.ones((2)), np.arange(2), c='black', linestyle='--')
 
     # set title
     if title is not None:
@@ -275,7 +262,6 @@ def plot_diagnostics(
     axs = axs.ravel()
 
     plt.subplots_adjust(wspace=0.1)
-
     # set color palette
     palette = kwargs.pop('palette', None)
 
@@ -291,14 +277,13 @@ def plot_diagnostics(
         dashes=False, legend=False, ax=axs[2])
     sns.lineplot(
         data=y_pred[:160], palette=palette,
-        dashes=False, legend=False, ax=axs[2], linewidth=2.5)
+        dashes=False, legend=False, ax=axs[2])
 
     # set axis labels
     axs[0].set_ylabel('x signal \namplitude', fontsize=11)
     axs[1].set_ylabel('decision \nfunction', fontsize=11)
     axs[2].set_xlabel('time steps', fontsize=11)
     axs[2].set_ylabel('y signal \namplitude', fontsize=11)
-    # axs[1].set_ylim(0, 5e7)
 
     # set axis limits
     for ax in axs:
@@ -309,16 +294,9 @@ def plot_diagnostics(
         x_labels = ['x']
     else:
         x_labels = [f'x{n+1}' for n in range(x.shape[1])]
-
-    if dec_func.ndim == 1:
-        dec_func_labels = ['decision function']
-    else:
-        dec_func_labels = [f'decision function {n+1}' for n in range(dec_func.shape[1])]
-
-    # set legend
     axs[0].legend(handles=axs[0].lines, labels=x_labels,
                   loc='upper right', fontsize=8)
-    axs[1].legend(handles=axs[1].lines, labels=dec_func_labels,
+    axs[1].legend(handles=axs[1].lines, labels=['decision function'],
                   loc='upper right', fontsize=8)
     axs[2].legend(handles=axs[2].lines, labels=['target', 'predicted target'],
                   loc='upper right', fontsize=8)
@@ -340,16 +318,16 @@ def plot_diagnostics(
 
         fig.savefig(fname=os.path.join(FIG_DIR, f'{fname}.png'),
                     transparent=True, bbox_inches='tight', dpi=300)
-
+    
     plt.close()
 
 
 def plot_performance(
-    df, x='alpha', y='score', normalize=False,
+    df, x='alpha', y='score', norm=False,
     title=None, show=True, savefig=False, fname=None, **kwargs
 ):
 
-    if normalize:
+    if norm:
         df[y] = df[y] / max(df[y])
 
     # set plotting theme
@@ -373,7 +351,7 @@ def plot_performance(
     ax.set_xlabel('alpha', fontsize=11)
     y_label = ' '.join(y.split('_'))
     ax.set_ylabel(y_label, fontsize=11)
-
+    
     # set title
     if title is not None:
         plt.title(title, fontsize=12)
@@ -393,48 +371,3 @@ def plot_performance(
                     transparent=True, bbox_inches='tight', dpi=300)
 
     plt.close()
-
-
-def plot_phase_space(x, y, sample=None, xlim=None, ylim=None, subplot=None, cmap=None,
-    num=1, figsize=(13, 5), title=None, fname='phase_space', savefig=False, block=False
-):
-    #TODO
-    # open figure and create subplot
-    plt.figure(num=num, figsize=figsize)
-    if subplot is None:
-        subplot = (1, 1, 1)
-    plt.subplot(*subplot)
-
-    # plot data
-    if sample is None:
-        plt.plot(x)
-    else:
-        t = np.arange(*sample)
-        if cmap is None:
-            plt.plot(t, x[t])
-        else:
-            for i, _ in enumerate(t[:-1]):
-                plt.plot(x[t[i:i+2]], y[t[i:i+2]],
-                         color=getattr(plt.cm, cmap)(255*i//np.diff(sample)))
-
-    # add x and y limits
-    if xlim is not None:
-        plt.xlim(xlim)
-    if ylim is not None:
-        plt.xlim(ylim)
-
-    # set xtick/ythick fontsize
-    plt.xticks(fontsize=22)
-    plt.yticks(fontsize=22)
-
-    # add title
-    if title is not None:
-        plt.title(f'{title} phase space', fontsize=22)
-
-    # set tight layout in case there are different subplots
-    plt.tight_layout()
-
-    if savefig:
-        plt.savefig(fname=os.path.join(FIG_DIR, f'{fname}.png'),
-                    transparent=True, bbox_inches='tight', dpi=300)
-    plt.show(block=block)

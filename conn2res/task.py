@@ -37,7 +37,7 @@ def check_xy_dims(x, y):
 
 
 def regression(
-    x, y, model=None, metric='r2_score', model_kws=None, metric_kws=None,
+    x, y, model=None, metric='r2_score', model_kws={}, metric_kws={},
     **kwargs
 ):
     """
@@ -81,8 +81,8 @@ def multioutput_regression(*args, **kwargs):
 
 
 def classification(
-    x, y, model=None, metric='accuracy_score', model_kws=None,
-    metric_kws=None, **kwargs
+    x, y, model=None, metric='accuracy_score', model_kws={},
+    metric_kws={}, **kwargs
 ):
     """
     Classification tasks
@@ -230,7 +230,7 @@ def run_task(reservoir_states, y, metric, **kwargs):
             metric=m, **kwargs
             )
 
-        # print(f'\t\t {m} = {metrics[m]}')
+        print(f'\t\t {m} = {metrics[m]}')
 
     df_res = pd.DataFrame(data=metrics, index=[0])
 
