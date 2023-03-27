@@ -6,7 +6,6 @@ Functions measure learning performance
 """
 
 import numpy as np
-
 from sklearn import metrics
 
 
@@ -179,7 +178,6 @@ def corrcoef(
         Predicted target values.
     multioutput : str
         Defines aggregating of multiple output scores.
-
     nonnegative : str
         Defines whether return the abosulate or 
         squared value:

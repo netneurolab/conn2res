@@ -44,7 +44,6 @@ def regression(
     Regression tasks
     # TODO
     """
-
     # get train and test samples
     x_train, x_test = x
     y_train, y_test = y
@@ -89,7 +88,6 @@ def classification(
     Classification tasks
     # TODO
     """
-
     # get train and test samples
     x_train, x_test = x
     y_train, y_test = y
@@ -175,7 +173,6 @@ def select_model(y):
             return regression  # regression
         else:
             return multioutput_regression  # multilabel regression
-
     elif y.dtype in [np.int32, np.int64]:
         if y.squeeze().ndim == 1:
             if len(np.unique(y)) == 2:
