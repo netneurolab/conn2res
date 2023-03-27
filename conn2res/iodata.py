@@ -18,17 +18,17 @@ DATA_DIR = os.path.join(PROJ_DIR, 'examples', 'data')
 
 NEUROGYM_TASKS = [
     'AntiReach',
-    'Bandit',  # *
+    # 'Bandit',
     'ContextDecisionMaking',
-    'DawTwoStep',  # *
+    # 'DawTwoStep',
     'DelayComparison',
     'DelayMatchCategory',
     'DelayMatchSample',
     'DelayMatchSampleDistractor1D',
     'DelayPairedAssociation',
-    'Detection',  # *
+    # 'Detection',  # TODO: Temporary removing until bug fixed
     'DualDelayMatchSample',
-    'EconomicDecisionMaking',  # *
+    # 'EconomicDecisionMaking',
     'GoNogo',
     'HierarchicalReasoning',
     'IntervalDiscrimination',
@@ -47,7 +47,7 @@ NEUROGYM_TASKS = [
     'ReadySetGo',
     'SingleContextDecisionMaking',
     'SpatialSuppressMotion',
-    'ToneDetection'  # *
+    # 'ToneDetection'  # TODO: Temporary removing until bug fixed
 ]
 
 NATIVE_TASKS = [
@@ -100,26 +100,7 @@ def get_available_tasks():
     return NEUROGYM_TASKS + NATIVE_TASKS + RESERVOIRPY_TASKS
 
 
-def unbatch(x):
-    """
-    Removes batch_size dimension from array
-
-    Parameters
-    ----------
-    x : numpy.ndarray
-        array with dimensions (seq_len, batch_size, features)
-
-    Returns
-    -------
-    new_x : numpy.ndarray
-        new array with dimensions (batch_size*seq_len, features)
-
-    """
-    # TODO right now it only works when x is (batch_first = False)
-    return np.concatenate(x, axis=0)
-
-
-def fetch_dataset(task, **kwargs):
+def fetch_dataset(task, report=True, **kwargs):
     """
     Fetches inputs and labels for 'task' from the NeuroGym
     repository
@@ -162,29 +143,11 @@ def fetch_dataset(task, **kwargs):
 
 
 def create_neurogymn_dataset(task, n_trials=100, add_constant=False, **kwargs):
-    """
-    _summary_
-
-    Parameters
-    ----------
-    task : _type_
-        _description_
-    n_trials : int, optional
-        _description_, by default 100
-    add_constant : bool, optional
-        _description_, by default False
-
-    Returns
-    -------
-    _type_
-        _description_
-    """
     # create a Dataset object from NeuroGym
     dataset = ngym.Dataset(task+'-v0', env_kwargs=kwargs)
 
     # get environment object
     env = dataset.env
-    # print(env.timing)
 
     # generate per trial dataset
     _ = env.reset()
@@ -287,7 +250,7 @@ def create_dataset(task, n_timesteps=1000, horizon=1, **kwargs):
     y = np.hstack([x[horizon_max-h:-h] for h in horizon])
     x = x[horizon_max:]
 
-    get_info_data(task, x, y)
+    # get_info_data(task, x, y)
 
     if horizon_sign == -1:
         return x, y
@@ -299,19 +262,7 @@ def create_dataset(task, n_timesteps=1000, horizon=1, **kwargs):
 
 
 def get_n_features(task):
-    """
-    _summary_
 
-    Parameters
-    ----------
-    task : _type_
-        _description_
-
-    Returns
-    -------
-    _type_
-        _description_
-    """
     x, _ = fetch_dataset(task, n_trials=1)
 
     return x[0].shape[1]
@@ -411,7 +362,7 @@ def get_info_data(task, x, y):
     print(f'\tmodel = {model.__name__}')
 
 
-def get_sample_weight(inputs, sample_block=None):
+def get_sample_weight(inputs, labels, sample_block=None):
     """
     Time averages dataset based on sample class and sample weight
 

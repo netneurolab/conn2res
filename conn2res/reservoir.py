@@ -370,8 +370,7 @@ class EchoStateNetwork(Reservoir):
 
     """
 
-    def __init__(self, *args, input_nodes, output_nodes=None, 
-                 activation_function='tanh', input_gain=1.0, **kwargs):
+    def __init__(self, *args, activation_function='tanh', input_gain=1.0, **kwargs):
         """
         Constructor class for Echo State Networks
 
@@ -385,17 +384,15 @@ class EchoStateNetwork(Reservoir):
             Reservoir connectivity matrix (source, target)
             N: number of nodes in the network. If w_hh is directed, then rows
             (columns) should correspond to source (target) nodes.
-        input_nodes: numpy.ndarray
-            set of indexes of input nodes
-        output_nodes: numpy.ndarray
-            set of indexes of output nodes. If None, output_nodes is the 
-            complementery set of input_nodes (i.e., set difference between all 
-            the nodes in the network and input_nodes)
         activation_function: str {'linear', 'elu', 'relu', 'leaky_relu',
             'sigmoid', 'tanh', 'step'}, default 'tanh'
             Activation function (nonlinearity of the system's units)
         input_gain: float
             gain to scale input weights
+        input_nodes: numpy.ndarray
+            set of indexes of input nodes
+        output_nodes: numpy.ndarray
+            set of indexes of output nodes
         """
 
         super().__init__(*args, **kwargs)
@@ -404,22 +401,18 @@ class EchoStateNetwork(Reservoir):
         self.activation_function = self.set_activation_function(
             activation_function)
 
-        # input nodes
-        self.input_nodes = input_nodes
+        # if not provided we feed into and read out from all nodes
+        self.input_nodes = kwargs.get(
+            'input_nodes', np.arange(self.hidden_size))
+        self.output_nodes = kwargs.get(
+            'output_nodes', np.arange(self.hidden_size))
 
-        # output nodes. If not provided, all nodes are used as output nodes
-        # except input nodes
-        if output_nodes is not None:
-            self.output_nodes = output_nodes
-        else:
-            self.output_nodes = np.setdiff1d(np.arange(self.hidden_size), self.input_nodes)
- 
         # scale the input weights
         self.input_gain = input_gain
         self.w_ih[:, self.input_nodes] = self.input_gain * \
             self.w_ih[:, self.input_nodes]
 
-    def simulate(self, ext_input, ic=None, **kwargs):
+    def simulate(self, ext_input, ic=None, threshold=0.5):
         """
         Simulates reservoir dynamics given an external input signal
         'ext_input'
@@ -433,8 +426,8 @@ class EchoStateNetwork(Reservoir):
             Initial conditions
             N: number of nodes in the network. If w_hh is directed, then rows
             (columns) should correspond to source (target) nodes.
-        kwargs:
-            Other keyword arguments are passed to self.activation_function
+        threshold : float
+            Threshold for piecewise nonlinearity. Ignored for the others.
 
         Returns
         -------
@@ -463,10 +456,10 @@ class EchoStateNetwork(Reservoir):
             # if (t>0) and (t%100 == 0): print(f'\t ----- timestep = {t}')
             synap_input = np.dot(
                 self._state[t-1, :], self.w_hh) + np.dot(ext_input[t-1, :], self.w_ih)
-            self._state[t, :] = self.activation_function(synap_input, **kwargs)
+            self._state[t, :] = self.activation_function(synap_input)
 
         # select output nodes and remove initial condition (to match the time index of
-        # _state and ext_input)     
+        # _state and ext_input)
         self._state = self._state[1:, self.output_nodes]
 
         return self._state

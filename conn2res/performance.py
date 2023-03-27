@@ -166,7 +166,7 @@ def mean_absolute_error(
 def corrcoef(
     y_true, y_pred, multioutput='uniform_average', nonnegative=None,
     **kwargs
-): 
+):
     """
     Pearson's correlation coefficient.
 
