@@ -38,7 +38,7 @@ def check_xy_dims(x, y):
 
 
 def regression(x, y, model=None, metric='r2_score',
-               model_kws=None, metric_kws=None, **kwargs):
+               model_kws={}, metric_kws={}, **kwargs):
     """
     Regression tasks
     # TODO
@@ -81,8 +81,8 @@ def multiOutputRegression(*args, **kwargs):
     return regression(*args, **kwargs)
 
 
-def classification(x, y, model=None, metric='accuracy_score', 
-                    model_kws=None, metric_kws=None, **kwargs):    
+def classification(x, y, model=None, metric='accuracy_score',
+                    model_kws={}, metric_kws={}, **kwargs):    
     """
     Classification tasks
     # TODO
@@ -229,7 +229,7 @@ def run_task(reservoir_states, y, metric, **kwargs):
     for m in metric:
         metrics[m], model = func(x=(x_train, x_test), y=(
             y_train, y_test), metric=m, **kwargs)
-        # print(f'\t\t {m} = {metrics[m]}')
+        print(f'\t\t {m} = {metrics[m]}')
 
     df_res = pd.DataFrame(data=metrics, index=[0])
 
