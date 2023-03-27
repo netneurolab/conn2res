@@ -1,9 +1,9 @@
 # other files
-examples/task_structure.py
-examples/esn_multiple_tasks.py 
-examples/esn_multiple_subjs_and_tasks.py 
-examples/ohbm_plot.py
-examples/ohbm_sim.py
+examples/data
+examples/mami
+examples/results
+examples/tmp_examples
+
 *figs/
 
 # data files 

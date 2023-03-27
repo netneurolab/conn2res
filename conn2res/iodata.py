@@ -18,17 +18,17 @@ DATA_DIR = os.path.join(PROJ_DIR, 'examples', 'data')
 
 NEUROGYM_TASKS = [
     'AntiReach',
-    # 'Bandit',
+    'Bandit',  # *
     'ContextDecisionMaking',
-    # 'DawTwoStep',
+    'DawTwoStep',  # *
     'DelayComparison',
     'DelayMatchCategory',
     'DelayMatchSample',
     'DelayMatchSampleDistractor1D',
     'DelayPairedAssociation',
-    # 'Detection',  # TODO: Temporary removing until bug fixed
+    'Detection',  # *
     'DualDelayMatchSample',
-    # 'EconomicDecisionMaking',
+    'EconomicDecisionMaking',  # *
     'GoNogo',
     'HierarchicalReasoning',
     'IntervalDiscrimination',
@@ -47,7 +47,7 @@ NEUROGYM_TASKS = [
     'ReadySetGo',
     'SingleContextDecisionMaking',
     'SpatialSuppressMotion',
-    # 'ToneDetection'  # TODO: Temporary removing until bug fixed
+    'ToneDetection'  # *
 ]
 
 NATIVE_TASKS = [
@@ -119,7 +119,7 @@ def unbatch(x):
     return np.concatenate(x, axis=0)
 
 
-def fetch_dataset(task, report=True, **kwargs):
+def fetch_dataset(task, **kwargs):
     """
     Fetches inputs and labels for 'task' from the NeuroGym
     repository
@@ -162,11 +162,29 @@ def fetch_dataset(task, report=True, **kwargs):
 
 
 def create_neurogymn_dataset(task, n_trials=100, add_constant=False, **kwargs):
+    """
+    _summary_
+
+    Parameters
+    ----------
+    task : _type_
+        _description_
+    n_trials : int, optional
+        _description_, by default 100
+    add_constant : bool, optional
+        _description_, by default False
+
+    Returns
+    -------
+    _type_
+        _description_
+    """
     # create a Dataset object from NeuroGym
     dataset = ngym.Dataset(task+'-v0', env_kwargs=kwargs)
 
     # get environment object
     env = dataset.env
+    # print(env.timing)
 
     # generate per trial dataset
     _ = env.reset()
@@ -206,7 +224,7 @@ def create_neurogymn_dataset(task, n_trials=100, add_constant=False, **kwargs):
                 _class = np.hstack((_class, np.zeros((gt.size, 1))))
             sample_class.append(_class)
 
-    get_info_data(task, x, y)
+    # get_info_data(task, x, y)
 
     if task == 'ContextDecisionMaking':
         return x, y#, sample_class
@@ -281,7 +299,19 @@ def create_dataset(task, n_timesteps=1000, horizon=1, **kwargs):
 
 
 def get_n_features(task):
+    """
+    _summary_
 
+    Parameters
+    ----------
+    task : _type_
+        _description_
+
+    Returns
+    -------
+    _type_
+        _description_
+    """
     x, _ = fetch_dataset(task, n_trials=1)
 
     return x[0].shape[1]
@@ -381,7 +411,7 @@ def get_info_data(task, x, y):
     print(f'\tmodel = {model.__name__}')
 
 
-def get_sample_weight(inputs, labels, sample_block=None):
+def get_sample_weight(inputs, sample_block=None):
     """
     Time averages dataset based on sample class and sample weight
 

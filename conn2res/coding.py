@@ -65,6 +65,7 @@ def encoder(reservoir_states, target, readout_modules=None,
 
     """
 
+    # use multiple subsets of readout nodes designated by readout_modules 
     if readout_modules is not None:
 
         if isinstance(readout_modules, np.ndarray):
@@ -99,12 +100,14 @@ def encoder(reservoir_states, target, readout_modules=None,
         df_encoding = pd.concat(df_encoding)
 
     elif readout_nodes is not None:
+        # use a subset of output nodes as readout nodes
         df_encoding, model = run_task(reservoir_states=(
             reservoir_states[0][:, readout_nodes], reservoir_states[1][:, readout_nodes]), y=target, metric=metric, **kwargs)
 
         df_encoding['n_nodes'] = len(readout_nodes)
 
     else:
+        # use all output nodes as readout nodes
         df_encoding, model = run_task(reservoir_states=reservoir_states,
                                       y=target, metric=metric, **kwargs)
 
@@ -139,7 +142,7 @@ def time_average_samples(seq_len, data, sample_weight, operation=None):
     elif isinstance(data, np.ndarray):
         data = [data]
 
-    if len(data) != len(data):
+    if len(data) != len(sample_weight):
         raise ValueError(
             'data and sample_weight should have the same number of assigned variables')
 

@@ -164,8 +164,16 @@ def corrcoef(y_true, y_pred, multioutput='uniform_average', nonnegative=None, **
         Predicted target values.
     multioutput : str 
         Defines aggregating of multiple output scores.
-    normalize : str 
-       
+        
+    nonnegative : str
+        Defines whether return the abosulate or 
+        squared value:
+        
+        'squared' :
+        Squares the values of the correlations
+
+        'absolute' :
+        Takes the absolute value of the correlations
 
     Returns
     -------
@@ -189,7 +197,7 @@ def corrcoef(y_true, y_pred, multioutput='uniform_average', nonnegative=None, **
 
         r = []
         for output in range(n_outputs):
-            r.append(corrcoef(y_true[:, output], y_pred[:, output])[0][1])
+            r.append(np.corrcoef(y_true[:, output], y_pred[:, output])[0][1])
     
         if nonnegative == 'squared':
             r = np.square(r)
@@ -377,5 +385,3 @@ def recall_score(y_true, y_pred, sample_weight=None, average='weighted', **kwarg
 
     func = getattr(metrics, 'recall_score')
     return func(y_true, y_pred, sample_weight=sample_weight, average=average, zero_division='warn')
-
-

@@ -11,8 +11,7 @@ import pandas as pd
 
 from sklearn.linear_model import Ridge, RidgeClassifier
 from sklearn.multiclass import OneVsRestClassifier
-from sklearn.multioutput import MultiOutputRegressor, MultiOutputClassifier
-
+# from sklearn.multioutput import MultiOutputRegressor, MultiOutputClassifier
 from . import performance
 
 
@@ -37,8 +36,10 @@ def check_xy_dims(x, y):
     return x_train, x_test, y_train, y_test
 
 
-def regression(x, y, model=None, metric='score',
-               model_kws={}, metric_kws={}, **kwargs):
+def regression(
+    x, y, model=None, metric='score', model_kws=None, metric_kws=None,
+    **kwargs
+):
     """
     Regression tasks
     # TODO
@@ -50,8 +51,8 @@ def regression(x, y, model=None, metric='score',
 
     # get sample_weights
     sample_weight_train, sample_weight_test = kwargs.pop(
-    'sample_weight', (None, None))
-    
+        'sample_weight', (None, None))
+
     # specify default model
     if model is None:
         model = Ridge(**model_kws)
@@ -62,27 +63,28 @@ def regression(x, y, model=None, metric='score',
     # calculate model metric on test data
     if metric == 'score':
         # by default, use score method of model
-        metric_value = model.score(x_test, y_test, 
-            sample_weight=sample_weight_test)
+        metric_value = model.score(
+            x_test, y_test, sample_weight=sample_weight_test)
     else:
         func = getattr(performance, metric)
         y_pred = model.predict(x_test)
-        metric_value = func(y_test, y_pred, 
-            sample_weight=sample_weight_test, **metric_kws)
+        metric_value = func(
+            y_test, y_pred, sample_weight=sample_weight_test, **metric_kws)
 
     return metric_value, model
 
 
-def multiOutputRegression(*args, **kwargs):
+def multioutput_regression(*args, **kwargs):
     """
     #TODO
     """
-
     return regression(*args, **kwargs)
 
 
-def classification(x, y, model=None, metric='score', 
-                    model_kws={}, metric_kws={}, **kwargs):    
+def classification(
+    x, y, model=None, metric='score', model_kws={}, metric_kws={},
+    **kwargs
+):
     """
     Classification tasks
     # TODO
@@ -94,71 +96,69 @@ def classification(x, y, model=None, metric='score',
 
     # get sample_weights
     sample_weight_train, sample_weight_test = kwargs.pop(
-    'sample_weight', (None, None))
+        'sample_weight', (None, None))
 
     # specify default model
     if model is None:
         model = RidgeClassifier(**model_kws)
 
     # fit model on training data
-    try: 
+    try:
         model.fit(x_train, y_train, sample_weight_train)
     except TypeError:
+        # Note: multi-class classification uses OneVsRest strategy. OneVsRest
+        # does not admit sample_weight arguments. Only non-zero sample 
+        # points are used instead.
         model.fit(x_train[np.nonzero(y_train)], y_train[np.nonzero(y_train)])
 
         if metric == 'score':
-            metric_value = model.score(x_test[np.nonzero(y_test)], 
+            metric_value = model.score(x_test[np.nonzero(y_test)],
                                        y_test[np.nonzero(y_test)])
             return metric_value, model
         else:
             sample_weight_test = None
-      
+
     # calculate model metric on test data
     if metric == 'score':
         # by default, use score method of model
-        metric_value = model.score(x_test, y_test, 
-            sample_weight=sample_weight_test)
+        metric_value = model.score(
+            x_test, y_test, sample_weight=sample_weight_test)
     else:
-        func = getattr(performance, metric)        
+        func = getattr(performance, metric)
         y_pred = model.predict(x_test)
-        metric_value = func(y_test, y_pred, 
-            sample_weight=sample_weight_test, **metric_kws)
-        
+        metric_value = func(
+            y_test, y_pred, sample_weight=sample_weight_test, **metric_kws)
+
     return metric_value, model
 
 
-def binaryClassification(*args, **kwargs):
+def binary_classification(*args, **kwargs):
     """
     #TODO
     """
-
     return classification(*args, **kwargs)
 
 
-def multiClassClassification(*args, **kwargs):
+def multiclass_classification(*args, **kwargs):
     """
     #TODO
     """
-    model = kwargs.pop('model', None)
-    model_kws = kwargs.pop('model_kwargs', {})
-    if model is None:
-        model = OneVsRestClassifier(RidgeClassifier(
-            alpha=0.0, fit_intercept=False, **model_kws))
+    # model = kwargs.pop('model', None)
+    # model_kws = kwargs.pop('model_kwargs', {})
+    # if model is None:
+    #     model = OneVsRestClassifier(RidgeClassifier(
+    #         alpha=0.0, fit_intercept=False, **model_kws))
 
-    return classification(model=model, *args, **kwargs)
-    # return classification(*args, **kwargs)
+    # return classification(model=model, *args, **kwargs)
+    return classification(*args, **kwargs)
 
 
-def multiLabelClassification(*args, **kwargs):
+def multilabel_classification(*args, **kwargs):
     """
     #TODO
     """
-
-    try:
-        return classification(*args, **kwargs)
-    except:
-        print('multiLabelClassification problems are not supported.')
-        exit()
+    print("Multi-label classification problems are not supported.")
+    exit()
 
 
 def select_model(y):
@@ -167,23 +167,23 @@ def select_model(y):
     variable
     # TODO
     """
-    if isinstance(y, list): 
-        y = np.asarray(y)
+    if isinstance(y, list):
+        y = np.vstack(y)
 
     if y.dtype in [np.float32, np.float64]:
         if y.squeeze().ndim == 1:
             return regression  # regression
         else:
-            return multiOutputRegression  # multilabel regression
+            return multioutput_regression  # multilabel regression
 
     elif y.dtype in [np.int32, np.int64]:
         if y.squeeze().ndim == 1:
-            if len(np.unique(y)) == 2:  
-                return binaryClassification 
+            if len(np.unique(y)) == 2:
+                return binary_classification
             else:
-                return multiClassClassification
+                return multiclass_classification
         else:
-            return multiLabelClassification  
+            return multilabel_classification
 
 
 def run_task(reservoir_states, y, metric, **kwargs):
@@ -199,7 +199,7 @@ def run_task(reservoir_states, y, metric, **kwargs):
     y : tuple of numpy.ndarrays
         training and test targets or output labels; the shape of each
         numpy.ndarray is n_samples, n_labels
-    metric : str 
+    metric : str
     kwargs : other keyword arguments are passed to one of the following
         functions:
             memory_capacity_task(); delays=None, t_on=0
@@ -227,9 +227,13 @@ def run_task(reservoir_states, y, metric, **kwargs):
     # fit model
     metrics = dict()
     for m in metric:
-        metrics[m], model = func(x=(x_train, x_test), y=(
-            y_train, y_test), metric=m, **kwargs)
-        print(f'\t\t {m} = {metrics[m]}')
+        metrics[m], model = func(
+            x=(x_train, x_test),
+            y=(y_train, y_test),
+            metric=m, **kwargs
+            )
+
+        # print(f'\t\t {m} = {metrics[m]}')
 
     df_res = pd.DataFrame(data=metrics, index=[0])
 
