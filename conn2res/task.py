@@ -10,7 +10,7 @@ import numpy as np
 import pandas as pd
 
 from sklearn.linear_model import Ridge, RidgeClassifier
-from sklearn.multiclass import OneVsRestClassifier
+# from sklearn.multiclass import OneVsRestClassifier
 # from sklearn.multioutput import MultiOutputRegressor, MultiOutputClassifier
 from . import performance
 
@@ -37,7 +37,7 @@ def check_xy_dims(x, y):
 
 
 def regression(
-    x, y, model=None, metric='score', model_kws=None, metric_kws=None,
+    x, y, model=None, metric='r2_score', model_kws=None, metric_kws=None,
     **kwargs
 ):
     """
@@ -82,8 +82,8 @@ def multioutput_regression(*args, **kwargs):
 
 
 def classification(
-    x, y, model=None, metric='score', model_kws={}, metric_kws={},
-    **kwargs
+    x, y, model=None, metric='accuracy_score', model_kws=None,
+    metric_kws=None, **kwargs
 ):
     """
     Classification tasks
