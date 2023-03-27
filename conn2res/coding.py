@@ -152,7 +152,7 @@ def time_average_samples(seq_len, data, sample_weight, operation=None):
     elif isinstance(data, np.ndarray):
         data = [data]
 
-    if len(data) != len(data):
+    if len(data) != len(sample_weight):
         raise ValueError(
             'data and sample_weight should have the same number of assigned variables')
 
