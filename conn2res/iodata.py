@@ -18,17 +18,17 @@ DATA_DIR = os.path.join(PROJ_DIR, 'examples', 'data')
 
 NEUROGYM_TASKS = [
     'AntiReach',
-    # 'Bandit',
+    'Bandit',  # *
     'ContextDecisionMaking',
-    # 'DawTwoStep',
+    'DawTwoStep',  # *
     'DelayComparison',
     'DelayMatchCategory',
     'DelayMatchSample',
     'DelayMatchSampleDistractor1D',
     'DelayPairedAssociation',
-    # 'Detection',  # TODO: Temporary removing until bug fixed
+    'Detection',  # *
     'DualDelayMatchSample',
-    # 'EconomicDecisionMaking',
+    'EconomicDecisionMaking',  # *
     'GoNogo',
     'HierarchicalReasoning',
     'IntervalDiscrimination',
@@ -47,7 +47,7 @@ NEUROGYM_TASKS = [
     'ReadySetGo',
     'SingleContextDecisionMaking',
     'SpatialSuppressMotion',
-    # 'ToneDetection'  # TODO: Temporary removing until bug fixed
+    'ToneDetection'  # *
 ]
 
 NATIVE_TASKS = [
