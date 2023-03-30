@@ -1,5 +1,9 @@
 # other files
 examples/data
+examples/mami
+examples/tmp
+examples/tutorial_dev.py
+examples/esn_mami_local.py
 *figs/
 
 # data files 
