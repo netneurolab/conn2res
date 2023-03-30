@@ -119,8 +119,12 @@ def root_mean_squared_error(
         point values, one for each individual target.
     """
     func = getattr(metrics, 'mean_squared_error')
-    if normalize: 
-        return func(y_true, y_pred, sample_weight=sample_weight, multioutput=multioutput, squared=False) / y_true.var(axis=0)
+    if normalize:
+        if multioutput == 'uniform_average':
+            return np.mean(
+                func(y_true, y_pred, sample_weight=sample_weight, multioutput='raw_values', squared=False) / y_true.var(axis=0))
+        else:
+            return func(y_true, y_pred, sample_weight=sample_weight, multioutput=multioutput, squared=False) / y_true.var(axis=0)
     else: 
         return func(y_true, y_pred, sample_weight=sample_weight, multioutput=multioutput, squared=False)
 
