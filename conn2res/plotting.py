@@ -23,8 +23,8 @@ if not os.path.isdir(FIG_DIR):
 
 
 def transform_data(
-    data, feature_set, idx_features=None, n_features=None,
-    scaler=None, model=None, **kwargs
+    data, feature_set, idx_features=None, n_features=None, scaler=None,
+    model=None, **kwargs
 ):
     """
     #TODO
@@ -121,7 +121,7 @@ def transform_data(
 
 def plot_iodata(
     x, y, n_trials=7, title=None, show=True, savefig=False, fname=None,
-    **kwargs
+    fig_dir=None, **kwargs
 ):
     """
     #TODO
@@ -141,8 +141,12 @@ def plot_iodata(
         _description_, by default False
     fname : _type_, optional
         _description_, by default None
-
+    fig_dir : _type_, optional
+        _description_, by default None
     """
+    # asign output directory
+    if fig_dir is None:
+        fig_dir = FIG_DIR
 
     # get end points for trials to plot trial separators
     if isinstance(x, list):
@@ -180,6 +184,7 @@ def plot_iodata(
         data=y, palette=palette, dashes=False, legend=False, ax=ax,
         linewidth=1.5, **kwargs
     )
+    ax.set_xlim(0, 200)
 
     # set axis labels
     ax.set_xlabel('time steps', fontsize=11)
@@ -225,16 +230,41 @@ def plot_iodata(
         if fname is None:
             fname = 'io_data'
 
-        fig.savefig(fname=os.path.join(FIG_DIR, f'{fname}.png'),
+        fig.savefig(fname=os.path.join(fig_dir, f'{fname}.png'),
                     transparent=True, bbox_inches='tight', dpi=300)
 
     plt.close()
 
 
 def plot_reservoir_states(
-    x, reservoir_states, n_trials=7, title=None, show=True, savefig=False, fname=None,
-    **kwargs
+    x, reservoir_states, n_trials=7, title=None, show=True, savefig=False,
+    fname=None, fig_dir=None, **kwargs
 ):
+    """
+    _summary_
+
+    Parameters
+    ----------
+    x : _type_
+        _description_
+    reservoir_states : _type_
+        _description_
+    n_trials : int, optional
+        _description_, by default 7
+    title : _type_, optional
+        _description_, by default None
+    show : bool, optional
+        _description_, by default True
+    savefig : bool, optional
+        _description_, by default False
+    fname : _type_, optional
+        _description_, by default None
+    fig_dir : _type_, optional
+        _description_, by default None
+    """
+    # asign output directory
+    if fig_dir is None:
+        fig_dir = FIG_DIR
 
     # get end points for trials to plot trial separators
     if isinstance(reservoir_states, list):
@@ -284,6 +314,9 @@ def plot_reservoir_states(
         linewidth=0.5, ax=axs[1], **kwargs
     )
 
+    axs[0].set_xlim(0, 200)
+    axs[1].set_xlim(0, 200)
+
     # set axis labels
     axs[0].set_ylabel('x signal \namplitude', fontsize=11)
     axs[1].set_ylabel('reservoir \nstates', fontsize=11)
@@ -331,7 +364,7 @@ def plot_reservoir_states(
         if fname is None:
             fname = 'io_data'
 
-        fig.savefig(fname=os.path.join(FIG_DIR, f'{fname}.png'),
+        fig.savefig(fname=os.path.join(fig_dir, f'{fname}.png'),
                     transparent=True, bbox_inches='tight', dpi=300)
 
     plt.close()
@@ -339,8 +372,8 @@ def plot_reservoir_states(
 
 def plot_diagnostics(
     x, y, reservoir_states, trained_model,
-    idx_features=None, n_features=None, scaler=None,
-    title=None, show=True, savefig=False, fname=None, **kwargs
+    idx_features=None, n_features=None, scaler=None, title=None, show=True,
+    savefig=False, fname=None, fig_dir=None, **kwargs
 ):
     """
     #TODO
@@ -370,7 +403,14 @@ def plot_diagnostics(
         _description_, by default False
     fname : _type_, optional
         _description_, by default None
+    fig_dir : _type_, optional
+        _description_, by default None
+
     """
+    # asign output directory
+    if fig_dir is None:
+        fig_dir = FIG_DIR
+
     # check X and y are arrays
     x, y = _check_xy_type(x, y)
 
@@ -479,7 +519,7 @@ def plot_diagnostics(
         if fname is None:
             fname = 'diagnostics_curve'
 
-        fig.savefig(fname=os.path.join(FIG_DIR, f'{fname}.png'),
+        fig.savefig(fname=os.path.join(fig_dir, f'{fname}.png'),
                     transparent=True, bbox_inches='tight', dpi=300)
 
     plt.close()
@@ -487,8 +527,35 @@ def plot_diagnostics(
 
 def plot_performance(
     df, x='alpha', y='score', normalize=False,
-    title=None, show=True, savefig=False, fname=None, **kwargs
+    title=None, show=True, savefig=False, fname=None, fig_dir=None, **kwargs
 ):
+    """
+    _summary_
+
+    Parameters
+    ----------
+    df : _type_
+        _description_
+    x : str, optional
+        _description_, by default 'alpha'
+    y : str, optional
+        _description_, by default 'score'
+    normalize : bool, optional
+        _description_, by default False
+    title : _type_, optional
+        _description_, by default None
+    show : bool, optional
+        _description_, by default True
+    savefig : bool, optional
+        _description_, by default False
+    fname : _type_, optional
+        _description_, by default None
+    fig_dir : _type_, optional
+        _description_, by default None
+    """
+    # asign output directory
+    if fig_dir is None:
+        fig_dir = FIG_DIR
 
     if normalize:
         df[y] = df[y] / max(df[y])
@@ -533,7 +600,7 @@ def plot_performance(
         if fname is None:
             fname = 'performance_curve'
 
-        fig.savefig(fname=os.path.join(FIG_DIR, f'{fname}.png'),
+        fig.savefig(fname=os.path.join(fig_dir, f'{fname}.png'),
                     transparent=True, bbox_inches='tight', dpi=300)
 
     plt.close()
