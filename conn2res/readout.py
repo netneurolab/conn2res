@@ -224,7 +224,7 @@ class Readout:
         # define set(s) of readout nodes
         if readout_modules is not None and readout_nodes is not None:
             raise ValueError(
-                "readout_nodes must be None if readout_modules is provided"
+                "Only one of readout_nodes or readout_modules must be passed"
             )
         elif readout_modules is not None and readout_nodes is None:
             readout_nodes, ids = get_readout_nodes(readout_modules)
