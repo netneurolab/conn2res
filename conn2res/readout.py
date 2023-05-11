@@ -418,20 +418,18 @@ def multiclass_classifier(*args, **kwargs):
     return classifier(*args, **kwargs)
 
 
-def train_test_split(*args, frac_train=0.7):
+def train_test_split(*args, frac_train=0.7, n_train=None):
     """
     Splits data into training and test sets according to
     'frac_train'
 
     Parameters
     ----------
-    data : numpy.ndarray
-        data array to be split
     frac_train : float, from 0 to 1
         fraction of samples in training set
-    concat : bool
-        If True and data is list or tuple, concatenate
-        data across axis=0
+    n_train : int (optional)
+        number of training samples
+
     Returns
     -------
     train-test splits : tuple
@@ -439,7 +437,10 @@ def train_test_split(*args, frac_train=0.7):
     """
     argout = []
     for arg in args:
-        n_train = int(frac_train * len(arg))
+        if n_train is None and isinstance(arg, list):
+            n_train = int(frac_train * len(arg))
+        if n_train is None and isinstance(arg, np.ndarray):
+            n_train = int(frac_train * arg.shape[0])
         argout.extend([arg[:n_train], arg[n_train:]])
 
     return tuple(argout)
