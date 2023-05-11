@@ -6,8 +6,8 @@ This example demonstrates how to use the conn2res toolbox to implement
 perform multiple tasks across dynamical regimes, and using different
 types local dynamics
 """
-import os
 import warnings
+import os
 import numpy as np
 import pandas as pd
 from sklearn.base import is_classifier, is_regressor
@@ -25,8 +25,11 @@ warnings.simplefilter(action='ignore', category=UserWarning)
 # First, let's initialize some constant variables
 # #####################################################################
 
-# project directory 
+# project and figure directory 
 PROJ_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+OUTPUT_DIR = os.path.join(PROJ_DIR, 'figs')
+if not os.path.isdir(OUTPUT_DIR):
+    os.makedirs(OUTPUT_DIR)
 
 # number of runs for each task
 N_RUNS = 1
@@ -107,7 +110,7 @@ for activation in ACT_FCNS:
         # visualize task dataset
         if run == 0:
             plotting.plot_iodata(
-                x, y, title=task.name, savefig=True, fname=f'io_{task.name}',
+                x, y, title=task.name, savefig=True, fname=os.path.join(OUTPUT_DIR, f'io_{task.name}'),
                 show=False
             )
 
@@ -168,12 +171,12 @@ for activation in ACT_FCNS:
                 plotting.plot_reservoir_states(
                     x=x_train, reservoir_states=rs_train,
                     title=task.name,
-                    savefig=True, fname=f'res_states_train_{task.name}', show=False
+                    savefig=True, fname=os.path.join(OUTPUT_DIR, f'res_states_train_{task.name}'), show=False
                 )
                 plotting.plot_reservoir_states(
                     x=x_test, reservoir_states=rs_test,
                     title=task.name,
-                    savefig=True, fname=f'res_states_test_{task.name}', show=False
+                    savefig=True, fname=os.path.join(OUTPUT_DIR, f'res_states_test_{task.name}'), show=False
                 )
 
             # perform task
@@ -193,12 +196,12 @@ for activation in ACT_FCNS:
                 plotting.plot_diagnostics(
                     x=x_train, y=y_train, reservoir_states=rs_train,
                     trained_model=readout_module.model, title=task.name,
-                    savefig=True, fname=f'diag_train_{task.name}', show=False
+                    savefig=True, fname=os.path.join(OUTPUT_DIR, f'diag_train_{task.name}'), show=False
                 )
                 plotting.plot_diagnostics(
                     x=x_test, y=y_test, reservoir_states=rs_test,
                     trained_model=readout_module.model, title=task.name,
-                    savefig=True, fname=f'diag_test_{task.name}', show=False
+                    savefig=True, fname=os.path.join(OUTPUT_DIR, f'diag_test_{task.name}'), show=False
                 )
 
         # concatenate results across alpha values and append
@@ -222,17 +225,15 @@ for activation in ACT_FCNS:
 df_subj = pd.concat(df_subj, ignore_index=True)
 
 # save results
-if not os.path.isdir(os.path.join(PROJ_DIR, 'figs')):
-    os.makedirs(os.path.join(PROJ_DIR, 'figs'))
-df_subj.to_csv(os.path.join(PROJ_DIR, 'figs', 'results{task.name}.csv'), index=False)
+df_subj.to_csv(os.path.join(PROJ_DIR, 'figs', f'results{task.name}.csv'), index=False)
 
 ######################################################################
 # visualize performance curve
-df_subj = pd.read_csv(os.path.join(PROJ_DIR, 'figs', 'results{task.name}.csv'), index_col=False)
+df_subj = pd.read_csv(os.path.join(PROJ_DIR, 'figs', f'results{task.name}.csv'), index_col=False)
 
 for metric in metrics:
     plotting.plot_performance(
         df_subj, x='alpha', y=metric, hue='activation',
-        title=task.name, savefig=True, fname=f'perf_{metric}',
+        title=task.name, savefig=True, fname=os.path.join(OUTPUT_DIR, f'perf_{metric}'),
         show=False
     )

@@ -121,7 +121,7 @@ def transform_data(
 
 def plot_iodata(
     x, y, n_trials=7, title=None, show=True, savefig=False, fname=None,
-    fig_dir=None, **kwargs
+    **kwargs
 ):
     """
     #TODO
@@ -141,13 +141,7 @@ def plot_iodata(
         _description_, by default False
     fname : _type_, optional
         _description_, by default None
-    fig_dir : _type_, optional
-        _description_, by default None
     """
-    # asign output directory
-    if fig_dir is None:
-        fig_dir = FIG_DIR
-
     # get end points for trials to plot trial separators
     if isinstance(x, list):
         n_trials = np.min([len(x), 10])
@@ -228,9 +222,9 @@ def plot_iodata(
 
     if savefig:
         if fname is None:
-            fname = 'io_data'
+            fname = os.path.join(FIG_DIR, 'io_data')
 
-        fig.savefig(fname=os.path.join(fig_dir, f'{fname}.png'),
+        fig.savefig(fname=f'{fname}.png',
                     transparent=True, bbox_inches='tight', dpi=300)
 
     plt.close()
@@ -238,7 +232,7 @@ def plot_iodata(
 
 def plot_reservoir_states(
     x, reservoir_states, n_trials=7, title=None, show=True, savefig=False,
-    fname=None, fig_dir=None, **kwargs
+    fname=None, **kwargs
 ):
     """
     _summary_
@@ -259,13 +253,7 @@ def plot_reservoir_states(
         _description_, by default False
     fname : _type_, optional
         _description_, by default None
-    fig_dir : _type_, optional
-        _description_, by default None
     """
-    # asign output directory
-    if fig_dir is None:
-        fig_dir = FIG_DIR
-
     # get end points for trials to plot trial separators
     if isinstance(reservoir_states, list):
         n_trials = np.min([len(x), 10])
@@ -362,9 +350,9 @@ def plot_reservoir_states(
 
     if savefig:
         if fname is None:
-            fname = 'io_data'
+            fname = os.path.join(FIG_DIR, 'io_data')
 
-        fig.savefig(fname=os.path.join(fig_dir, f'{fname}.png'),
+        fig.savefig(fname=f'{fname}.png',
                     transparent=True, bbox_inches='tight', dpi=300)
 
     plt.close()
@@ -373,7 +361,7 @@ def plot_reservoir_states(
 def plot_diagnostics(
     x, y, reservoir_states, trained_model,
     idx_features=None, n_features=None, scaler=None, title=None, show=True,
-    savefig=False, fname=None, fig_dir=None, **kwargs
+    savefig=False, fname=None, **kwargs
 ):
     """
     #TODO
@@ -403,14 +391,7 @@ def plot_diagnostics(
         _description_, by default False
     fname : _type_, optional
         _description_, by default None
-    fig_dir : _type_, optional
-        _description_, by default None
-
     """
-    # asign output directory
-    if fig_dir is None:
-        fig_dir = FIG_DIR
-
     # check X and y are arrays
     x, y = _check_xy_type(x, y)
 
@@ -517,9 +498,9 @@ def plot_diagnostics(
 
     if savefig:
         if fname is None:
-            fname = 'diagnostics_curve'
+            fname = os.path.join(FIG_DIR, 'diagnostics_curve')
 
-        fig.savefig(fname=os.path.join(fig_dir, f'{fname}.png'),
+        fig.savefig(fname=f'{fname}.png',
                     transparent=True, bbox_inches='tight', dpi=300)
 
     plt.close()
@@ -527,7 +508,7 @@ def plot_diagnostics(
 
 def plot_performance(
     df, x='alpha', y='score', normalize=False,
-    title=None, show=True, savefig=False, fname=None, fig_dir=None, **kwargs
+    title=None, show=True, savefig=False, fname=None, **kwargs
 ):
     """
     _summary_
@@ -550,13 +531,7 @@ def plot_performance(
         _description_, by default False
     fname : _type_, optional
         _description_, by default None
-    fig_dir : _type_, optional
-        _description_, by default None
     """
-    # asign output directory
-    if fig_dir is None:
-        fig_dir = FIG_DIR
-
     if normalize:
         df[y] = df[y] / max(df[y])
 
@@ -598,16 +573,16 @@ def plot_performance(
 
     if savefig:
         if fname is None:
-            fname = 'performance_curve'
+            fname = os.path.join(FIG_DIR, 'performance_curve')
 
-        fig.savefig(fname=os.path.join(fig_dir, f'{fname}.png'),
+        fig.savefig(fname=f'{fname}.png',
                     transparent=True, bbox_inches='tight', dpi=300)
 
     plt.close()
 
 
 def plot_phase_space(x, y, sample=None, xlim=None, ylim=None, subplot=None, cmap=None,
-    num=1, figsize=(13, 5), title=None, fname='phase_space', savefig=False, block=False
+    num=1, figsize=(13, 5), title=None, fname=None, savefig=False, block=False
 ):
     #TODO
     # open figure and create subplot
@@ -646,6 +621,9 @@ def plot_phase_space(x, y, sample=None, xlim=None, ylim=None, subplot=None, cmap
     plt.tight_layout()
 
     if savefig:
-        plt.savefig(fname=os.path.join(FIG_DIR, f'{fname}.png'),
+        if fname is None:
+            fname = os.path.join(FIG_DIR, 'phase_space')
+
+        plt.savefig(fname=f'{fname}.png',
                     transparent=True, bbox_inches='tight', dpi=300)
     plt.show(block=block)
