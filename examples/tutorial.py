@@ -6,6 +6,7 @@ This example demonstrates how to use the conn2res toolbox to implement
 perform multiple tasks across dynamical regimes, and using different
 types local dynamics
 """
+import os
 import warnings
 import numpy as np
 import pandas as pd
@@ -23,6 +24,9 @@ warnings.simplefilter(action='ignore', category=UserWarning)
 # #####################################################################
 # First, let's initialize some constant variables
 # #####################################################################
+
+# project directory 
+PROJ_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 # number of runs for each task
 N_RUNS = 1
@@ -216,15 +220,15 @@ for activation in ACT_FCNS:
         df_subj.append(df_runs[['activation', 'run', 'alpha'] + metrics])
 # concatenate results across activation functions
 df_subj = pd.concat(df_subj, ignore_index=True)
-df_subj.to_csv(
-    f'/Users/laurasuarez/Library/CloudStorage/OneDrive-McGillUniversity/MyRepo_OOP/conn2res/figs/results{task.name}.csv',
-    index=False)
 
-###########################################################################
+# save results
+if not os.path.isdir(os.path.join(PROJ_DIR, 'figs')):
+    os.makedirs(os.path.join(PROJ_DIR, 'figs'))
+df_subj.to_csv(os.path.join(PROJ_DIR, 'figs', 'results{task.name}.csv'), index=False)
+
+######################################################################
 # visualize performance curve
-df_subj = pd.read_csv(
-    f'/Users/laurasuarez/Library/CloudStorage/OneDrive-McGillUniversity/MyRepo_OOP/conn2res/figs/results{task.name}.csv',
-    index_col=False)
+df_subj = pd.read_csv(os.path.join(PROJ_DIR, 'figs', 'results{task.name}.csv'), index_col=False)
 
 for metric in metrics:
     plotting.plot_performance(
