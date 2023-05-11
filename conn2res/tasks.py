@@ -179,7 +179,7 @@ class ReservoirPyTask(Task):
 
         self._name = name
 
-    def fetch_data(self, n_trials=None, horizon=1, **kwargs):
+    def fetch_data(self, n_trials=None, horizon=1, win=30, **kwargs):
         """
         _summary_
 
@@ -189,6 +189,8 @@ class ReservoirPyTask(Task):
             _description_, by default None
         horizon : int, optional
             _description_, by default 1
+        win : int, optional
+            _description_, by default 30
 
         Returns
         -------
@@ -206,35 +208,27 @@ class ReservoirPyTask(Task):
             self.n_trials = n_trials
 
         # make sure horizon is a list. Exclude 0.
-        if isinstance(horizon, int):
+        if isinstance(horizon, (int, np.integer)):
             horizon = [horizon]
 
         # check that horizon has elements with same sign
-        horizon_sign = np.unique(np.sign(horizon))
-        if horizon_sign.size == 1:
-            horizon_sign = horizon_sign[0]
-        else:
-            raise ValueError('horizon should have elements with same sign')
+        if np.unique(np.sign(horizon)).size != 1:
+            raise ValueError("Horizon sohuld have elements with same sign")
 
-        # transform horizon elements to positive values (and nd.array)
-        horizon = np.abs(horizon)
+        # calculate absolute maximum horizon
+        abs_horizon_max = np.max(np.abs(horizon))
+        if win < abs_horizon_max:
+            raise ValueError("Absolute maximum horizon should be within window")
 
-        # calculate maximum horizon
-        horizon_max = np.max(horizon)
-
+        # generate input data
         env = getattr(datasets, self._name)
-        self.n_trials += horizon_max
-        x = env(n_timesteps=self.n_trials, **kwargs)
+        x = env(n_timesteps=self.n_trials + win + abs_horizon_max + 1, **kwargs)
 
-        y = np.hstack([x[horizon_max-h:-h] for h in horizon])
-        x = x[horizon_max:]
+        # output data
+        y = np.hstack([x[win + h : -abs_horizon_max + h - 1] for h in horizon])
 
-        if horizon_sign == 1:
-            if y.shape[1] == 1:
-                x = y.copy()
-                y = x.copy()
-            else:
-                raise ValueError('positive horizon should be integer not list')
+        # update input data
+        x = x[win : -abs_horizon_max - 1]
 
         if x.ndim == 1:
             x = x[:, np.newaxis]
@@ -260,10 +254,9 @@ class ReservoirPyTask(Task):
 
 
 class Conn2ResTask(Task):
-
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.horizon = None
+        self.horizon_max = None
 
     @property
     def name(self):
@@ -276,7 +269,7 @@ class Conn2ResTask(Task):
 
         self._name = name
 
-    def fetch_data(self, n_trials=None, horizon=None, **kwargs):
+    def fetch_data(self, n_trials=None, horizon_max=-20, win=30, **kwargs):
         """
         _summary_
 
@@ -284,8 +277,10 @@ class Conn2ResTask(Task):
         ----------
         n_trials : _type_, optional
             _description_, by default None
-        horizon : _type_, optional
+        horizon_max : _type_, optional
             _description_, by default None
+        win : int, optional
+            _description_, by default 30
 
         Returns
         -------
@@ -302,31 +297,29 @@ class Conn2ResTask(Task):
         if n_trials is not None:
             self.n_trials = n_trials
 
-        # check that horizon has elements with same sign
-        horizon_sign = np.unique(np.sign(horizon))
-        if horizon_sign.size == 1:
-            horizon_sign = horizon_sign[0]
-        else:
-            raise ValueError('horizon should have elements with same sign')
+        # generate horizon as a list inclusive of horizon_max
+        sign_ = np.sign(horizon_max)
+        horizon = np.arange(
+            sign_,
+            sign_ + horizon_max,
+            sign_,
+        )
 
-        # transform horizon elements to positive values (and nd.array)
-        horizon = np.abs(horizon)
+        # calculate absolute maximum horizon
+        abs_horizon_max = np.abs(horizon_max)
+        if win < abs_horizon_max:
+            raise ValueError("Absolute maximum horizon should be within window")
 
-        # calculate maximum horizon
-        horizon_max = np.max(horizon)
+        # generate input data
+        x = np.random.uniform(-1, 1, (self.n_trials + win + abs_horizon_max + 1))[
+            :, np.newaxis
+        ]
 
-        # if task == 'MemoryCapacity':
-        x = np.random.uniform(-1, 1, (self.n_trials+horizon_max))[:, np.newaxis]
+        # output data
+        y = np.hstack([x[win + h : -abs_horizon_max + h - 1] for h in horizon])
 
-        y = np.hstack([x[horizon_max-h:-h] for h in horizon])
-        x = x[horizon_max:]
-
-        if horizon_sign == 1:
-            if y.shape[1] == 1:
-                x = y.copy()
-                y = x.copy()
-            else:
-                raise ValueError('positive horizon should be integer not list')
+        # update input data
+        x = x[win : -abs_horizon_max - 1]
 
         if x.ndim == 1:
             x = x[:, np.newaxis]
@@ -345,7 +338,7 @@ class Conn2ResTask(Task):
         elif y.squeeze().ndim == 2:
             self.n_targets = y.shape[1]
 
-        self.horizon = horizon
+        self.horizon_max = horizon_max
         # self._data = {'x': x, 'y': y}
 
         return x, y
