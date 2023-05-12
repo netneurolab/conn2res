@@ -26,6 +26,12 @@ warnings.simplefilter(action='ignore', category=UserWarning)
 # #####################################################################
 PROJ_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
+# project and figure directory 
+PROJ_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+OUTPUT_DIR = os.path.join(PROJ_DIR, 'figs')
+if not os.path.isdir(OUTPUT_DIR):
+    os.makedirs(OUTPUT_DIR)
+
 # number of runs for each task
 N_RUNS = 50
 
@@ -245,3 +251,4 @@ for task_name in TASKS:
             fig_dir=OUTPUT_DIR,
             show=False
         )
+

@@ -66,7 +66,7 @@ class Conn:
         # make sure that all nodes are connected to the rest of the network
         self.subset_nodes(idx_node=np.logical_or(
             np.any(self.w != 0, axis=0), np.any(self.w != 0, axis=1)))
-     
+
         self.symmetric = check_symmetric(self.w)
 
         self.modules = modules
@@ -105,7 +105,7 @@ class Conn:
         # divide connectivity matrix by spectral radius
         ew, _ = eigh(self.w)
         self.w = self.w / np.abs(ew).max()
-    
+
     def binarize(self):
         """
         Binarizes the connectivity matrix
@@ -164,7 +164,7 @@ class Conn:
         # update component
         self._get_largest_component()
 
-    def get_nodes(self, node_set, nodes_from=None, nodes_without=None, n_nodes=1, **kwargs):
+    def get_nodes(self, node_set, nodes_from=None, nodes_without=None, filename=None, n_nodes=1, **kwargs):
         """
         Gets a set of nodes of the connectivity matrix without changing 
         the connectivity matrix itself
@@ -182,7 +182,10 @@ class Conn:
 
         elif node_set in ['ctx', 'subctx']:
             # load cortex and filter to active nodes
-            ctx = load_file('cortical.npy')
+            if filename is not None:
+                ctx = np.load(filename)
+            else:
+                ctx = load_file('cortical.npy')
             ctx = ctx[self.idx_node]
 
             if node_set == 'ctx':
@@ -234,7 +237,10 @@ class Conn:
             nodes_from = np.setdiff1d(nodes_from, nodes_without)
 
             # load resting-state networks and filter to active nodes
-            rsn_mapping = load_file('rsn_mapping.npy')
+            if filename is not None:
+                rsn_mapping = np.load(filename)
+            else:
+                rsn_mapping = load_file('rsn_mapping.npy')
             rsn_mapping = rsn_mapping[self.idx_node]
 
             # get modules

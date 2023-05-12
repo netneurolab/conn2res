@@ -24,6 +24,8 @@ warnings.simplefilter(action='ignore', category=UserWarning)
 # #####################################################################
 # First, let's initialize some constant variables
 # #####################################################################
+
+# project directory 
 PROJ_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 # number of runs for each task
@@ -63,6 +65,7 @@ for task_name in TASKS:
 
     print(f'\n---------------TASK: {task_name.upper()}---------------')
 
+    # output directory
     OUTPUT_DIR = os.path.join(PROJ_DIR, 'figs', task_name)
     if not os.path.exists(OUTPUT_DIR):
         os.makedirs(OUTPUT_DIR)
@@ -109,9 +112,9 @@ for task_name in TASKS:
             # visualize task dataset
             if run == 0:
                 plotting.plot_iodata(
-                    x, y, title=task.name, savefig=True,
-                    fname='io_data', show=False,
-                    fig_dir=OUTPUT_DIR
+                    x, y, title=task.name,
+                    savefig=True, show=False,
+                    fname=os.path.join(OUTPUT_DIR, 'io_data')
                 )
 
             # split data into training and test sets
@@ -171,14 +174,14 @@ for task_name in TASKS:
                     plotting.plot_reservoir_states(
                         x=x_train, reservoir_states=rs_train,
                         title=task.name,
-                        savefig=True, fname='res_states_train',
-                        show=False, fig_dir=OUTPUT_DIR
+                        savefig=True, show=False,
+                        fname=os.path.join(OUTPUT_DIR, 'res_states_train')
                     )
                     plotting.plot_reservoir_states(
                         x=x_test, reservoir_states=rs_test,
                         title=task.name,
-                        savefig=True, fname='res_states_test',
-                        show=False, fig_dir=OUTPUT_DIR
+                        savefig=True, show=False,
+                        fname=os.path.join(OUTPUT_DIR, 'res_states_test')
                     )
 
                 # perform task 
@@ -199,14 +202,14 @@ for task_name in TASKS:
                     plotting.plot_diagnostics(
                         x=x_train, y=y_train, reservoir_states=rs_train,
                         trained_model=readout_module.model, title=task.name,
-                        savefig=True, fname='diagnostic_train',
-                        fig_dir=OUTPUT_DIR, show=False
+                        savefig=True, show=False,
+                        fname=os.path.join(OUTPUT_DIR, 'diagnostic_train')
                     )
                     plotting.plot_diagnostics(
                         x=x_test, y=y_test, reservoir_states=rs_test,
                         trained_model=readout_module.model, title=task.name,
-                        savefig=True, fname='diagnostic_test',
-                        fig_dir=OUTPUT_DIR, show=False
+                        savefig=True, show=False,
+                        fname=os.path.join(OUTPUT_DIR, 'diagnostic_test')
                     )
 
             # concatenate results across alpha values and append
@@ -236,6 +239,6 @@ for task_name in TASKS:
     for metric in metrics:
         plotting.plot_performance(
             df_subj, x='alpha', y=metric, hue='activation',
-            title=task.name, savefig=True, fname=f'perf_{metric}',
-            fig_dir=OUTPUT_DIR, show=False
+            title=task.name, savefig=True, show=False,
+            fname=os.path.join(OUTPUT_DIR, f'perf_{metric}')
         )
