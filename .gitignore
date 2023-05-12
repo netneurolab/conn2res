@@ -1,9 +1,12 @@
 # other files
+examples/.ipynb_checkpoints
 examples/data
 examples/mami
 examples/tmp
 examples/tutorial_dev.py
-examples/esn_mami_local.py
+examples/tutorial_multiple_tasks.py
+examples/mami_parallel_.py
+
 *figs/
 
 # data files 
