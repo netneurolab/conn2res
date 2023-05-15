@@ -185,7 +185,7 @@ def plot_iodata(
                    'lines.linewidth': 1, 'savefig.format': 'png'}
     rc_defaults.update(rc_params)
     sns.set_theme(style='ticks', rc=rc_defaults)
-    
+
     # open figure and axes
     fig_defaults = {'figsize': (12, 2)}  # 12, 4.5
     fig_defaults.update(fig_params)
@@ -604,12 +604,13 @@ def plot_performance(
         legend=False, markers=True, ax=ax, **kwargs)
 
     # set legend
-    try:
-        lg_defaults = {'labels': kwargs['hue_order']}
-    except:
-        lg_defaults = {'labels': list(pd.unique(df[hue]))}
-    lg_defaults.update(**lg_params)
-    ax.legend(handles=ax.lines, **lg_defaults)
+    if hue is not None:
+        try:
+            lg_defaults = {'labels': kwargs['hue_order']}
+        except:
+            lg_defaults = {'labels': list(pd.unique(df[hue]))}
+        lg_defaults.update(**lg_params)
+        ax.legend(handles=ax.lines, **lg_defaults)
 
     # set axis properties
     axes_defaults = {'xlabel': x, 'ylabel': ' '.join(y.split('_'))}
