@@ -13,6 +13,7 @@ from sklearn.preprocessing import scale, minmax_scale
 import seaborn as sns
 import matplotlib as mpl
 import matplotlib.pyplot as plt
+from cycler import cycler
 
 from .utils import *
 from .readout import _check_xy_type, _check_x_dims, _check_y_dims
@@ -635,5 +636,92 @@ def plot_performance(
 
     plt.close()
 
+    # reset rc defaults
+    mpl.rcdefaults()
+    
+
+def plot_phase_space(
+    x, y, sample=None, palette=None,
+    fig_params={}, ax_params={}, rc_params={},
+    title=None, show=False, savefig=False, fname='phase_space'
+):
+    """
+    #TODO
+    _summary_
+
+    Parameters
+    ----------
+    x : _type_
+        _description_
+    y : _type_
+        _description_
+    sample : _type_, optional
+        _description_, by default None
+    palette : _type_, optional
+        _description_, by default None
+    fig_params : dict
+        dictionary of figure properties
+    ax_params : dict
+        dictionary of axes properties
+    rc_params : dict
+        dictionary of matplotlib rc parameters
+    title : _type_, optional
+        _description_, by default None
+    show : bool, optional
+        _description_, by default True
+    savefig : bool, optional
+        _description_, by default False
+    fname : _type_, optional
+        _description_, by default 'phase_space'
+    """    
+    # set plotting theme
+    rc_defaults = {'figure.titlesize': 12, 'axes.labelsize': 11,
+                   'xtick.labelsize': 11, 'ytick.labelsize': 11,
+                   'lines.linewidth': 1, 'savefig.format': 'png'}
+    if palette is not None:
+        # set cycler for color to change as a function of time step
+        rc_defaults['axes.prop_cycle'] = cycler(color=sns.color_palette(palette, 256))
+    rc_defaults.update(rc_params)
+    sns.set_theme(style='ticks', rc=rc_defaults)
+    
+    # open figure and axes
+    fig_defaults = {'figsize': (4, 4), 'layout': 'tight'}
+    fig_defaults.update(fig_params)
+    fig = plt.figure(**fig_defaults)
+    ax = fig.subplots(1, 1)
+
+    # plot data (these plots are easier with matplotlib)
+    if sample is None:
+        t = np.arange(x.shape[0])
+    else:
+        t = np.arange(*sample)
+    if palette is None:
+        ax.plot(x[t], y[t])
+    else:
+        for i in range(t.size-1):
+            ax.plot(x[t[i:i+2]], y[t[i:i+2]])
+
+    # set axis properties
+    axes_defaults = {'xlim': [0.2, 1.4], 'ylim': [0.2, 1.4]}
+    axes_defaults.update(**ax_params)
+    ax.set(**axes_defaults)
+
+    # set title
+    if title is not None:
+        fig.suptitle(title)
+
+    sns.despine(offset=10, trim=False,
+                top=True, bottom=False,
+                right=True, left=False)
+    
+    if show:
+        plt.show(block=True)
+
+    if savefig:
+        fig.savefig(fname=fname + '.' + mpl.rcParams['savefig.format'],
+                    transparent=True, bbox_inches='tight', dpi=300)
+        
+        plt.close()
+    
     # reset rc defaults
     mpl.rcdefaults()
