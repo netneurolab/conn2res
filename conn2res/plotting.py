@@ -669,28 +669,30 @@ def plot_phase_space(
         _description_, by default False
     fname : _type_, optional
         _description_, by default 'phase_space'
-    """    
+    """
+    # time steps
+    if sample is None:
+        t = np.arange(x.shape[0])
+    else:
+        t = np.arange(*sample)
+
     # set plotting theme
     rc_defaults = {'figure.titlesize': 12, 'axes.labelsize': 11,
                    'xtick.labelsize': 11, 'ytick.labelsize': 11,
                    'lines.linewidth': 1, 'savefig.format': 'png'}
     if palette is not None:
         # set cycler for color to change as a function of time step
-        rc_defaults['axes.prop_cycle'] = cycler(color=sns.color_palette(palette, 256))
+        rc_defaults['axes.prop_cycle'] = cycler(color=sns.color_palette(palette, t.size-1))
     rc_defaults.update(rc_params)
     sns.set_theme(style='ticks', rc=rc_defaults)
     
     # open figure and axes
-    fig_defaults = {'figsize': (4, 4), 'layout': 'tight'}
+    fig_defaults = {'figsize': (4, 4)}
     fig_defaults.update(fig_params)
     fig = plt.figure(**fig_defaults)
     ax = fig.subplots(1, 1)
 
     # plot data (these plots are easier with matplotlib)
-    if sample is None:
-        t = np.arange(x.shape[0])
-    else:
-        t = np.arange(*sample)
     if palette is None:
         ax.plot(x[t], y[t])
     else:
