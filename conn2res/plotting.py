@@ -213,8 +213,6 @@ def plot_iodata(
     # set axes properties
     ax_defaults = {'xlabel': 'time steps', 'ylabel': 'signal amplitude',
                    'xlim': [0, 200]}
-    if title is not None:
-        ax_defaults.update(title=title)
     ax_defaults.update(**ax_params)
     ax.set(**ax_defaults)
 
@@ -229,8 +227,8 @@ def plot_iodata(
             )
 
     # set title
-    # if title is not None:
-    #     fig.suptitle(title)
+    if title is not None:
+        fig.suptitle(title)
 
     sns.despine(offset=10, trim=True,
                 top=True, bottom=False,
@@ -614,14 +612,12 @@ def plot_performance(
 
     # set axis properties
     axes_defaults = {'xlabel': x, 'ylabel': ' '.join(y.split('_'))}
-    if title is not None:
-        axes_defaults.update(title=title)
     axes_defaults.update(**ax_params)
     ax.set(**axes_defaults)
 
     # set title
-    # if title is not None:
-    #     fig.suptitle(title)
+    if title is not None:
+        fig.suptitle(title)
 
     sns.despine(offset=10, trim=True,
                 top=True, bottom=False,
