@@ -423,9 +423,9 @@ def plot_diagnostics(
     palette : _type_, optional
         _description_, by default None
     rc_params : dict
-        dictionary of matplotlib rc parameters
+        dictionary of matplotlib rc parameters, by default {}
     fig_params : dict
-        dictionary of figure properties
+        dictionary of figure properties, by default {}
     ax_params : list of dict
         list of dictionaries setting axes properties, by default [{}] * 3
     lg_params : list of dict
@@ -563,13 +563,13 @@ def plot_performance(
     hue : optional
         _description_, by default None
     rc_params : dict
-        dictionary of matplotlib rc parameters
+        dictionary of matplotlib rc parameters, by default {}
     fig_params : dict
-        dictionary of figure properties
+        dictionary of figure properties, by default {}
     ax_params : dict
-        dictionary of axes properties
+        dictionary of axes properties, by default {}
     lg_params : dict
-        dictionary of legend settings
+        dictionary of legend settings, by default {}
     title : optional
         _description_, by default None
     show : bool, optional
@@ -612,12 +612,12 @@ def plot_performance(
     if hue is not None:
         try:
             lg_defaults = {'labels': kwargs['hue_order']}
-        except:
+        except KeyError:
             lg_defaults = {'labels': list(pd.unique(df[hue]))}
         lg_defaults.update(**lg_params)
         ax.legend(handles=ax.lines, **lg_defaults)
 
-    # set axis properties
+    # set axes properties
     axes_defaults = {'xlabel': x, 'ylabel': ' '.join(y.split('_'))}
     axes_defaults.update(**ax_params)
     ax.set(**axes_defaults)
@@ -663,11 +663,11 @@ def plot_phase_space(
     palette : _type_, optional
         _description_, by default None
     fig_params : dict
-        dictionary of figure properties
+        dictionary of figure properties, by default {}
     ax_params : dict
-        dictionary of axes properties
+        dictionary of axes properties, by default {}
     rc_params : dict
-        dictionary of matplotlib rc parameters
+        dictionary of matplotlib rc parameters, by default {}
     title : _type_, optional
         _description_, by default None
     show : bool, optional
@@ -692,7 +692,7 @@ def plot_phase_space(
         rc_defaults['axes.prop_cycle'] = cycler(color=sns.color_palette(palette, t.size-1))
     rc_defaults.update(rc_params)
     sns.set_theme(style='ticks', rc=rc_defaults)
-    
+
     # open figure and axes
     fig_defaults = {'figsize': (4, 4)}
     fig_defaults.update(fig_params)
