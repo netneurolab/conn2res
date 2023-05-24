@@ -108,8 +108,7 @@ for task_name in TASKS:
             if run == 0:
                 plotting.plot_iodata(
                     x, y, title=task.name, savefig=True,
-                    fname=f'io_{task.name}_{activation}',
-                    fig_dir=OUTPUT_DIR,
+                    fname=os.path.join(OUTPUT_DIR, f'io_{task.name}_{activation}'),
                     show=False
                 )
 
@@ -168,16 +167,14 @@ for task_name in TASKS:
                         x=x_train, reservoir_states=rs_train,
                         title=task.name,
                         savefig=True,
-                        fname=f'res_states_train_{task.name}_{activation}',
-                        fig_dir=OUTPUT_DIR,
+                        fname=os.path.join(OUTPUT_DIR, f'res_states_train_{task.name}_{activation}'),
                         show=False
                     )
                     plotting.plot_reservoir_states(
                         x=x_test, reservoir_states=rs_test,
                         title=task.name,
                         savefig=True,
-                        fname=f'res_states_test_{task.name}_{activation}',
-                        fig_dir=OUTPUT_DIR,
+                        fname=os.path.join(OUTPUT_DIR, f'res_states_test_{task.name}_{activation}'),
                         show=False
                     )
 
@@ -199,16 +196,14 @@ for task_name in TASKS:
                         x=x_train, y=y_train, reservoir_states=rs_train,
                         trained_model=readout_module.model, title=task.name,
                         savefig=True,
-                        fname=f'diag_train_{task.name}_{activation}',
-                        fig_dir=OUTPUT_DIR,
+                        fname=os.path.join(OUTPUT_DIR, f'diag_train_{task.name}_{activation}'),
                         show=False
                     )
                     plotting.plot_diagnostics(
                         x=x_test, y=y_test, reservoir_states=rs_test,
                         trained_model=readout_module.model, title=task.name,
                         savefig=True,
-                        fname=f'diag_test_{task.name}_{activation}',
-                        fig_dir=OUTPUT_DIR,
+                        fname=os.path.join(OUTPUT_DIR, f'diag_test_{task.name}_{activation}'),
                         show=False
                     )
 
@@ -247,8 +242,7 @@ for task_name in TASKS:
         plotting.plot_performance(
             df_subj, x='alpha', y=metric, hue='activation',
             title=task.name, savefig=True,
-            fname=f'perf_{task.name}_{metric}',
-            fig_dir=OUTPUT_DIR,
+            fname=os.path.join(OUTPUT_DIR, f'perf_{task.name}_{metric}'),
             show=False
         )
 
