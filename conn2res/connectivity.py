@@ -116,7 +116,7 @@ class Conn:
         # binarize connectivity matrix
         self.w = self.w.astype(bool).astype(float)
 
-    def add_weights(self, w, mask='triu'):
+    def add_weights(self, w, mask='triu', order='random'):
         """
         Add weights to either a binary or weighted connecivity matrix
 
@@ -129,7 +129,8 @@ class Conn:
                     'number of elements in mask and w do not match')
 
             # add weights to full matrix
-            self.w[self.w != 0] = w
+            if order == 'random':
+                self.w[self.w != 0] = w
 
         elif mask == 'triu':
             if not check_symmetric(self.w):
@@ -140,7 +141,14 @@ class Conn:
                     'number of elements in mask and w do not match')
 
             # add weights to upper diagonal matrix
-            self.w[np.triu(self.w, 1) != 0] = w
+            if order == 'random':
+                self.w[np.triu(self.w, 1) != 0] = w
+
+            elif order == 'rank':  # keep absolute rank of weights
+                id_ = np.argsort(np.abs(w))
+                w = w[id_[::-1]]
+                id_ = np.argsort(np.abs(np.triu(self.w, 1)), axis=None)
+                self.w[np.unravel_index(id_[:-w.size-1:-1], self.w.shape)] = w
 
             # copy weights to lower diagonal
             self.w = make_symmetric(self.w, copy_lower=False)
