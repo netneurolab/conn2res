@@ -7,9 +7,7 @@ Plotting functions
 import os
 import numpy as np
 import pandas as pd
-from numpy.linalg import norm
-from sklearn.decomposition import PCA
-from sklearn.preprocessing import scale, minmax_scale
+from sklearn import decomposition, preprocessing
 import seaborn as sns
 import matplotlib as mpl
 import matplotlib.pyplot as plt
@@ -26,7 +24,7 @@ if not os.path.isdir(FIG_DIR):
 
 
 def transform_data(
-    data, feature_set, idx_features=None, n_features=None, scaler=None,
+    data, feature_set=None, idx_features=None, n_features=None, scaler=None,
     model=None, **kwargs
 ):
     """
@@ -55,8 +53,8 @@ def transform_data(
     """
     if feature_set == 'pca':
         # transform data into principal components
-        pca = PCA(n_components=n_features)
-        data = pca.fit_transform(data, **kwargs)
+        pca = decomposition.PCA(n_components=n_features)
+        data = pca.fit_transform(preprocessing.scale(data), **kwargs)  # zscore to remove bias due to different scales
 
     elif feature_set == 'rnd':
         # update default number of features
@@ -75,7 +73,7 @@ def transform_data(
         # calculate predicted labels
         data = model.predict(data)[:, np.newaxis]
 
-    elif feature_set == 'coeff':
+    elif feature_set in ['coeff', 'coeff_sum']:
         # update default number of features
         if n_features is None:
             n_features = 5
@@ -90,34 +88,41 @@ def transform_data(
         # choose features that correspond to largest absolute coefficients
         idx_coef = np.argsort(np.absolute(coef))
         if sum(coef != 0) > n_features:
-            # use top 5 features
+            # use top features
             idx_coef = idx_coef[-1*n_features:]
         else:
-            # use <5 non-zero features
+            # use non-zero features
             idx_coef = np.intersect1d(idx_coef, np.where(coef != 0)[0])
 
         # scale time series with coefficients
         data = data[:, idx_coef]
         if data.size > 0:
             data = data @ np.diag(coef[idx_coef])
-            # data = np.sum(
-            #     data @ np.diag(coef[idx_coef]), axis=1).reshape(-1, 1)
 
     # select given features
     if idx_features is not None:
         data = data[:, idx_features]
 
+    # sum features
+    if feature_set == 'coeff_sum':
+        data = np.sum(data, axis=1).reshape(-1, 1)
+
     # scale features
     if scaler is not None:
-        if scaler == 'l1-norm':
-            scaler = norm(data, ord=1, axis=0)
+        # scalers provided by sklearn.preprocessing
+        if hasattr(preprocessing, scaler):
+            func = getattr(preprocessing, scaler)
+            data = func(data, **kwargs)
+
+        # scalers provided by numpy.linalg
+        elif scaler == 'l1-norm':
+            data /= np.linalg.norm(data, ord=1, axis=0)
         if scaler == 'l2-norm':
-            scaler = norm(data, ord=2, axis=0)
+            data /= np.linalg.norm(data, ord=2, axis=0)
         elif scaler == 'max':
-            scaler = norm(data, ord=np.inf, axis=0)
+            data /= np.linalg.norm(data, ord=np.inf, axis=0)
         elif isinstance(scaler, int):
-            scaler = np.array([int])
-        data /= scaler
+            data /= np.array([int])
 
     return data
 
@@ -329,8 +334,9 @@ def plot_reservoir_states(
     )
 
     palette = sns.color_palette("tab10", reservoir_states.shape[1])
-    reservoir_states = minmax_scale(
-        scale(reservoir_states, with_std=False), feature_range=(-1, 1))
+    reservoir_states = transform_data(
+        transform_data(reservoir_states, scaler='scale', with_std=False),
+        scaler='minmax_scale', feature_range=(-1, 1))
     sns.lineplot(
         data=reservoir_states, palette=palette, dashes=False, legend=False,
         linewidth=0.5, ax=axs[1], **kwargs
