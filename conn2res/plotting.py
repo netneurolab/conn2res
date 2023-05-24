@@ -544,7 +544,7 @@ def plot_diagnostics(
 
 def plot_performance(
     df, x='alpha', y='score', normalize=False, hue=None,
-    rc_params={}, fig_params={}, ax_params={}, lg_params={},
+    rc_params={}, fig_params={}, ax_params={}, lg_params={}, col_params={},
     title=None, show=True, savefig=False, fname='performance_curve', **kwargs
 ):
     """
@@ -570,6 +570,8 @@ def plot_performance(
         dictionary of axes properties, by default {}
     lg_params : dict
         dictionary of legend settings, by default {}
+    col_params : dict
+        dictionary of color settings in sns.color_palette, by default {}
     title : optional
         _description_, by default None
     show : bool, optional
@@ -597,11 +599,11 @@ def plot_performance(
     ax = fig.subplots(1, 1)
 
     # set color palette
+    col_defaults = {'palette': 'husl'}
     if hue is not None:
-        n_hues = len(np.unique(df[hue]))
-        palette = sns.color_palette('husl', n_hues+1)[:n_hues]
-    else:
-        palette = sns.color_palette('husl')
+        col_defaults.update(n_colors=len(pd.unique(df[hue])))
+    col_defaults.update(**col_params)
+    palette = sns.color_palette(**col_defaults)
 
     # plot
     sns.lineplot(
