@@ -3,9 +3,11 @@ examples/.ipynb_checkpoints
 examples/data
 examples/mami
 examples/tmp
-examples/tutorial_dev.py
 examples/tutorial_multiple_tasks.py
 examples/mami_parallel_.py
+examples/mami_parallel_part2.py
+examples/run_experiments.sh
+examples/mami_concat_res.py
 
 *figs/
 
@@ -14,6 +16,7 @@ data/
 
 # hidden files
 .DS_store
+.gitignore
 
 # visual code studio
 .vscode/
