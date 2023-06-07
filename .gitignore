@@ -9,6 +9,9 @@ data/
 .DS_store
 .gitignore
 
+# jupyter notebook
+.ipynb_checkpoints/
+
 # visual code studio
 .vscode/
 
