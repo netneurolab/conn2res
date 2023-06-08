@@ -68,6 +68,7 @@ Installation requirements
 
 Currently, ``conn2res`` works with Python 3.8+ and requires a few
 dependencies:
+
 - bctpy (>=0.5)
 - gym (==0.21.0)
 - matplotlib (>=3.5)
@@ -92,3 +93,5 @@ with:
     git clone -b v0.0.1 https://github.com/neurogym/neurogym.git
     cd neurogym
     pip install -e .
+
+You are ready to go!
