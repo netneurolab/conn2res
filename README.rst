@@ -68,21 +68,27 @@ Installation requirements
 
 Currently, ``conn2res`` works with Python 3.8+ and requires a few
 dependencies:
-
-- numpy (>=1.21)
-- pandas (>=1.3.4)
-- mdp (>=3.6)
-- scikit-learn (>=1.0)
+- bctpy (>=0.5)
+- gym (==0.21.0)
+- matplotlib (>=3.5)
+- neurogym (==0.0.1)
+- numpy (>=1.22)
+- pandas (>=1.4)
+- reservoirpy (==0.3.5)
 - scipy (>=1.7)
-- matplotlib (>=3.4)
+- scikit-learn (>=1.1)
 - seaborn (>=0.11)
-- neurogym
 
 You can get started by installing ``conn2res`` from the source repository
 with:
 
 .. code-block:: bash
 
-    git clone https://github.com/estefanysuarez/conn2res
+    git clone https://github.com/netneurolab/conn2res
     cd conn2res
     pip install .
+    pip install -r requirements.txt
+    cd ..
+    git clone -b v0.0.1 https://github.com/neurogym/neurogym.git
+    cd neurogym
+    pip install -e .
