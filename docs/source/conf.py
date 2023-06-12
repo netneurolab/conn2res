@@ -19,13 +19,16 @@ project = 'conn2res'
 copyright = '2023, Network Neuroscience Lab'
 author = 'Network Neuroscience Lab'
 
+release = '1.0'
+version = '1.0.0'
+
 # Import project to get version info
-sys.path.insert(0, os.path.abspath(os.path.pardir))
-import conn2res  # noqa
-# The short X.Y version
-version = conn2res.__version__
-# The full version, including alpha/beta/rc tags
-release = conn2res.__version__
+# sys.path.insert(0, os.path.abspath(os.path.pardir))
+# import conn2res  # noqa
+# # The short X.Y version
+# version = conn2res.__version__
+# # The full version, including alpha/beta/rc tags
+# release = conn2res.__version__
 
 # -- General configuration ---------------------------------------------------
 
