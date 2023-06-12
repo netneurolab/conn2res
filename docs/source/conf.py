@@ -80,7 +80,7 @@ pygments_style = 'sphinx'
 import sphinx_rtd_theme  # noqa
 html_theme = 'sphinx_rtd_theme'  # 'alabaster'
 html_show_sourcelink = False
-html_logo = '_static/conn2res_logo.png'
+html_logo = 'docs/_static/conn2res_logo.png'
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
