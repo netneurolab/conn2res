@@ -1,40 +1,40 @@
 **Development Status:** 3 - Alpha. Some features still need to be added and tested.
 
 conn2res
-=========
+========
 
-The ``conn2res`` is a reservoir computing toolbox designed
-for neuroscientes to train connectome-informed reservoirs
-to perform different cognitive tasks.
+``conn2res`` is a reservoir computing toolbox designed for neuroscientists 
+to train connectome-informed reservoirs to perform cognitive tasks. The main 
+advantage of the toolbox is its flexibility in terms of the connectivity matrix 
+used for the reservoir, the local dynamics of the nodes, the possibility to 
+select the set of input and output nodes, and a comprehensive corpus of 
+neuroscience tasks provided by `NeuroGym <https://github.com/neurogym/neurogym>`_.
 
-The main advantage offered by the ``conn2res`` toolbox is its flexibility in
-terms of the connectivity matrix used for the reservoir, the local dynamics
-of the nodes, the possibility to select the set of input and output nodes, and
-a diversity of neuroscience tasks provided by `NeuroGym <https://github.com/neurogym/neurogym>`__.
+The accompanying manuscript has been uploaded to 
+`bioRxiv <https://www.biorxiv.org/content/10.1101/2023.05.31.543092v1>`_.
 
 
 Brief primer on Reservoir Computing
 -----------------------------------
 
-Reservoir computing is a computational paradigm that uses artificial recurrent
-neural networks (RNNs) to extract information from a continuous stream of
-external stimuli and approximate complex time-varying functions
-(Lukoševičius, M. and Jaeger, H, 2009).
-
-The conventional reservoir computing architecture consists of an input layer, 
-followed by the reservoir and a readout module. Typically, the reservoir is a 
-randomly connected RNN and the readout module a linear model. In contrast to 
-traditional RNNs, the connections of the reservoir are fixed; only the weights 
-that connect the reservoir to the readout module are trained, which correspond 
-to the parameters of the linear model. These weights are trained in a supervised 
-manner to learn the representations of the external stimuli constructed by the 
-reservoir and can be adapted to a wide range of tasks, including speech recognition, 
-motor learning, natural language processing, working memory and spatial navigation. 
-Because arbitrary network architecture and dynamics can be superimposed on the 
-reservoir, implementing biologically plausible network architectures allows to 
-investigate how brain network organization and dynamics jointly support learning.
+Reservoir computing is a computational paradigm that essentially exploits the rich 
+dynamics of complex dynamical systems, such as artificial recurrent neural networks 
+(RNNs), to compute with time-varying input data (Lukoševičius, M. and Jaeger, H, 2009). 
+The conventional reservoir computing architecture consists of an input layer, followed 
+by the reservoir and a readout module. Typically, the reservoir is a randomly 
+connected RNN and the readout module a linear model. In contrast to traditional RNNs, 
+the connections of the reservoir are fixed; only the weights that connect the 
+reservoir to the readout module are trained, which correspond to the parameters 
+of the linear model. These weights are trained in a supervised manner to learn the 
+representations of the external stimuli constructed by the reservoir, and can be 
+adapted to a wide range of tasks, including speech recognition, motor learning, 
+natural language processing, working memory and spatial navigation. Because 
+arbitrary network architecture and dynamics can be superimposed on the reservoir, 
+implementing biologically plausible network architectures allows to investigate 
+how brain network organization and dynamics jointly support learning. 
 
 .. image:: rc.png
+
 
 conn2res: an overview
 ---------------------
