@@ -13,26 +13,26 @@ of the nodes, the possibility to select the set of input and output nodes, and
 a diversity of neuroscience tasks provided by `NeuroGym <https://github.com/neurogym/neurogym>`__.
 
 
-A brief primer on Reservoir Computing
--------------------------------------
+Brief primer on Reservoir Computing
+-----------------------------------
 
 Reservoir computing is a computational paradigm that uses artificial recurrent
 neural networks (RNNs) to extract information from a continuous stream of
 external stimuli and approximate complex time-varying functions
 (Lukoševičius, M. and Jaeger, H, 2009).
 
-The basic reservoir computing architecture consists of an input layer, followed
-by the reservoir and a readout module. Typically, the reservoir is a randomly
-connected RNN and the readout module a linear model. In contrast to traditional RNNs,
-the connections of the reservoir are fixed; only the weights that connect the
-reservoir to the readout module are trained, which correspond to the parameters of
-the linear model. These weights are trained in a supervised manner to learn the
-representations of the external stimuli constructed by the reservoir and can be
-adapted to a wide range of tasks, including speech recognition, motor learning,
-natural language processing, working memory and spatial navigation. Because
-arbitrary network architecture and dynamics can be superimposed on the reservoir,
-implementing biologically plausible network architectures allows to investigate
-how brain network organization and dynamics jointly support learning.
+The conventional reservoir computing architecture consists of an input layer, 
+followed by the reservoir and a readout module. Typically, the reservoir is a 
+randomly connected RNN and the readout module a linear model. In contrast to 
+traditional RNNs, the connections of the reservoir are fixed; only the weights 
+that connect the reservoir to the readout module are trained, which correspond 
+to the parameters of the linear model. These weights are trained in a supervised 
+manner to learn the representations of the external stimuli constructed by the 
+reservoir and can be adapted to a wide range of tasks, including speech recognition, 
+motor learning, natural language processing, working memory and spatial navigation. 
+Because arbitrary network architecture and dynamics can be superimposed on the 
+reservoir, implementing biologically plausible network architectures allows to 
+investigate how brain network organization and dynamics jointly support learning.
 
 .. image:: rc.png
 
@@ -87,8 +87,7 @@ with:
 
     git clone https://github.com/netneurolab/conn2res
     cd conn2res
-    pip install .
-    pip install -r requirements.txt
+    pip install . -r requirements.txt  # this is to make sure that all requirements are installed
     cd ..
     git clone -b v0.0.1 https://github.com/neurogym/neurogym.git
     cd neurogym
