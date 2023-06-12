@@ -4,12 +4,10 @@
 User guide
 ----------
 
-``conn2res`` aims to provide a felxible instrument to train connectome-informed
+``conn2res`` aims to provide a flexible instrument to train connectome-informed
 reservoirs to perform different cognitive tasks. 
 
-.. This user guide steps through the basics of fetching microarray expression data
-.. from the AHBA, defining an atlas or parcellation for wrangling that data, and
-.. actually parcellating the data into a more usable, analyis-ready format. If you
+.. This user guide steps through the main reservoir computing workflow. If you
 .. still have questions after going through this guide you can refer to the
 .. :ref:`api_ref` or ask a question on `GitHub <https://github.com/rmarkello/
 .. abagen/issues>`_.

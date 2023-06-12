@@ -134,8 +134,7 @@ def plot_iodata(
     **kwargs
 ):
     """
-    #TODO
-    _summary_
+    Plot input (x) and output (y) data.
 
     Parameters
     ----------
@@ -258,7 +257,7 @@ def plot_reservoir_states(
     title=None, show=True, savefig=False, fname='res_states', **kwargs
 ):
     """
-    _summary_
+    Plot simulated reservoir states.
 
     Parameters
     ----------
@@ -317,7 +316,7 @@ def plot_reservoir_states(
                    'lines.linewidth': 1, 'savefig.format': 'png'}
     rc_defaults.update(rc_params)
     sns.set_theme(style='ticks', rc=rc_defaults)
-    
+
     # open figure and axes
     fig_defaults = {'figsize': (12, 4), 'layout': 'tight'}
     fig_defaults.update(fig_params)
@@ -401,8 +400,8 @@ def plot_diagnostics(
     title=None, show=True, savefig=False, fname='diagnostics_curve', **kwargs
 ):
     """
-    #TODO
-    _summary_
+    Plot decision function of readout module.
+    Worksvonly if 'trained_model' is a classifier.
 
     Parameters
     ----------
@@ -478,7 +477,7 @@ def plot_diagnostics(
                    'lines.linewidth': 1, 'savefig.format': 'png'}
     rc_defaults.update(rc_params)
     sns.set_theme(style='ticks', rc=rc_defaults)
-    
+
     # open figure and axes
     fig_defaults = {'figsize': (12, 6), 'layout': 'tight'}
     fig_defaults.update(fig_params)
@@ -512,7 +511,7 @@ def plot_diagnostics(
         lg_defaults = {'labels': labels[i]}
         lg_defaults.update(**lg_params[i])
         ax.legend(handles=ax.lines, **lg_defaults)
-    
+
     # set axes properties
     xlabel = ['', '', 'time steps']
     ylabel = ['x signal \namplitude', 'decision \nfunction', 'y signal \namplitude']
@@ -520,7 +519,7 @@ def plot_diagnostics(
         ax_defaults = {'xlim': [0, 160], 'xlabel': xlabel[i], 'ylabel': ylabel[i]}
         ax_defaults.update(**ax_params[i])
         ax.set(**ax_defaults)
-    
+
     # set title
     if title is not None:
         fig.suptitle(title)
@@ -548,7 +547,7 @@ def plot_performance(
     title=None, show=True, savefig=False, fname='performance_curve', **kwargs
 ):
     """
-    _summary_
+    Plot performance curve.
 
     Parameters
     ----------
@@ -591,7 +590,7 @@ def plot_performance(
                    'savefig.format': 'png'}
     rc_defaults.update(rc_params)
     sns.set_theme(style='ticks', rc=rc_defaults)
-    
+
     # open figure and axes
     fig_defaults = {'figsize': (6, 2)}
     fig_defaults.update(fig_params)
@@ -643,7 +642,7 @@ def plot_performance(
 
     # reset rc defaults
     mpl.rcdefaults()
-    
+
 
 def plot_phase_space(
     x, y, sample=None, palette=None,
@@ -651,8 +650,7 @@ def plot_phase_space(
     title=None, show=False, savefig=False, fname='phase_space'
 ):
     """
-    #TODO
-    _summary_
+    Plot phase space diagram
 
     Parameters
     ----------
@@ -720,15 +718,15 @@ def plot_phase_space(
     sns.despine(offset=10, trim=False,
                 top=True, bottom=False,
                 right=True, left=False)
-    
+
     if show:
         plt.show(block=True)
 
     if savefig:
         fig.savefig(fname=fname + '.' + mpl.rcParams['savefig.format'],
                     transparent=True, bbox_inches='tight', dpi=300)
-        
+       
         plt.close()
-    
+   
     # reset rc defaults
     mpl.rcdefaults()

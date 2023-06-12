@@ -26,7 +26,7 @@ warnings.simplefilter(action='ignore', category=UserWarning)
 # #####################################################################
 PROJ_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-# project and figure directory 
+# project and figure directory
 PROJ_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUTPUT_DIR = os.path.join(PROJ_DIR, 'figs')
 if not os.path.isdir(OUTPUT_DIR):
@@ -48,7 +48,7 @@ CLASS_METRICS = [
 ]
 
 # define alpha values to vary global reservoir dynamics
-ALPHAS = np.linspace(0, 2, 21)[1:]
+ALPHAS = np.linspace(0, 2, 41)[1:]
 
 # select different activation functions to vary local dynamics
 ACT_FCNS = [
@@ -109,6 +109,7 @@ for task_name in TASKS:
                 plotting.plot_iodata(
                     x, y, title=task.name, savefig=True,
                     fname=os.path.join(OUTPUT_DIR, f'io_{task.name}_{activation}'),
+                    rc_params={'figure.dpi': 300, 'savefig.dpi': 300},
                     show=False
                 )
 
@@ -168,6 +169,7 @@ for task_name in TASKS:
                         title=task.name,
                         savefig=True,
                         fname=os.path.join(OUTPUT_DIR, f'res_states_train_{task.name}_{activation}'),
+                        rc_params={'figure.dpi': 300, 'savefig.dpi': 300},
                         show=False
                     )
                     plotting.plot_reservoir_states(
@@ -175,6 +177,7 @@ for task_name in TASKS:
                         title=task.name,
                         savefig=True,
                         fname=os.path.join(OUTPUT_DIR, f'res_states_test_{task.name}_{activation}'),
+                        rc_params={'figure.dpi': 300, 'savefig.dpi': 300},
                         show=False
                     )
 
@@ -197,6 +200,7 @@ for task_name in TASKS:
                         trained_model=readout_module.model, title=task.name,
                         savefig=True,
                         fname=os.path.join(OUTPUT_DIR, f'diag_train_{task.name}_{activation}'),
+                        rc_params={'figure.dpi': 300, 'savefig.dpi': 300},
                         show=False
                     )
                     plotting.plot_diagnostics(
@@ -204,6 +208,7 @@ for task_name in TASKS:
                         trained_model=readout_module.model, title=task.name,
                         savefig=True,
                         fname=os.path.join(OUTPUT_DIR, f'diag_test_{task.name}_{activation}'),
+                        rc_params={'figure.dpi': 300, 'savefig.dpi': 300},
                         show=False
                     )
 
@@ -243,6 +248,6 @@ for task_name in TASKS:
             df_subj, x='alpha', y=metric, hue='activation',
             title=task.name, savefig=True,
             fname=os.path.join(OUTPUT_DIR, f'perf_{task.name}_{metric}'),
+            rc_params={'figure.dpi': 300, 'savefig.dpi': 300},
             show=False
         )
-

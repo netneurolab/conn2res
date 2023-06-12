@@ -141,23 +141,23 @@ def mean_absolute_error(
         Ground truth target values.
     y_pred : numpy.ndarray
         Predicted target values.
-    sample_weight : numpy.ndarray 
+    sample_weight : numpy.ndarray
         Sample weights.
-    multioutput : str 
+    multioutput : str
         Defines aggregating of multiple output scores:
-        
+     
         ‘raw_values’ :
-        Returns a full set of scores in case of 
+        Returns a full set of scores in case of
         multioutput input.
 
         ‘uniform_average’ :
-        Scores of all outputs are averaged with 
+        Scores of all outputs are averaged with
         uniform weight.
 
     Returns
     -------
     error : float or ndarray of floats.
-        A floating point value or an array of floating 
+        A floating point value or an array of floating
         point values, one for each individual target.
     """
     func = getattr(metrics, 'mean_absolute_error')
@@ -169,7 +169,7 @@ def corrcoef(
     nonnegative=None, **kwargs
 ):
     """
-    Pearson's correlation coefficient. 
+    Pearson's correlation coefficient.
 
     Parameters
     ----------
@@ -179,11 +179,11 @@ def corrcoef(
         Predicted target values.
     multioutput : str
         Defines aggregating of multiple output scores.
-        
+
     nonnegative : str
         Defines whether return the abosulate or
         squared value:
-      
+
         'squared' :
         Squares the values of the correlations
 
@@ -206,14 +206,14 @@ def corrcoef(
             return abs(r)
         else:
             return r
-    
+
     elif y_true.ndim == 2:
         n_outputs = y_pred.shape[1]
 
         r = []
         for output in range(n_outputs):
             r.append(np.corrcoef(y_true[:, output], y_pred[:, output])[0][1])
-    
+
         if nonnegative == 'squared':
             r = np.square(r)
         elif nonnegative == 'absolute':
@@ -225,7 +225,7 @@ def corrcoef(
             return r
         elif multioutput == 'sum':
             return np.sum(r)
- 
+
 
 def accuracy_score(
     y_true, y_pred, sample_weight=None, normalize=True, **kwargs
@@ -239,11 +239,11 @@ def accuracy_score(
         Ground truth target values.
     y_pred : numpy.ndarray
         Predicted target values.
-    sample_weight : numpy.ndarray 
+    sample_weight : numpy.ndarray
         Sample weights.
-    normalize : bool 
-        If False, return the number of correctly classified 
-        samples. Otherwise, return the fraction of correctly 
+    normalize : bool
+        If False, return the number of correctly classified
+        samples. Otherwise, return the fraction of correctly
         classified samples.
 
     Returns
@@ -298,26 +298,28 @@ def f1_score(
         Ground truth target values.
     y_pred : numpy.ndarray
         Predicted target values.
-    sample_weight : numpy.ndarray 
+    sample_weight : numpy.ndarray
         Sample weights.
-    average : str 
-        This parameter is required for multiclass targets. 
-        If None, the scores for each class are returned. 
-        Otherwise, this determines the type of averaging 
+    average : str
+        This parameter is required for multiclass targets.
+        If None, the scores for each class are returned.
+        Otherwise, this determines the type of averaging
         performed on the data:
 
         'micro':
-        Calculate metrics globally by counting the total true 
+        Calculate metrics globally by counting the total true
         positives, false negatives and false positives.
 
         'macro':
-        Calculate metrics for each label, and find their unweighted 
+        Calculate metrics for each label, and find their unweighted
         mean. This does not take label imbalance into account.
 
         'weighted':
-        Calculate metrics for each label, and find their average 
-        weighted by support (the number of true instances for each label). This alters ‘macro’ to account for label imbalance; it can result in an F-score that is not between precision and recall.
-    
+        Calculate metrics for each label, and find their average
+        weighted by support (the number of true instances for each label).
+        This alters ‘macro’ to account for label imbalance; it can result
+        in an F-score that is not between precision and recall.
+
     Returns
     -------
     score : float.
@@ -332,7 +334,7 @@ def precision_score(
     y_true, y_pred, sample_weight=None, average='weighted', **kwargs
 ):
     """
-    Precision score. 
+    Precision score.
 
     Parameters
     ----------
@@ -340,26 +342,28 @@ def precision_score(
         Ground truth target values.
     y_pred : numpy.ndarray
         Predicted target values.
-    sample_weight : numpy.ndarray 
+    sample_weight : numpy.ndarray
         Sample weights.
-    average : str 
-        This parameter is required for multiclass targets. 
-        If None, the scores for each class are returned. 
-        Otherwise, this determines the type of averaging 
+    average : str
+        This parameter is required for multiclass targets.
+        If None, the scores for each class are returned.
+        Otherwise, this determines the type of averaging
         performed on the data:
 
         'micro':
-        Calculate metrics globally by counting the total true 
+        Calculate metrics globally by counting the total true
         positives, false negatives and false positives.
 
         'macro':
-        Calculate metrics for each label, and find their unweighted 
+        Calculate metrics for each label, and find their unweighted
         mean. This does not take label imbalance into account.
 
         'weighted':
-        Calculate metrics for each label, and find their average 
-        weighted by support (the number of true instances for each label). This alters ‘macro’ to account for label imbalance; it can result in an F-score that is not between precision and recall.
-    
+        Calculate metrics for each label, and find their average
+        weighted by support (the number of true instances for each label).
+        This alters ‘macro’ to account for label imbalance; it can result
+        in an F-score that is not between precision and recall.
+
     Returns
     -------
     score : float.
@@ -382,26 +386,28 @@ def recall_score(
         Ground truth target values.
     y_pred : numpy.ndarray
         Predicted target values.
-    sample_weight : numpy.ndarray 
+    sample_weight : numpy.ndarray
         Sample weights.
-    average : str 
-        This parameter is required for multiclass targets. 
-        If None, the scores for each class are returned. 
-        Otherwise, this determines the type of averaging 
+    average : str
+        This parameter is required for multiclass targets.
+        If None, the scores for each class are returned.
+        Otherwise, this determines the type of averaging
         performed on the data:
 
         'micro':
-        Calculate metrics globally by counting the total true 
+        Calculate metrics globally by counting the total true
         positives, false negatives and false positives.
 
         'macro':
-        Calculate metrics for each label, and find their unweighted 
+        Calculate metrics for each label, and find their unweighted
         mean. This does not take label imbalance into account.
 
         'weighted':
-        Calculate metrics for each label, and find their average 
-        weighted by support (the number of true instances for each label). This alters ‘macro’ to account for label imbalance; it can result in an F-score that is not between precision and recall.
-    
+        Calculate metrics for each label, and find their average
+        weighted by support (the number of true instances for each label).
+        This alters ‘macro’ to account for label imbalance; it can result
+        in an F-score that is not between precision and recall.
+
     Returns
     -------
     score : float.

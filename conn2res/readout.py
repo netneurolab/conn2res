@@ -21,7 +21,25 @@ from . import performance
 
 
 class Readout:
+    """
+    _summary_
+    """
     def __init__(self, estimator=None, y=None):
+        """
+        _summary_
+
+        Parameters
+        ----------
+        estimator : _type_, optional
+            _description_, by default None
+        y : _type_, optional
+            _description_, by default None
+
+        Raises
+        ------
+        ValueError
+            _description_
+        """
         if estimator is not None and y is not None:
             raise ValueError("y must be None if estimator is provided")
         elif estimator is not None and y is None:
@@ -37,6 +55,19 @@ class Readout:
 
     @model.setter
     def model(self, arg):
+        """
+        _summary_
+
+        Parameters
+        ----------
+        arg : _type_
+            _description_
+
+        Raises
+        ------
+        TypeError
+            _description_
+        """
         if isinstance(arg, str):
             #TODO: add other sklearn modules such as SVM
             #TODO: be able to pass arguments to model
@@ -383,7 +414,7 @@ def multioutput_regressor(*args, **kwargs):
     _type_
         _description_
     """
-    # return MultiOutputRegressor(regressor(*args, **kwargs))
+    # TODO: return MultiOutputRegressor(regressor(*args, **kwargs))
     # MultiOutputRegressor does not handle decision_function for
     # plotting diagnostics curve
     return regressor(*args, **kwargs)
