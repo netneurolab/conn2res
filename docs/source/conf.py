@@ -9,24 +9,19 @@
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
-
-from datetime import datetime
 import os
 import sys
-# sys.path.insert(0, os.path.abspath('.'))
-
 
 # -- Project information -----------------------------------------------------
 
 # Add project name, copyright holder, and author(s)
 project = 'conn2res'
+copyright = '2023, Network Neuroscience Lab'
 author = 'Network Neuroscience Lab'
-copyright = '2023-{}, {}'.format(datetime.now().year, author)
-
 
 # Import project to get version info
 sys.path.insert(0, os.path.abspath(os.path.pardir))
-import conn2res # noqa
+import conn2res  # noqa
 # The short X.Y version
 version = conn2res.__version__
 # The full version, including alpha/beta/rc tags
@@ -45,7 +40,6 @@ extensions = [
     'sphinx.ext.mathjax',
     'sphinx.ext.napoleon',
     'sphinx.ext.viewcode',
-    # 'sphinxarg.ext',
     'sphinx_gallery.gen_gallery'
 ]
 
@@ -56,7 +50,7 @@ numpydoc_show_class_members = False
 autoclass_content = "class"
 
 # Add any paths that contain templates here, relative to this directory.
-templates_path = ['_templates']
+templates_path = ['docs/_templates']
 
 # The suffix(es) of source filenames.
 source_suffix = '.rst'
@@ -74,7 +68,7 @@ language = 'en'
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
 # This pattern also affects html_static_path and html_extra_path.
-exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
+exclude_patterns = ['build', 'Thumbs.db', '.DS_Store']
 
 # The name of the Pygments (syntax highlighting) style to use.
 pygments_style = 'sphinx'
@@ -86,36 +80,30 @@ pygments_style = 'sphinx'
 import sphinx_rtd_theme  # noqa
 html_theme = 'sphinx_rtd_theme'  # 'alabaster'
 html_show_sourcelink = False
-# html_logo = '_static/conn2res_logo.png'
+html_logo = '_static/conn2res_logo.png'
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
 # documentation.
-html_theme_options = {}
+html_theme_options = {'logo_only': True}
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
-html_static_path = ['_static']
+html_static_path = ['docs/_static']
 
-# https://github.com/rtfd/sphinx_rtd_theme/issues/117
-def setup(app):  # noqa
-    app.add_css_file('theme_overrides.css')
-    # app.add_javascript('https://cdn.rawgit.com/chrisfilo/zenodo.js/v0.1/zenodo.js')  # noqa
-
+# CSS files to include
+html_css_files = ['theme_overrides.css']
 
 # -- Options for HTMLHelp output ---------------------------------------------
 
 # Output file base name for HTML help builder.
 htmlhelp_basename = 'conn2resdoc'
 
-
 # -- Extension configuration -------------------------------------------------
 intersphinx_mapping = {
-    'python': ('https://docs.python.org/3.6', None),
-    'numpy': ('https://docs.scipy.org/doc/numpy', None),
-    'pandas': ('https://pandas-docs.github.io/pandas-docs-travis/', None),
-    'scipy': ('https://docs.scipy.org/doc/scipy/reference', None),
+    'python': ('https://docs.python.org/3/', None),
+    'sphinx': ('https://www.sphinx-doc.org/en/master/', None),
 }
 
 doctest_global_setup = """
