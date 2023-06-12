@@ -20,9 +20,9 @@ import sys
 
 # Add project name, copyright holder, and author(s)
 project = 'conn2res'
-author = '{} developers'.format(project)
+author = 'Network Neuroscience Lab'
 copyright = '2023-{}, {}'.format(datetime.now().year, author)
-# author = 'Laura Suarez'
+
 
 # Import project to get version info
 sys.path.insert(0, os.path.abspath(os.path.pardir))
@@ -45,7 +45,7 @@ extensions = [
     'sphinx.ext.mathjax',
     'sphinx.ext.napoleon',
     'sphinx.ext.viewcode',
-    'sphinxarg.ext', 
+    'sphinxarg.ext',
     'sphinx_gallery.gen_gallery'
 ]
 
@@ -84,7 +84,7 @@ pygments_style = 'sphinx'
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 import sphinx_rtd_theme  # noqa
-html_theme = 'sphinx_rtd_theme' #'alabaster'
+html_theme = 'sphinx_rtd_theme'  # 'alabaster'
 html_show_sourcelink = False
 # html_logo = '_static/conn2res_logo.png'
 
