@@ -1,7 +1,7 @@
 bctpy==0.5.2
 # gym==0.21.0
 matplotlib>=3.5
-numpy>=1.22
+numpy>=1.21
 pandas>=1.4
 reservoirpy==0.3.5
 scipy>=1.7
