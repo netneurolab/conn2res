@@ -6,10 +6,16 @@ Plotting functions
 """
 import os
 import numpy as np
-from numpy.linalg import norm
-from sklearn.decomposition import PCA
+import pandas as pd
+from sklearn import decomposition, preprocessing
 import seaborn as sns
+import matplotlib as mpl
 import matplotlib.pyplot as plt
+from cycler import cycler
+
+from .utils import *
+from .readout import _check_xy_type, _check_x_dims, _check_y_dims
+
 
 PROJ_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 FIG_DIR = os.path.join(PROJ_DIR, 'figs')
@@ -18,8 +24,8 @@ if not os.path.isdir(FIG_DIR):
 
 
 def transform_data(
-    data, feature_set, idx_features=None, n_features=None,
-    scaler=None, model=None, **kwargs
+    data, feature_set=None, idx_features=None, n_features=None, scaler=None,
+    model=None, **kwargs
 ):
     """
     #TODO
@@ -47,8 +53,8 @@ def transform_data(
     """
     if feature_set == 'pca':
         # transform data into principal components
-        pca = PCA(n_components=n_features)
-        data = pca.fit_transform(data, **kwargs)
+        pca = decomposition.PCA(n_components=n_features)
+        data = pca.fit_transform(preprocessing.scale(data), **kwargs)  # zscore to remove bias due to different scales
 
     elif feature_set == 'rnd':
         # update default number of features
@@ -67,7 +73,7 @@ def transform_data(
         # calculate predicted labels
         data = model.predict(data)[:, np.newaxis]
 
-    elif feature_set == 'coeff':
+    elif feature_set in ['coeff', 'coeff_sum']:
         # update default number of features
         if n_features is None:
             n_features = 5
@@ -82,44 +88,53 @@ def transform_data(
         # choose features that correspond to largest absolute coefficients
         idx_coef = np.argsort(np.absolute(coef))
         if sum(coef != 0) > n_features:
-            # use top 5 features
+            # use top features
             idx_coef = idx_coef[-1*n_features:]
         else:
-            # use <5 non-zero features
+            # use non-zero features
             idx_coef = np.intersect1d(idx_coef, np.where(coef != 0)[0])
 
         # scale time series with coefficients
         data = data[:, idx_coef]
         if data.size > 0:
             data = data @ np.diag(coef[idx_coef])
-            # data = np.sum(
-            #     data @ np.diag(coef[idx_coef]), axis=1).reshape(-1, 1)
 
     # select given features
     if idx_features is not None:
         data = data[:, idx_features]
 
+    # sum features
+    if feature_set == 'coeff_sum':
+        data = np.sum(data, axis=1).reshape(-1, 1)
+
     # scale features
     if scaler is not None:
-        if scaler == 'l1-norm':
-            scaler = norm(data, ord=1, axis=0)
+        # scalers provided by sklearn.preprocessing
+        if hasattr(preprocessing, scaler):
+            func = getattr(preprocessing, scaler)
+            data = func(data, **kwargs)
+
+        # scalers provided by numpy.linalg
+        elif scaler == 'l1-norm':
+            data /= np.linalg.norm(data, ord=1, axis=0)
         if scaler == 'l2-norm':
-            scaler = norm(data, ord=2, axis=0)
+            data /= np.linalg.norm(data, ord=2, axis=0)
         elif scaler == 'max':
-            scaler = norm(data, ord=np.inf, axis=0)
+            data /= np.linalg.norm(data, ord=np.inf, axis=0)
         elif isinstance(scaler, int):
-            scaler = np.array([int])
-        data /= scaler
+            data /= np.array([int])
 
     return data
 
 
 def plot_iodata(
-    x, y, n_instances=7, title=None, show=True, savefig=False, fname=None, **kwargs
+    x, y, n_trials=7, palette=None,
+    rc_params={}, fig_params={}, ax_params={}, lg_params={},
+    title=None, show=True, savefig=False, fname='io_data',
+    **kwargs
 ):
     """
-    #TODO
-    _summary_
+    Plot input (x) and output (y) data.
 
     Parameters
     ----------
@@ -127,6 +142,18 @@ def plot_iodata(
         _description_
     y : _type_
         _description_
+    n_trials : _type_, optional
+        _description_, by default 7
+    palette : _type_, optional
+        _description_, by default None
+    rc_params : dict
+        dictionary of matplotlib rc parameters, by default {}
+    fig_params : dict
+        dictionary of figure properties, by default {}
+    ax_params : dict
+        dictionary of axes properties, by default {}
+    lg_params : dict
+        dictionary of legend settings, by default {}
     title : _type_, optional
         _description_, by default None
     show : bool, optional
@@ -135,78 +162,246 @@ def plot_iodata(
         _description_, by default False
     fname : _type_, optional
         _description_, by default None
-    
     """
-
-    # convert x and y to arrays for visualization
+    # get end points for trials to plot trial separators
     if isinstance(x, list):
-        x = np.vstack(x[:n_instances])
-    if isinstance(y, list):
-        y = np.vstack(y[:n_instances]).squeeze()
+        n_trials = np.min([len(x), 10])
+        x = x[:n_trials]
+        y = y[:n_trials]
+
+        tf, end_points = 0, []
+        for _, trial in enumerate(x):
+            tf += len(trial)
+            end_points.append(tf)
+    else:
+        end_points = None
+
+    # check X and y are arrays
+    x, y = _check_xy_type(x, y)
+
+    # check X and y dimensions
+    x = _check_x_dims(x)
+    y = _check_y_dims(y)
 
     # set plotting theme
-    sns.set(style="ticks", font_scale=1.0)
-    fig, ax = plt.subplots(1, 1, figsize=(12, 3))
+    rc_defaults = {'figure.titlesize': 12, 'axes.labelsize': 11,
+                   'xtick.labelsize': 11, 'ytick.labelsize': 11,
+                   'legend.fontsize': 8, 'legend.loc': 'best',
+                   'lines.linewidth': 1, 'savefig.format': 'png'}
+    rc_defaults.update(rc_params)
+    sns.set_theme(style='ticks', rc=rc_defaults)
 
-    # set color palette
-    palette = kwargs.pop('palette', None)
+    # open figure and axes
+    fig_defaults = {'figsize': (12, 2)}  # 12, 4.5
+    fig_defaults.update(fig_params)
+    fig = plt.figure(**fig_defaults)
+    ax = fig.subplots(1, 1)
 
-    # plot
+    # plot inputs (x) and outputs (y)
     sns.lineplot(
-        data=x, palette=palette, dashes=False, legend=False,
-        ax=ax, **kwargs)
+        data=x, palette=palette, dashes=False, legend=False, ax=ax,
+        **kwargs
+    )
     sns.lineplot(
-        data=y, palette=palette, dashes=False, legend=False,
-        ax=ax, **kwargs)
-
-    # set axis labels
-    ax.set_xlabel('time steps', fontsize=11)
-    ax.set_ylabel('signal amplitude', fontsize=11)
-
-    # xlabels, ylabels
-    if x.ndim == 1:
-        x_labels = ['x']
-    else:
-        x_labels = [f'x{n+1}' for n in range(x.shape[1])]
-    if y.ndim == 1:
-        y_labels = ['y']
-    else:
-        y_labels = [f'y{n+1}' for n in range(y.shape[1])]
+        data=y, palette=palette, dashes=False, legend=False, ax=ax,
+        linewidth=1.5, **kwargs
+    )
 
     # set legend
-    new_labels = x_labels + y_labels
-    ax.legend(handles=ax.lines, labels=new_labels, loc='best',
-              fontsize=8)
+    x_labels = ['x'] if x.ndim == 1 else [f'x{n+1}' for n in range(x.shape[1])]
+    y_labels = ['y'] if y.ndim == 1 else [f'y{n+1}' for n in range(y.shape[1])]
+    lg_defaults = {'labels': x_labels + y_labels}
+    lg_defaults.update(**lg_params)
+    ax.legend(handles=ax.lines, **lg_defaults)
+
+    # set axes properties
+    ax_defaults = {'xlabel': 'time steps', 'ylabel': 'signal amplitude',
+                   'xlim': [0, 200]}
+    ax_defaults.update(**ax_params)
+    ax.set(**ax_defaults)
+
+    # plot trial line separators
+    if end_points is not None:
+        min_y = np.min(y).astype(int)
+        max_y = np.max(y).astype(int)
+        for tf in end_points:
+            ax.plot(
+                tf * np.ones((2)), np.array([min_y, max_y]), c='black',
+                linestyle='--'
+            )
 
     # set title
     if title is not None:
-        plt.title(title, fontsize=12)
+        fig.suptitle(title)
 
-    sns.despine(offset=10, trim=False,
+    sns.despine(offset=10, trim=True,
                 top=True, bottom=False,
                 right=True, left=False)
 
     if show:
-        plt.show()
+        plt.show(block=True)
 
     if savefig:
-        if fname is None:
-            fname = 'io_data'
-
-        fig.savefig(fname=os.path.join(FIG_DIR, f'{fname}.png'),
+        fig.savefig(fname + '.' + mpl.rcParams['savefig.format'],
                     transparent=True, bbox_inches='tight', dpi=300)
 
     plt.close()
 
+    # reset rc defaults
+    mpl.rcdefaults()
 
-def plot_diagnostics(
-    x, y, reservoir_states, trained_model,
-    idx_features=None, n_features=None, scaler=None,
-    title=None, show=True, savefig=False, fname=None, **kwargs
+
+def plot_reservoir_states(
+    x, reservoir_states, n_trials=7, palette=None,
+    rc_params={}, fig_params={}, ax_params=[{}] * 2, lg_params={},
+    title=None, show=True, savefig=False, fname='res_states', **kwargs
 ):
     """
-    #TODO
-    _summary_
+    Plot simulated reservoir states.
+
+    Parameters
+    ----------
+    x : _type_
+        _description_
+    reservoir_states : _type_
+        _description_
+    n_trials : int, optional
+        _description_, by default 7
+    palette : _type_, optional
+        _description_, by default None
+    rc_params : dict
+        dictionary of matplotlib rc parameters, by default {}
+    fig_params : dict
+        dictionary of figure properties, by default {}
+    ax_params : list of dict
+        list of dictionaries setting axes properties, by default [{}] * 2
+    lg_params : dict
+        dictionary of legend settings for first axis, by default {}
+    title : _type_, optional
+        _description_, by default None
+    show : bool, optional
+        _description_, by default True
+    savefig : bool, optional
+        _description_, by default False
+    fname : _type_, optional
+        _description_, by default 'res_states'
+    """
+    # get end points for trials to plot trial separators
+    if isinstance(reservoir_states, list):
+        n_trials = np.min([len(x), 10])
+        x = x[-n_trials:]
+        reservoir_states = reservoir_states[-n_trials:]
+
+        tf, end_points = 0, []
+        for _, trial in enumerate(x):
+            tf += len(trial)
+            end_points.append(tf)
+    else:
+        end_points = None
+
+    # check X is array
+    x, _ = _check_xy_type(x, None)
+
+    # check reservoir_states is array
+    if isinstance(reservoir_states, (list, tuple)):
+        reservoir_states = concat(reservoir_states)
+
+    # check X dimensions
+    x = _check_x_dims(x)
+
+    # set plotting theme
+    rc_defaults = {'figure.titlesize': 12, 'axes.labelsize': 11,
+                   'xtick.labelsize': 11, 'ytick.labelsize': 11,
+                   'legend.fontsize': 8, 'legend.loc': 'best',
+                   'lines.linewidth': 1, 'savefig.format': 'png'}
+    rc_defaults.update(rc_params)
+    sns.set_theme(style='ticks', rc=rc_defaults)
+
+    # open figure and axes
+    fig_defaults = {'figsize': (12, 4), 'layout': 'tight'}
+    fig_defaults.update(fig_params)
+    fig = plt.figure(**fig_defaults)
+    axs = fig.subplots(2, 1, sharex=True)
+    axs = axs.ravel()
+
+    fig.subplots_adjust(wspace=0.1)
+
+    # plot inputs (x) and reservoir states
+    sns.lineplot(
+        data=x, palette=palette, dashes=False, legend=False, ax=axs[0],
+        **kwargs
+    )
+
+    palette = sns.color_palette("tab10", reservoir_states.shape[1])
+    reservoir_states = transform_data(
+        transform_data(reservoir_states, scaler='scale', with_std=False),
+        scaler='minmax_scale', feature_range=(-1, 1))
+    sns.lineplot(
+        data=reservoir_states, palette=palette, dashes=False, legend=False,
+        linewidth=0.5, ax=axs[1], **kwargs
+    )
+
+    # set legend
+    x_labels = ['x'] if x.ndim == 1 else [f'x{n+1}' for n in range(x.shape[1])]
+    lg_defaults = {'labels': x_labels}
+    lg_defaults.update(**lg_params)
+    axs[0].legend(handles=axs[0].lines, **lg_defaults)
+
+    # set axes properties
+    xlabel = ['', 'time steps']
+    ylabel = ['x signal \namplitude', 'reservoir \nstates']
+    for i, ax in enumerate(axs):
+        ax_defaults = {'xlim': [0, 200], 'xlabel': xlabel[i],
+                       'ylabel': ylabel[i]}
+        ax_defaults.update(**ax_params[i])
+        ax.set(**ax_defaults)
+
+    # plot trial line separators
+    if end_points is not None:
+        min_x = np.min(x).astype(int)
+        max_x = np.max(x).astype(int)
+        min_res_states = np.min(reservoir_states).astype(int)
+        max_res_states = np.max(reservoir_states).astype(int)
+        for tf in end_points:
+            axs[0].plot(
+                tf * np.ones((2)), np.array([min_x, max_x]), c='black',
+                linestyle='--',
+            )
+            axs[1].plot(
+                tf * np.ones((2)), np.array([min_res_states, max_res_states]),
+                c='black', linestyle='--',
+            )
+
+    # set title
+    if title is not None:
+        fig.suptitle(title)
+
+    sns.despine(offset=10, trim=True,
+                top=True, bottom=False,
+                right=True, left=False)
+
+    if show:
+        plt.show(block=True)
+
+    if savefig:
+        fig.savefig(fname + '.' + mpl.rcParams['savefig.format'],
+                    transparent=True, bbox_inches='tight', dpi=300)
+
+    plt.close()
+
+    # reset rc defaults
+    mpl.rcdefaults()
+
+
+def plot_diagnostics(
+    x, y, reservoir_states, trained_model, idx_features=None,
+    n_features=None, scaler=None, palette=None,
+    rc_params={}, fig_params={}, ax_params=[{}] * 3, lg_params=[{}] * 3,
+    title=None, show=True, savefig=False, fname='diagnostics_curve', **kwargs
+):
+    """
+    Plot decision function of readout module.
+    Worksvonly if 'trained_model' is a classifier.
 
     Parameters
     ----------
@@ -224,6 +419,16 @@ def plot_diagnostics(
         _description_, by default None
     scaler : _type_, optional
         _description_, by default None
+    palette : _type_, optional
+        _description_, by default None
+    rc_params : dict
+        dictionary of matplotlib rc parameters, by default {}
+    fig_params : dict
+        dictionary of figure properties, by default {}
+    ax_params : list of dict
+        list of dictionaries setting axes properties, by default [{}] * 3
+    lg_params : list of dict
+        list of dictionaries setting legend, by default [{}] * 3
     title : _type_, optional
         _description_, by default None
     show : bool, optional
@@ -233,6 +438,17 @@ def plot_diagnostics(
     fname : _type_, optional
         _description_, by default None
     """
+    # check X and y are arrays
+    x, y = _check_xy_type(x, y)
+
+    # check reservoir_states is an array
+    if isinstance(reservoir_states, (list, tuple)):
+        reservoir_states = concat(reservoir_states)
+
+    # check X and y dimensions
+    x = _check_x_dims(x)
+    y = _check_y_dims(y)
+
     # transform data
     x_trans = transform_data(
         x, feature_set='data', idx_features=idx_features,
@@ -255,119 +471,262 @@ def plot_diagnostics(
     )
 
     # set plotting theme
-    sns.set(style="ticks", font_scale=1.0)
-    fig, axs = plt.subplots(3, 1, figsize=(12, 6),
-                            sharex=True,
-                            tight_layout=True)
+    rc_defaults = {'figure.titlesize': 12, 'axes.labelsize': 11,
+                   'xtick.labelsize': 11, 'ytick.labelsize': 11,
+                   'legend.fontsize': 8, 'legend.loc': 'upper right',
+                   'lines.linewidth': 1, 'savefig.format': 'png'}
+    rc_defaults.update(rc_params)
+    sns.set_theme(style='ticks', rc=rc_defaults)
+
+    # open figure and axes
+    fig_defaults = {'figsize': (12, 6), 'layout': 'tight'}
+    fig_defaults.update(fig_params)
+    fig = plt.figure(**fig_defaults)
+    axs = fig.subplots(3, 1, sharex=True)
     axs = axs.ravel()
 
-    plt.subplots_adjust(wspace=0.1)
-    # set color palette
-    palette = kwargs.pop('palette', None)
+    fig.subplots_adjust(wspace=0.1)
 
     # plot
-    sns.lineplot(
-        data=x_trans[:160], palette=palette,
-        dashes=False, legend=False, ax=axs[0])
-    sns.lineplot(
-        data=dec_func[:160], palette=palette,
-        dashes=False, legend=False, ax=axs[1])
-    sns.lineplot(
-        data=y_trans[:160], palette=palette,
-        dashes=False, legend=False, ax=axs[2])
-    sns.lineplot(
-        data=y_pred[:160], palette=palette,
-        dashes=False, legend=False, ax=axs[2])
+    data = [x_trans, dec_func, y_trans]
+    for i, ax in enumerate(axs):
+        sns.lineplot(
+            data=data[i][:160], palette=palette, dashes=False,
+            legend=False, ax=ax)
 
-    # set axis labels
-    axs[0].set_ylabel('x signal \namplitude', fontsize=11)
-    axs[1].set_ylabel('decision \nfunction', fontsize=11)
-    axs[2].set_xlabel('time steps', fontsize=11)
-    axs[2].set_ylabel('y signal \namplitude', fontsize=11)
-
-    # set axis limits
-    for ax in axs:
-        ax.set_xlim(0, 160)
+    if y_pred.ndim:
+        n_colors = 1
+    else:
+        n_colors = y_pred.shape[1]
+    palette = sns.color_palette("tab10", n_colors+1)[1:]
+    sns.lineplot(
+        data=y_pred[:160], palette=palette, dashes=False, legend=False,
+        ax=axs[2], linewidth=1.5)
 
     # set legend
-    if x.ndim == 1:
-        x_labels = ['x']
-    else:
-        x_labels = [f'x{n+1}' for n in range(x.shape[1])]
-    axs[0].legend(handles=axs[0].lines, labels=x_labels,
-                  loc='upper right', fontsize=8)
-    axs[1].legend(handles=axs[1].lines, labels=['decision function'],
-                  loc='upper right', fontsize=8)
-    axs[2].legend(handles=axs[2].lines, labels=['target', 'predicted target'],
-                  loc='upper right', fontsize=8)
+    labels = [['x'] if x.ndim == 1 else [f'x{n+1}' for n in range(x.shape[1])],
+              ['decision function'] if dec_func.ndim == 1 else [f'decision function {n+1}' for n in range(dec_func.shape[1])],
+              ['target', 'predicted target']]
+    for i, ax in enumerate(axs):
+        lg_defaults = {'labels': labels[i]}
+        lg_defaults.update(**lg_params[i])
+        ax.legend(handles=ax.lines, **lg_defaults)
+
+    # set axes properties
+    xlabel = ['', '', 'time steps']
+    ylabel = ['x signal \namplitude', 'decision \nfunction', 'y signal \namplitude']
+    for i, ax in enumerate(axs):
+        ax_defaults = {'xlim': [0, 160], 'xlabel': xlabel[i], 'ylabel': ylabel[i]}
+        ax_defaults.update(**ax_params[i])
+        ax.set(**ax_defaults)
 
     # set title
     if title is not None:
-        plt.suptitle(title, fontsize=12)
+        fig.suptitle(title)
 
     sns.despine(offset=10, trim=False,
                 top=True, bottom=False,
                 right=True, left=False)
 
     if show:
-        plt.show()
+        plt.show(block=True)
 
     if savefig:
-        if fname is None:
-            fname = 'diagnostics_curve'
-
-        fig.savefig(fname=os.path.join(FIG_DIR, f'{fname}.png'),
+        fig.savefig(fname=fname + '.' + mpl.rcParams['savefig.format'],
                     transparent=True, bbox_inches='tight', dpi=300)
-    
+
     plt.close()
+
+    # reset rc defaults
+    mpl.rcdefaults()
 
 
 def plot_performance(
-    df, x='alpha', y='score', norm=False,
-    title=None, show=True, savefig=False, fname=None, **kwargs
+    df, x='alpha', y='score', normalize=False, hue=None,
+    rc_params={}, fig_params={}, ax_params={}, lg_params={}, col_params={},
+    title=None, show=True, savefig=False, fname='performance_curve', **kwargs
 ):
+    """
+    Plot performance curve.
 
-    if norm:
+    Parameters
+    ----------
+    df : _type_
+        _description_
+    x : str, optional
+        _description_, by default 'alpha'
+    y : str, optional
+        _description_, by default 'score'
+    normalize : bool, optional
+        _description_, by default False
+    hue : optional
+        _description_, by default None
+    rc_params : dict
+        dictionary of matplotlib rc parameters, by default {}
+    fig_params : dict
+        dictionary of figure properties, by default {}
+    ax_params : dict
+        dictionary of axes properties, by default {}
+    lg_params : dict
+        dictionary of legend settings, by default {}
+    col_params : dict
+        dictionary of color settings in sns.color_palette, by default {}
+    title : optional
+        _description_, by default None
+    show : bool, optional
+        _description_, by default True
+    savefig : bool, optional
+        _description_, by default False
+    fname : _type_, optional
+        _description_, by default 'performance_curve'
+    """
+    if normalize:
         df[y] = df[y] / max(df[y])
 
     # set plotting theme
-    sns.set(style="ticks", font_scale=1.0)
-    fig, ax = plt.subplots(1, 1, figsize=(7, 5))
+    rc_defaults = {'figure.titlesize': 12, 'axes.labelsize': 11,
+                   'xtick.labelsize': 11, 'ytick.labelsize': 11,
+                   'legend.fontsize': 8, 'legend.loc': 'upper right',
+                   'savefig.format': 'png'}
+    rc_defaults.update(rc_params)
+    sns.set_theme(style='ticks', rc=rc_defaults)
+
+    # open figure and axes
+    fig_defaults = {'figsize': (6, 2)}
+    fig_defaults.update(fig_params)
+    fig = plt.figure(**fig_defaults)
+    ax = fig.subplots(1, 1)
 
     # set color palette
-    hue = kwargs.pop('hue', None)
+    col_defaults = {'palette': 'husl'}
     if hue is not None:
-        n_hues = len(np.unique(df[hue]))
-        palette = sns.color_palette('husl', n_hues+1)[:n_hues]
-    else:
-        palette = sns.color_palette('husl')
+        col_defaults.update(n_colors=len(pd.unique(df[hue])))
+    col_defaults.update(**col_params)
+    palette = sns.color_palette(**col_defaults)
 
     # plot
     sns.lineplot(
-        data=df, x=x, y=y, hue=hue, palette=palette, markers=True,
-        legend=True, ax=ax, **kwargs)
+        data=df, x=x, y=y, hue=hue, palette=palette, dashes=False,
+        legend=False, markers=True, ax=ax, **kwargs)
 
-    # set axis labels
-    ax.set_xlabel('alpha', fontsize=11)
-    y_label = ' '.join(y.split('_'))
-    ax.set_ylabel(y_label, fontsize=11)
-    
+    # set legend
+    if hue is not None:
+        try:
+            lg_defaults = {'labels': kwargs['hue_order']}
+        except KeyError:
+            lg_defaults = {'labels': list(pd.unique(df[hue]))}
+        lg_defaults.update(**lg_params)
+        ax.legend(handles=ax.lines, **lg_defaults)
+
+    # set axes properties
+    axes_defaults = {'xlabel': x, 'ylabel': ' '.join(y.split('_'))}
+    axes_defaults.update(**ax_params)
+    ax.set(**axes_defaults)
+
     # set title
     if title is not None:
-        plt.title(title, fontsize=12)
+        fig.suptitle(title)
 
     sns.despine(offset=10, trim=True,
                 top=True, bottom=False,
                 right=True, left=False)
 
     if show:
-        plt.show()
+        plt.show(block=True)
 
     if savefig:
-        if fname is None:
-            fname = 'performance_curve'
-
-        fig.savefig(fname=os.path.join(FIG_DIR, f'{fname}.png'),
+        fig.savefig(fname=fname + '.' + mpl.rcParams['savefig.format'],
                     transparent=True, bbox_inches='tight', dpi=300)
 
     plt.close()
+
+    # reset rc defaults
+    mpl.rcdefaults()
+
+
+def plot_phase_space(
+    x, y, sample=None, palette=None,
+    fig_params={}, ax_params={}, rc_params={},
+    title=None, show=False, savefig=False, fname='phase_space'
+):
+    """
+    Plot phase space diagram
+
+    Parameters
+    ----------
+    x : _type_
+        _description_
+    y : _type_
+        _description_
+    sample : _type_, optional
+        _description_, by default None
+    palette : _type_, optional
+        _description_, by default None
+    fig_params : dict
+        dictionary of figure properties, by default {}
+    ax_params : dict
+        dictionary of axes properties, by default {}
+    rc_params : dict
+        dictionary of matplotlib rc parameters, by default {}
+    title : _type_, optional
+        _description_, by default None
+    show : bool, optional
+        _description_, by default True
+    savefig : bool, optional
+        _description_, by default False
+    fname : _type_, optional
+        _description_, by default 'phase_space'
+    """
+    # time steps
+    if sample is None:
+        t = np.arange(x.shape[0])
+    else:
+        t = np.arange(*sample)
+
+    # set plotting theme
+    rc_defaults = {'figure.titlesize': 12, 'axes.labelsize': 11,
+                   'xtick.labelsize': 11, 'ytick.labelsize': 11,
+                   'lines.linewidth': 1, 'savefig.format': 'png'}
+    if palette is not None:
+        # set cycler for color to change as a function of time step
+        rc_defaults['axes.prop_cycle'] = cycler(color=sns.color_palette(palette, t.size-1))
+    rc_defaults.update(rc_params)
+    sns.set_theme(style='ticks', rc=rc_defaults)
+
+    # open figure and axes
+    fig_defaults = {'figsize': (4, 4)}
+    fig_defaults.update(fig_params)
+    fig = plt.figure(**fig_defaults)
+    ax = fig.subplots(1, 1)
+
+    # plot data (these plots are easier with matplotlib)
+    if palette is None:
+        ax.plot(x[t], y[t])
+    else:
+        for i in range(t.size-1):
+            ax.plot(x[t[i:i+2]], y[t[i:i+2]])
+
+    # set axis properties
+    axes_defaults = {'xlim': [0.2, 1.4], 'ylim': [0.2, 1.4]}
+    axes_defaults.update(**ax_params)
+    ax.set(**axes_defaults)
+
+    # set title
+    if title is not None:
+        fig.suptitle(title)
+
+    sns.despine(offset=10, trim=False,
+                top=True, bottom=False,
+                right=True, left=False)
+
+    if show:
+        plt.show(block=True)
+
+    if savefig:
+        fig.savefig(fname=fname + '.' + mpl.rcParams['savefig.format'],
+                    transparent=True, bbox_inches='tight', dpi=300)
+       
+        plt.close()
+   
+    # reset rc defaults
+    mpl.rcdefaults()

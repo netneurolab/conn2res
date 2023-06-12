@@ -1,291 +1,17 @@
 # -*- coding: utf-8 -*-
 """
-Reservoir classes
+Reservoir class
 
 @author: Estefany Suarez
 """
 
-import itertools as itr
+from abc import ABCMeta, abstractmethod
 import numpy as np
-import numpy.ma as ma
-from numpy.linalg import (pinv, matrix_rank)
-from scipy.linalg import eigh
-from bct.algorithms.clustering import get_components
-from bct.algorithms.distance import distance_bin
-from .iodata import load_file
-from .coding import get_modules
-
-
-class Conn:
-    """
-    Class that represents a connectivity matrix representing either weighted
-    or unweighted connectivity data
-
-    Attributes
-    ----------
-    # TODO
-
-    Methods
-    ----------
-    # TODO
-    """
-
-    def __init__(self, filename=None, subj_id=0, w=None):
-        if w is not None:
-            # assign provided connectivity data
-            self.w = w
-        else:
-            # load connectivity data
-            if filename is not None:
-                self.w = np.load(filename)
-            else:
-                self.w = load_file('connectivity.npy')
-
-            # select one subject
-            self.w = self.w[:, :, subj_id]
-
-        # set zero diagonal
-        np.fill_diagonal(self.w, 0)
-
-        # remove inf and nan
-        self.w[np.logical_or(np.isinf(self.w), np.isnan(self.w))] = 0
-
-        # number of all active nodes
-        self.n_nodes = len(self.w)
-
-        # number of edges (in symmetric networks edges are counted twice!)
-        self.n_edges = np.sum(self.w != 0)
-
-        # density of network
-        self.density = self.n_edges / (self.n_nodes * (self.n_nodes - 1))
-
-        # indexes of set of active nodes
-        self.idx_node = np.full(self.n_nodes, True)
-
-        # make sure that all nodes are connected to the rest of the network
-        self.subset_nodes(idx_node=np.logical_or(
-            np.any(self.w != 0, axis=0), np.any(self.w != 0, axis=1)))
-
-    def scale_and_normalize(self):
-        """
-        Scales the connectivity matrix between [0, 1] and divides by spectral
-        radius
-
-        # TODO
-        """
-
-        # scale connectivity matrix between [0, 1]
-        self.scale()
-
-        # divide connectivity matrix by spectral radius
-        self.normalize()
-
-    def scale(self):
-        """
-        Scales the connectivity matrix between [0, 1]
-
-        # TODO
-        """
-
-        # scale connectivity matrix between [0, 1]
-        self.w = (self.w - self.w.min()) / (self.w.max() - self.w.min())
-
-    def normalize(self):
-        """
-        Normalizes the connectivity matrix with spectral radius
-
-        # TODO
-        """
-
-        # divide connectivity matrix by spectral radius
-        ew, _ = eigh(self.w)
-        self.w = self.w / np.abs(ew).max()
-
-    def binarize(self):
-        """
-        Binarizes the connectivity matrix
-
-        # TODO
-        """
-
-        # binarize connectivity matrix
-        self.w = self.w.astype(bool).astype(float)
-
-    def add_weight(self, w, mask='triu'):
-        """
-        Add weight to either a binary or weighted connecivity matrix
-
-        # TODO
-        """
-
-        if mask == 'full':
-            if w.size != np.sum(self.w == 1):
-                raise ValueError(
-                    'number of elements in mask and w do not match')
-
-            # add weights to full matrix
-            self.w[self.w != 0] = w
-
-        elif mask == 'triu':
-            if not check_symmetric(self.w):
-                raise ValueError(
-                    'add_weight(w, mask=''triu'') needs a symmetric connectivity matrix')
-            if w.size != np.sum(np.triu(self.w, 1) != 0):
-                raise ValueError(
-                    'number of elements in mask and w do not match')
-
-            # add weights to upper diagonal matrix
-            self.w[np.triu(self.w, 1) != 0] = w
-
-            # copy weights to lower diagonal
-            self.w = make_symmetric(self.w, copy_lower=False)
-
-    def subset_nodes(self, node_set='all', idx_node=None, **kwargs):
-        """
-        Defines subset of nodes of the connectivity matrix and reduces
-        the connectivity matrix to this subset
-
-        # TODO
-        """
-
-        # get nodes
-        if idx_node is None:
-            idx_node = np.isin(np.arange(self.n_nodes),
-                               self.get_nodes(node_set, **kwargs))
-
-        # update class attributes
-        self._update_attributes(idx_node)
-
-        # update component
-        self._get_largest_component()
-
-    def get_nodes(self, node_set, nodes_from=None, nodes_without=None, n_nodes=1, **kwargs):
-        """
-        Gets a set of nodes of the connectivity matrix without changing 
-        the connectivity matrix itself
-
-        # TODO
-        """
-
-        # initialize fuller set of nodes we want to select from
-        if nodes_from is None:
-            nodes_from = np.arange(self.n_nodes)
-
-        if node_set == 'all':
-            # select all nodes without the ones we do not want to select from
-            selected_nodes = np.setdiff1d(nodes_from, nodes_without)
-
-        elif node_set in ['ctx', 'subctx']:
-            # load cortex and filter to active nodes
-            ctx = load_file('cortical.npy')
-            ctx = ctx[self.idx_node]
-
-            if node_set == 'ctx':
-                # select all nodes in cortex we want to select from
-                selected_nodes = np.where(ctx[nodes_from] == 1)[0]
-            elif node_set == 'subctx':
-                # select all nodes in subcortex we want to select from
-                selected_nodes = np.where(ctx[nodes_from] == 0)[0]
-
-            # remove nodes we do not want to select from
-            selected_nodes = np.setdiff1d(selected_nodes, nodes_without)
-
-        elif node_set == 'random':
-            # nodes we want to select from
-            nodes_from = np.setdiff1d(nodes_from, nodes_without)
-
-            # select random nodes
-            selected_nodes = np.random.choice(nodes_from, size=n_nodes)
-
-        elif node_set == 'shortest_path':
-            # calculate shortest paths between all nodes
-            D = distance_bin(self.w)
-            D = np.triu(D)  # remove repetitions
-
-            # nodes we want to select from
-            nodes_from = np.setdiff1d(nodes_from, nodes_without)
-
-            # shortest paths between all nodes of interest
-            D = D[np.ix_(nodes_from, nodes_from)]
-
-            # select all node pairs with requested shortest path from each other
-            if isinstance(kwargs['shortest_path'], str):
-                node_pairs = np.argwhere(D == np.amax(D))
-            elif isinstance(kwargs['shortest_path'], int):
-                node_pairs = np.argwhere(D == kwargs['shortest_path'])
-
-            # select requested number of nodes from the set above
-            if len(np.unique(node_pairs)) >= n_nodes:
-                i = 1
-                while len(np.unique(node_pairs[:i, :])) < n_nodes:
-                    i += 1
-                selected_nodes = nodes_from[np.unique(node_pairs[:i, :])]
-            else:
-                raise ValueError(
-                    'n_nodes do not exist with given shortest_path')
-
-        else:
-            # nodes we want to select from
-            nodes_from = np.setdiff1d(nodes_from, nodes_without)
-
-            # load resting-state networks and filter to active nodes
-            rsn_mapping = load_file('rsn_mapping.npy')
-            rsn_mapping = rsn_mapping[self.idx_node]
-
-            # get modules
-            module_ids, modules = get_modules(rsn_mapping)
-
-            if node_set in module_ids:
-                # select all nodes in the requested module
-                selected_nodes = [e for i, e in enumerate(
-                    modules) if (module_ids == node_set)[i]][0]
-
-                # intersection of nodes we want to select from
-                selected_nodes = np.intersect1d(selected_nodes, nodes_from)
-            else:
-                raise ValueError('node_set does not exist with given value')
-
-        return selected_nodes
-
-    def _get_largest_component(self):
-        """
-        Updates a set of nodes so that they belong to one connected component
-
-        #TODO
-        """
-
-        # get all components of the connectivity matrix
-        comps, comp_sizes = get_components(self.w)
-
-        # get indexes pertaining to the largest component
-        idx_node = comps == np.argmax(comp_sizes) + 1
-
-        # update class attributes
-        self._update_attributes(idx_node)
-
-    def _update_attributes(self, idx_node):
-        """
-        Updates network attributes
-
-        #TODO
-        """
-
-        if isinstance(idx_node, np.ndarray) and idx_node.dtype == np.bool:
-            # update node attributes
-            self.n_nodes = sum(idx_node)
-            self.idx_node[self.idx_node] = idx_node
-
-            # update edge attributes
-            self.w = self.w[np.ix_(idx_node, idx_node)]
-            self.n_edges = np.sum(self.w != 0)
-
-            # update density
-            self.density = self.n_edges / (self.n_nodes * (self.n_nodes - 1))
-        else:
-            raise NotImplementedError
-
-
-class Reservoir:
+from numpy.linalg import pinv
+from .connectivity import Conn
+from .utils import *
+
+class Reservoir(metaclass=ABCMeta):
     """
     Class that represents a general Reservoir object
 
@@ -293,42 +19,64 @@ class Reservoir:
 
     Attributes
     ----------
-    w_ih : numpy.ndarray
-        input connectivity matrix (source, target)
-    w_hh : numpy.ndarray
+    w : numpy.ndarray
         reservoir connectivity matrix (source, target)
     _state : numpy.ndarray
         reservoir activation states
-    input_size : int
-        dimension of feature space
-    hidden_size : int
+    n_nodes : int
         dimension of the reservoir
 
     Methods
     ----------
+    # TODO
+
+    simulate
+
+    add_washout_time
 
     """
 
-    def __init__(self, w_ih, w_hh, *args, **kwargs):
+    def __init__(self, w):
         """
         Constructor class for general Reservoir Networks
 
         Parameters
         ----------
-        w_ih: (N_inputs, N) numpy.ndarray
-            input connectivity matrix (source, target)
-            N_inputs: number of external input nodes
-            N: number of nodes in the network
-        w_hh : (N, N) numpy.ndarray
+        w : (N, N) numpy.ndarray
             reservoir connectivity matrix (source, target)
-            N: number of nodes in the network. If w_hh is directed, then rows
+            N: number of nodes in the network. If w is directed, then rows
             (columns) should correspond to source (target) nodes.
         """
-
-        self.w_ih = w_ih
-        self.w_hh = w_hh
+        self.w = w
         self._state = None
-        self.input_size, self.hidden_size = w_ih.shape
+        self.n_nodes = len(self.w)
+
+    @abstractmethod
+    def simulate(self, *args, **kwargs):
+        pass
+
+    def add_washout_time(self, *args, idx_washout=0):
+        """
+        Add washout time to reservoir states and corresponding arrays (e.g., label, sample weight)
+        'ext_input'
+
+        Parameters
+        ----------
+        idx_washout: int
+            index up to which the values of arrays should be deleted
+        args: numpy.ndarray
+            reservoir states and any additional arrays where washout is to be applied
+
+        Returns
+        -------
+        args: numpy.ndarray
+            same arrays as in args but after washout is applied
+        """
+
+        # delete initial indexes of arrays in args
+        argout = tuple(a[idx_washout:] for a in args)
+
+        return argout
 
 
 class EchoStateNetwork(Reservoir):
@@ -339,24 +87,14 @@ class EchoStateNetwork(Reservoir):
 
     Attributes
     ----------
-    w_ih : numpy.ndarray
-        input connectivity matrix (source, target)
-    w_hh : numpy.ndarray
+    w : numpy.ndarray
         reservoir connectivity matrix (source, target)
     _state : numpy.ndarray
         reservoir activation states
-    input_size : int
-        dimension of feature space
-    hidden_size : int
+    n_nodes : int
         dimension of the reservoir
     activation_function : {'tanh', 'piecewise'}
         type of activation function
-    input_gain: float
-        gain to scale input weights
-    input_nodes: numpy.ndarray
-        set of indexes of input nodes
-    output_nodes: numpy.ndarray
-        set of indexes of output nodes
 
     Methods
     -------
@@ -366,33 +104,21 @@ class EchoStateNetwork(Reservoir):
 
     set_activation_function
 
-    add_washout_time
-
     """
 
-    def __init__(self, *args, activation_function='tanh', input_gain=1.0, **kwargs):
+    def __init__(self, *args, activation_function='tanh', **kwargs):
         """
         Constructor class for Echo State Networks
 
         Parameters
         ----------
-        w_ih: (N_inputs, N) numpy.ndarray
-            Input connectivity matrix (source, target)
-            N_inputs: number of external input nodes
-            N: number of nodes in the network
-        w_hh: (N, N) numpy.ndarray
+        w: (N, N) numpy.ndarray
             Reservoir connectivity matrix (source, target)
-            N: number of nodes in the network. If w_hh is directed, then rows
+            N: number of nodes in the network. If w is directed, then rows
             (columns) should correspond to source (target) nodes.
         activation_function: str {'linear', 'elu', 'relu', 'leaky_relu',
             'sigmoid', 'tanh', 'step'}, default 'tanh'
             Activation function (nonlinearity of the system's units)
-        input_gain: float
-            gain to scale input weights
-        input_nodes: numpy.ndarray
-            set of indexes of input nodes
-        output_nodes: numpy.ndarray
-            set of indexes of output nodes
         """
 
         super().__init__(*args, **kwargs)
@@ -401,68 +127,91 @@ class EchoStateNetwork(Reservoir):
         self.activation_function = self.set_activation_function(
             activation_function)
 
-        # if not provided we feed into and read out from all nodes
-        self.input_nodes = kwargs.get(
-            'input_nodes', np.arange(self.hidden_size))
-        self.output_nodes = kwargs.get(
-            'output_nodes', np.arange(self.hidden_size))
-
-        # scale the input weights
-        self.input_gain = input_gain
-        self.w_ih[:, self.input_nodes] = self.input_gain * \
-            self.w_ih[:, self.input_nodes]
-
-    def simulate(self, ext_input, ic=None, threshold=0.5):
+    def simulate(
+        self, ext_input, w_in, input_gain=None, ic=None, output_nodes=None,
+        return_states=True, **kwargs
+    ):
         """
         Simulates reservoir dynamics given an external input signal
-        'ext_input'
+        'ext_input' and an input connectivity matrix 'w_in'
 
         Parameters
         ----------
-        ext_input: (time, N_inputs) numpy.ndarray
+        ext_input : (time, N_inputs) numpy.ndarray
             External input signal
-            N_inputs: number of external input nodes
-        ic: (N,) numpy.ndarray
+            N_inputs: number of external input signals
+        w_in : (N_inputs, N) numpy.ndarray
+            Input connectivity matrix (source, target)
+            N_inputs: number of external input signals
+            N: number of nodes in the network
+        input_gain : float
+            Constant gain that scales w_in
+        ic : (N,) numpy.ndarray, optional
             Initial conditions
-            N: number of nodes in the network. If w_hh is directed, then rows
+            N: number of nodes in the network. If w is directed, then rows
             (columns) should correspond to source (target) nodes.
-        threshold : float
-            Threshold for piecewise nonlinearity. Ignored for the others.
+        output_nodes : list or numpy.ndarray, optional
+            List of nodes for which reservoir states will be returned if
+            'return_states' is True.
+        return_states : bool, optional
+            If True, simulated resrvoir states are returned. True by default.
+        kwargs:
+            Other keyword arguments are passed to self.activation_function
 
         Returns
         -------
         self._state : (time, N) numpy.ndarray
-            activation states of the reservoir; includes all the nodes
-            N: number of nodes in the network
+            Activation states of the reservoir.
+            N: number of nodes in the network if output_nodes is None, else
+            number of output_nodes
         """
-
         # print('\n GENERATING RESERVOIR STATES ...')
 
-        # check data type for ext_input. If list convert to numpy.ndarray
-        if isinstance(ext_input, list):
-            ext_input = np.asarray(ext_input)
+        # if ext_input is list or tuple convert to numpy.ndarray
+        if isinstance(ext_input, (list, tuple)):
+            sections = get_sections(ext_input)
+            ext_input = concat(ext_input)
+            convert_to_list = True
+        else:
+            convert_to_list = False
+
+        # scale connectivity matrix
+        if input_gain is not None:
+            w_in = input_gain * w_in
 
         # initialize reservoir states
-        timesteps = range(1, len(ext_input)+1)
-        self._state = np.zeros((len(timesteps)+1, self.hidden_size))
+        timesteps = range(1, len(ext_input) + 1)
+        self._state = np.zeros((len(timesteps) + 1, self.n_nodes))
 
         # set initial conditions
         if ic is not None:
             self._state[0, :] = ic
 
-        # simulation of the dynamics
+        # simulate dynamics
         for t in timesteps:
-
-            # if (t>0) and (t%100 == 0): print(f'\t ----- timestep = {t}')
+            # if (t > 0) and (t % 100 == 0):
+            #     print(f'\t ----- timestep = {t}')
             synap_input = np.dot(
-                self._state[t-1, :], self.w_hh) + np.dot(ext_input[t-1, :], self.w_ih)
-            self._state[t, :] = self.activation_function(synap_input)
+                self._state[t-1, :], self.w) + np.dot(ext_input[t-1, :], w_in)
+            self._state[t, :] = self.activation_function(synap_input, **kwargs)
 
-        # select output nodes and remove initial condition (to match the time index of
-        # _state and ext_input)
-        self._state = self._state[1:, self.output_nodes]
+        # remove initial condition (to match the time index of _state
+        # and ext_input)
+        self._state = self._state[1:]
 
-        return self._state
+        # convert back to list or tuple
+        if convert_to_list:
+            self._state = split(self._state, sections)
+
+        # return the same type
+        if return_states:
+            if output_nodes is not None:
+                if convert_to_list:
+                    return [state[:, output_nodes] for state in self._state]
+                else:
+                    return self._state[:, output_nodes]
+            else:
+                return self._state
 
     def set_activation_function(self, function):
 
@@ -503,29 +252,6 @@ class EchoStateNetwork(Reservoir):
         elif function == 'step':
             return step
 
-    def add_washout_time(self, *args, idx_washout=0):
-        """
-        Add washout time to reservoir states and corresponding arrays (e.g., label, sample weight)
-        'ext_input'
-
-        Parameters
-        ----------
-        idx_washout: int
-            index up to which the values of arrays should be deleted
-        args: numpy.ndarray
-            reservoir states and any additional arrays where washout is to be applied
-
-        Returns
-        -------
-        args: numpy.ndarray
-            same arrays as in args but after washout is applied
-        """
-
-        # delete initial indexes of arrays in args
-        argout = tuple(a[idx_washout:] for a in args)
-
-        return argout
-
 
 class MemristiveReservoir:
     """
@@ -535,13 +261,13 @@ class MemristiveReservoir:
 
     Attributes
     ----------
-    w : numpy.ndarray
+    _W : numpy.ndarray
         reservoir's binary connectivity matrix
-    I : numpy.ndarray
+    _I : numpy.ndarray
         indices of internal nodes
-    E : numpy.ndarray
+    _E : numpy.ndarray
         indices of external nodes
-    GR : numpy.ndarray
+    _GR : numpy.ndarray
         indices of grounded nodes
     n_internal_nodes : int
         number of internal nodes
@@ -884,6 +610,16 @@ class MemristiveReservoir:
 
         return err
 
+    def mask(self, a):
+        """
+        This functions converts to zero all entries in matrix 'a' for which there is
+        no existent connection
+        # TODO
+        """
+
+        a[np.where(self._W == 0)] = 0
+        return a
+
 
 class MSSNetwork(MemristiveReservoir):
     """
@@ -1090,52 +826,3 @@ class MSSNetwork(MemristiveReservoir):
         else:
             return self._G.copy() + dG  # updated conductance
 
-
-def reservoir(name, *args, **kwargs):
-    if name == 'EchoStateNetwork':
-        return EchoStateNetwork(*args, **kwargs)
-
-    if name == 'MSSNetwork':
-        return MSSNetwork(*args, **kwargs)
-
-
-def mask(reservoir, a):
-    """
-    This functions converts to zero all entries in matrix 'a' for which there is
-    no existent connection
-
-    # TODO
-    """
-
-    a[np.where(reservoir._W == 0)] = 0
-    return a
-
-
-def check_symmetric(a, tol=1e-16):
-    """
-    This functions checks whether matrix 'a' is symmetric
-
-    # TODO
-    """
-    return np.allclose(a, a.T, atol=tol)
-
-
-def make_symmetric(a, copy_lower=True):
-    if copy_lower:
-        return np.tril(a, -1) + np.tril(a, -1).T
-    else:
-        return np.triu(a, 1) + np.triu(a, 1).T
-
-
-def check_square(a):
-    """
-    This functions checks whether matrix 'a' is square
-
-    # TODO
-    """
-
-    s = a.shape
-    if s[0] == s[1]:
-        return True
-    else:
-        return False

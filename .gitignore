@@ -1,16 +1,16 @@
 # other files
 examples/data
-examples/mami
-examples/results
-examples/tmp_examples
-
 *figs/
 
-# data files 
+# data files
 data/
 
 # hidden files
 .DS_store
+.gitignore
+
+# jupyter notebook
+.ipynb_checkpoints/
 
 # visual code studio
 .vscode/
