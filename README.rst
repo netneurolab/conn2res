@@ -34,7 +34,7 @@ arbitrary network architecture and dynamics can be superimposed on the reservoir
 implementing biologically plausible network architectures allows to investigate 
 how brain network organization and dynamics jointly support learning. 
 
-.. image:: ../rc.png
+.. image:: source/images/rc.png
     :width: 600
 
 conn2res: an overview
@@ -55,7 +55,7 @@ output is either a performance score, or a performance curve as a function of
 the parameter that controls for the qualitative behavior of the reservoir’s
 dynamics (i.e., stable, critical or chaotic).
 
-.. image:: conn2res.png
+.. image:: source/images/conn2res.png
     :width: 600
 
 The toolbox has been extended to simulate physical connectome-informed
