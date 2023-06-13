@@ -106,13 +106,13 @@ html_css_files = ['theme_overrides.css']
 htmlhelp_basename = 'conn2resdoc'
 
 # -- Extension configuration -------------------------------------------------
-intersphinx_mapping = {
-    'python': ('https://docs.python.org/3/', None),
-    'sphinx': ('https://www.sphinx-doc.org/en/master/', None),
-}
+# intersphinx_mapping = {
+#     'python': ('https://docs.python.org/3/', None),
+#     'sphinx': ('https://www.sphinx-doc.org/en/master/', None),
+# }
 
-doctest_global_setup = """
-"""
+# doctest_global_setup = """
+# """
 
 # sphinx_gallery_conf = {
 #     'doc_module': 'conn2res',
