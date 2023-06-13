@@ -54,6 +54,7 @@ output is either a performance score, or a performance curve as a function of
 the parameter that controls for the qualitative behavior of the reservoir’s
 dynamics (i.e., stable, critical or chaotic).
 
+
 .. image:: conn2res.png
 
 The toolbox has been extended to simulate physical connectome-informed

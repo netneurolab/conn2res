@@ -1,9 +1,10 @@
-numpy>=1.22
-scipy>=1.7
-pandas>=1.4
-scikit-learn>=1.1
-matplotlib>=3.5
-seaborn>=0.11
+numpy==1.22.4
+scipy==1.7.3
+pandas==1.4.4
+scikit-learn==1.1.2
+matplotlib==3.5.2
+seaborn==0.11.2
 bctpy==0.5.2
 gym==0.21.0
 reservoirpy==0.3.5
+-e @ git+https://github.com/neurogym/neurogym@v0.0.1
