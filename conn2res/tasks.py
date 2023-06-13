@@ -1,6 +1,10 @@
 """
 Classes for supervised learning task datasets
 """
+from abc import ABCMeta, abstractmethod
+import numpy as np
+import neurogym as ngym
+from reservoirpy import datasets
 
 class Task():
     """

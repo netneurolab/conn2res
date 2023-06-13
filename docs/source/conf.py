@@ -45,7 +45,7 @@ extensions = [
     'sphinx.ext.mathjax',
     'sphinx.ext.napoleon',
     'sphinx.ext.viewcode',
-    # 'sphinx_gallery.gen_gallery'
+    'sphinx_gallery.gen_gallery'
 ]
 
 # Generate the API documentation when building
