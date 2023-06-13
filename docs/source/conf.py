@@ -45,7 +45,7 @@ extensions = [
     'sphinx.ext.mathjax',
     'sphinx.ext.napoleon',
     'sphinx.ext.viewcode',
-    # 'sphinx_gallery.gen_gallery'
+    'sphinx_gallery.gen_gallery'
 ]
 
 # Generate the API documentation when building
@@ -114,12 +114,12 @@ htmlhelp_basename = 'conn2resdoc'
 # doctest_global_setup = """
 # """
 
-# sphinx_gallery_conf = {
-#     'doc_module': 'conn2res',
-#     'backreferences_dir': os.path.join('generated', 'modules'),
-#     'reference_url': {
-#         'conn2res': None
-#     },
-#     'thumbnail_size': (250, 250),
-#     'ignore_pattern': r'/wip.*\.py',
-# }
+sphinx_gallery_conf = {
+    'doc_module': 'conn2res',
+    'backreferences_dir': os.path.join('generated', 'modules'),
+    'reference_url': {
+        'conn2res': None
+    },
+    'thumbnail_size': (250, 250),
+    'ignore_pattern': r'/wip.*\.py',
+}
