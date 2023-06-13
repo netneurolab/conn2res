@@ -1,5 +1,25 @@
-import numpy as np 
 print("----------------here----------------------")
+
+
+class Task():
+    def __init__(self, name):
+        self.name = name
+
+
+class NeuroGymTask(Task):
+    def __init__(self, name):
+        pass
+
+
+class Reservoirpy(Task):
+    def __init__(self, name):
+        pass
+
+
+class Conn2ResTask(Task):
+    def __init__(self, name):
+        pass
+
 # # -*- coding: utf-8 -*-
 # """
 # Task class
