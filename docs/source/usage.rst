@@ -15,6 +15,5 @@ conn2res/issues>`_.
 .. toctree::
    :caption: Table of Contents
    :maxdepth: 2
-   :numbered:
 
    user_guide/main_workflow.rst
