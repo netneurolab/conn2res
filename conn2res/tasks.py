@@ -2,8 +2,25 @@ print("----------------here----------------------")
 
 
 class Task():
+    """
+    Class that represents a general Task
+
+    Attributes
+    ----------
+    name : numpy.ndarray
+        reservoir connectivity matrix (source, target)
+
+    Methods
+    -------
+    get_last_name
+
+    """
+
     def __init__(self, name):
         self.name = name
+
+    def get_last_name(self, last_name):
+        return last_name
 
 
 class NeuroGymTask(Task):
