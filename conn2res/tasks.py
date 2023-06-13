@@ -28,7 +28,25 @@ class Task():
 
 
 class NeuroGymTask(Task):
-    def __init__(self, name):
+    """
+    Class that represents a general NeuroGym Task
+
+    Parameters
+    ----------
+    name : numpy.ndarray
+        reservoir connectivity matrix (source, target)
+    """
+
+    def __init__(self, fullname):
+        """
+        _summary_
+
+        Parameters
+        ----------
+        fullname : str
+            this is the full name
+        """
+        self.fullname = fullname
         pass
 
 
