@@ -1,19 +1,15 @@
-print("----------------here----------------------")
-
+"""
+Classes for supervised learning task datasets
+"""
 
 class Task():
     """
     Class that represents a general Task
 
-    Attributes
+    Parameters
     ----------
     name : numpy.ndarray
         reservoir connectivity matrix (source, target)
-
-    Methods
-    -------
-    get_last_name
-
     """
 
     def __init__(self, name):
@@ -21,6 +17,9 @@ class Task():
 
     def get_last_name(self, last_name):
         return last_name
+
+    def get_id(self, id):
+        return id
 
 
 class NeuroGymTask(Task):
