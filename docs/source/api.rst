@@ -11,10 +11,10 @@ Reference API
 .. _ref_tasks:
 
 :mod:`conn2res.tasks` - Task dataset fetchers
---------------------------------------------------------
+---------------------------------------------
 .. automodule:: conn2res.tasks
-      :no-members:
-      :no-inherited-members:
+   :no-members:
+   :no-inherited-members:
 
 .. currentmodule:: conn2res.tasks
 
@@ -30,7 +30,7 @@ Reference API
 .. .. _ref_connectivity:
 
 .. :mod:`conn2res.connectivity` - Connectivity data handling
-.. -----------------------------------------------
+.. ---------------------------------------------------------
 .. .. automodule:: conn2res.connectivity
 ..    :no-members:
 ..    :no-inherited-members:
@@ -46,7 +46,7 @@ Reference API
 .. .. _ref_reservoir:
 
 .. :mod:`conn2res.reservoir` - Reservoir objects
-.. ------------------------------------------
+.. ---------------------------------------------
 .. .. automodule:: conn2res.reservoir
 ..    :no-members:
 ..    :no-inherited-members:
@@ -65,7 +65,7 @@ Reference API
 .. .. _ref_readout:
 
 .. :mod:`conn2res.readout` - Readout module
-.. ---------------------------------------------------
+.. ----------------------------------------
 .. .. automodule:: conn2res.readout
 ..    :no-members:
 ..    :no-inherited-members:
@@ -93,7 +93,7 @@ Reference API
 .. .. _ref_performance:
 
 .. :mod:`conn2res.performance` - Performance metrics
-.. ---------------------------------------
+.. -------------------------------------------------
 .. .. automodule:: conn2res.performance
 ..    :no-members:
 ..    :no-inherited-members:
@@ -118,7 +118,7 @@ Reference API
 .. .. _ref_plotting:
 
 .. :mod:`conn2res.plotting` - Plotting functions
-.. ---------------------------------------
+.. ---------------------------------------------
 .. .. automodule:: conn2res.plotting
 ..    :no-members:
 ..    :no-inherited-members:
