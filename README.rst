@@ -35,7 +35,7 @@ implementing biologically plausible network architectures allows to investigate
 how brain network organization and dynamics jointly support learning. 
 
 .. image:: https://github.com/estefanysuarez/conn2res/blob/documentation/rc.png
-
+    :width: 600
 
 conn2res: an overview
 ---------------------
@@ -55,8 +55,8 @@ output is either a performance score, or a performance curve as a function of
 the parameter that controls for the qualitative behavior of the reservoir’s
 dynamics (i.e., stable, critical or chaotic).
 
-
 .. image:: https://github.com/estefanysuarez/conn2res/blob/documentation/conn2res.png
+    :width: 600
 
 The toolbox has been extended to simulate physical connectome-informed
 memristive reservoirs, a newly type of neuromorphic hardware that, thanks to
@@ -100,12 +100,13 @@ You are ready to go!
 Citation
 --------
 
-If you use the ``conn2res`` toolbox, please cite our `paper <https://www.biorxiv.org/content/10.1101/2023.05.31.543092v1>`_.
+If you use the ``conn2res`` toolbox, please cite our 
+`paper <https://www.biorxiv.org/content/10.1101/2023.05.31.543092v1>`_.
 
 License information
 -------------------
 
 This work is licensed under a BSD 3-Clause "New" or "Revised" License.
 The full license can be found in the
-`LICENSE <https://github.com/netneurolab/conn2res/blob/documentation
-/LICENSE>`_ file in the ``conn2res`` distribution.
+`LICENSE <https://github.com/netneurolab/conn2res/blob/documentation/LICENSE>`_ 
+file in the ``conn2res`` distribution.
