@@ -1,6 +1,7 @@
 # other files
 examples/data
 *figs/
+src/
 
 # data files
 data/
