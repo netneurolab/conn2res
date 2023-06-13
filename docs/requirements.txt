@@ -1,4 +1,4 @@
 sphinx>=2.0
 sphinx_rtd_theme
-sphix-argparse
+sphinx-argparse
 sphinx-gallery
