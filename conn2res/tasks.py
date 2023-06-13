@@ -6,6 +6,7 @@ import numpy as np
 # import neurogym as ngym
 from reservoirpy import datasets
 
+
 class Task():
     """
     Class that represents a general Task
