@@ -21,16 +21,16 @@ project = 'conn2res'
 copyright = '2023, Network Neuroscience Lab'
 author = 'Network Neuroscience Lab'
 
-release = '1.0'
-version = '1.0.0'
+# release = '1.0'
+# version = '1.0.0'
 
 # Import project to get version info
-# sys.path.insert(0, os.path.abspath(os.path.pardir))
-# import conn2res  # noqa
-# # # The short X.Y version
-# version = conn2res.__version__
-# # # The full version, including alpha/beta/rc tags
-# release = conn2res.__version__
+sys.path.insert(0, os.path.abspath(os.path.pardir))
+import conn2res  # noqa
+# The short X.Y version
+version = conn2res.__version__
+# The full version, including alpha/beta/rc tags
+release = conn2res.__version__
 
 # -- General configuration ---------------------------------------------------
 
@@ -85,7 +85,7 @@ pygments_style = 'sphinx'
 import sphinx_rtd_theme  # noqa
 html_theme = 'sphinx_rtd_theme'  # 'alabaster'
 html_show_sourcelink = False
-html_logo = 'docs/_static/conn2res_logo.png'
+html_logo = '../_static/conn2res_logo.png'
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
@@ -95,7 +95,7 @@ html_theme_options = {'logo_only': True}
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
-html_static_path = ['docs/_static']
+html_static_path = ['../_static']
 
 # CSS files to include
 html_css_files = ['theme_overrides.css']
