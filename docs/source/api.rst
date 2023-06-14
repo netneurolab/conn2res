@@ -22,7 +22,6 @@ Reference API
    :template: class.rst
    :toctree: generated/
 
-   conn2res.tasks.Task
    conn2res.tasks.NeuroGymTask
    conn2res.tasks.ReservoirPyTask
    conn2res.tasks.Conn2ResTask

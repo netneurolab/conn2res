@@ -1,10 +1,7 @@
 # -*- coding: utf-8 -*-
 """
-General functions for variable manipulations
-
-@author: Estefany Suarez
+Functions for basic matrix manipulations
 """
-
 import numpy as np
 
 

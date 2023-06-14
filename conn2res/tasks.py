@@ -1,8 +1,7 @@
 # -*- coding: utf-8 -*-
 """
-Functionality for fetch task datasets
+Functionality for fetching task datasets
 """
-
 from abc import ABCMeta, abstractmethod
 import numpy as np
 import neurogym as ngym

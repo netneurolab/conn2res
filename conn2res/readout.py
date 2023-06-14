@@ -1,11 +1,7 @@
 # -*- coding: utf-8 -*-
 """
-Functions to train the readout module to perform
-tasks
-
-@author: Estefany Suarez
+Functionality to train readout module
 """
-
 import warnings
 import numpy as np
 import pandas as pd

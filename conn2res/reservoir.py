@@ -1,10 +1,7 @@
 # -*- coding: utf-8 -*-
 """
-Reservoir class
-
-@author: Estefany Suarez
+Functionality for simulating reservoirs
 """
-
 from abc import ABCMeta, abstractmethod
 import numpy as np
 from numpy.linalg import pinv

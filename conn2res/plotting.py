@@ -1,8 +1,6 @@
 # -*- coding: utf-8 -*-
 """
 Plotting functions
-
-@author: Estefany Suarez
 """
 import os
 import numpy as np
