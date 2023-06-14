@@ -24,7 +24,7 @@ Reference API
 
    conn2res.tasks.Task
    conn2res.tasks.NeuroGymTask
-   conn2res.tasks.ReservoirPy
+   conn2res.tasks.ReservoirPyTask
    conn2res.tasks.Conn2ResTask
 
 .. _ref_connectivity:
