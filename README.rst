@@ -87,7 +87,7 @@ with:
 
 .. code-block:: bash
 
-    git clone https://github.com/netneurolab/conn2res
+    git clone https://github.com/netneurolab/conn2res.git
     cd conn2res
     pip install .
     cd ..
@@ -108,5 +108,5 @@ License information
 
 This work is licensed under a BSD 3-Clause "New" or "Revised" License.
 The full license can be found in the
-`LICENSE <https://github.com/netneurolab/conn2res/blob/documentation/LICENSE>`_ 
+`LICENSE <https://github.com/netneurolab/conn2res/blob/master/LICENSE>`_ 
 file in the ``conn2res`` distribution.
