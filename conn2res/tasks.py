@@ -1,10 +1,7 @@
 # -*- coding: utf-8 -*-
 """
-Task class
-
-@author: Estefany Suarez
+Functionality for fetching task datasets
 """
-
 from abc import ABCMeta, abstractmethod
 import numpy as np
 import neurogym as ngym
@@ -64,8 +61,22 @@ CONN2RES_TASKS = [
 
 
 class Task(metaclass=ABCMeta):
+    """
+    Class for generating task datasets
+
+    Parameters
+    ----------
+    name : str
+        name of the task
+    n_trials : int, optional
+        number of trials if task indicated by 'name' is a 
+        a trial-based task, by default 10
+    """
 
     def __init__(self, name, n_trials=10):
+        """
+        Constructor method for class Task
+        """
         self.name = name
         self.n_trials = n_trials
         self.n_targets = None
@@ -87,8 +98,23 @@ class Task(metaclass=ABCMeta):
 
 
 class NeuroGymTask(Task):
+    """
+    Class for generating task datasets from the
+    Neurogym repository
+
+    Parameters
+    ----------
+    name : str
+        name of the task
+    n_trials : int, optional
+        number of trials if task indicated by 'name' is a 
+        a trial-based task, by default 10
+    """
 
     def __init__(self, *args, **kwargs):
+        """
+            Constructor method for class NeuroGymTask
+        """
         super().__init__(*args, **kwargs)
         self.timing = None
 
@@ -105,17 +131,17 @@ class NeuroGymTask(Task):
 
     def fetch_data(self, n_trials=None, **kwargs):
         """
-        _summary_
+        Fetch task dataset
 
         Parameters
         ----------
-        n_trials : _type_, optional
-            _description_, by default None
+        n_trials : int, optional
+            number of trials to be generated, by default None
 
         Returns
         -------
-        _type_
-            _description_
+        x,y: numpy.ndarray, list
+            input (x) and output (y) training data
         """
         if n_trials is not None:
             self.n_trials = n_trials
@@ -163,8 +189,23 @@ class NeuroGymTask(Task):
 
 
 class ReservoirPyTask(Task):
+    """
+    Class for generating task datasets from the
+    ReservoirPy repository
+
+    Parameters
+    ----------
+    name : str
+        name of the task
+    n_trials : int, optional
+        number of trials if task indicated by 'name' is a 
+        a trial-based task, by default 10
+    """
 
     def __init__(self, *args, **kwargs):
+        """
+            Constructor method for class NeuroGymTask
+        """
         super().__init__(*args, **kwargs)
         self.horizon = None
 
@@ -254,7 +295,23 @@ class ReservoirPyTask(Task):
 
 
 class Conn2ResTask(Task):
+    """
+    Class for generating task datasets from the
+    ReservoirPy repository
+
+    Parameters
+    ----------
+    name : str
+        name of the task
+    n_trials : int, optional
+        number of trials if task indicated by 'name' is a 
+        a trial-based task, by default 10
+    """
+
     def __init__(self, *args, **kwargs):
+        """
+            Constructor method for class Conn2ResTask
+        """
         super().__init__(*args, **kwargs)
         self.horizon_max = None
 

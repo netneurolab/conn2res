@@ -1,9 +1,6 @@
 """
-Connectivity class
-
-@author: Estefany Suarez
+Functionality for connectivity matrix
 """
-
 import os
 import numpy as np
 from scipy.linalg import eigh

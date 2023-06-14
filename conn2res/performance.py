@@ -1,10 +1,7 @@
 # -*- coding: utf-8 -*-
 """
-Functions measure learning performance
-
-@author: Estefany Suarez
+Functions to measure learning performance
 """
-
 import numpy as np
 from sklearn import metrics
 

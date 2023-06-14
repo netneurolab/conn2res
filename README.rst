@@ -5,10 +5,11 @@ conn2res
 
 ``conn2res`` is a reservoir computing toolbox designed for neuroscientists 
 to train connectome-informed reservoirs to perform cognitive tasks. The main 
-advantage of the toolbox is its flexibility in terms of the connectivity matrix 
-used for the reservoir, the local dynamics of the nodes, the possibility to 
-select the set of input and output nodes, and a comprehensive corpus of 
-neuroscience tasks provided by `NeuroGym <https://github.com/neurogym/neurogym>`_.
+advantages of the toolbox are its flexibility in terms of the connectivity matrix 
+used for the reservoir, the local dynamics of the nodes and the possibility to 
+select the input and output nodes, as well as a comprehensive corpus of 
+neuroscience tasks -designed for supervised learning- provided by 
+`NeuroGym <https://github.com/neurogym/neurogym>`_.
 
 The accompanying manuscript has been uploaded to 
 `bioRxiv <https://www.biorxiv.org/content/10.1101/2023.05.31.543092v1>`_.
@@ -33,8 +34,8 @@ arbitrary network architecture and dynamics can be superimposed on the reservoir
 implementing biologically plausible network architectures allows to investigate 
 how brain network organization and dynamics jointly support learning. 
 
-.. image:: rc.png
-
+.. image:: images/rc.png
+    :width: 600
 
 conn2res: an overview
 ---------------------
@@ -54,7 +55,8 @@ output is either a performance score, or a performance curve as a function of
 the parameter that controls for the qualitative behavior of the reservoir’s
 dynamics (i.e., stable, critical or chaotic).
 
-.. image:: conn2res.png
+.. image:: images/conn2res.png
+    :width: 600
 
 The toolbox has been extended to simulate physical connectome-informed
 memristive reservoirs, a newly type of neuromorphic hardware that, thanks to
@@ -69,16 +71,16 @@ Installation requirements
 Currently, ``conn2res`` works with Python 3.8+ and requires a few
 dependencies:
 
-- bctpy (>=0.5)
-- gym (==0.21.0)
-- matplotlib (>=3.5)
-- neurogym (==0.0.1)
 - numpy (>=1.22)
-- pandas (>=1.4)
-- reservoirpy (==0.3.5)
 - scipy (>=1.7)
+- pandas (>=1.4)
 - scikit-learn (>=1.1)
+- matplotlib (>=3.5)
 - seaborn (>=0.11)
+- bctpy (>=0.5)
+- reservoirpy (>=0.3)
+- gym (==0.21.0)
+- neurogym (==0.0.1)
 
 You can get started by installing ``conn2res`` from the source repository
 with:
@@ -87,10 +89,24 @@ with:
 
     git clone https://github.com/netneurolab/conn2res
     cd conn2res
-    pip install . -r requirements.txt  # this is to make sure that all requirements are installed
+    pip install .
     cd ..
     git clone -b v0.0.1 https://github.com/neurogym/neurogym.git
     cd neurogym
     pip install -e .
 
 You are ready to go!
+
+Citation
+--------
+
+If you use the ``conn2res`` toolbox, please cite our 
+`paper <https://www.biorxiv.org/content/10.1101/2023.05.31.543092v1>`_.
+
+License information
+-------------------
+
+This work is licensed under a BSD 3-Clause "New" or "Revised" License.
+The full license can be found in the
+`LICENSE <https://github.com/netneurolab/conn2res/blob/documentation/LICENSE>`_ 
+file in the ``conn2res`` distribution.

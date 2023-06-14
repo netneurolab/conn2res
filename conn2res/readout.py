@@ -1,11 +1,7 @@
 # -*- coding: utf-8 -*-
 """
-Functions to train the readout module to perform
-tasks
-
-@author: Estefany Suarez
+Functionality to train readout module
 """
-
 import warnings
 import numpy as np
 import pandas as pd
@@ -248,7 +244,7 @@ class Readout:
         if isinstance(sample_weight, (list, tuple)):
             sample_weight_train, sample_weight_test = sample_weight
         else:
-            sample_weight_train, sample_weight_test = get_sample_weight(
+            sample_weight_train, sample_weight_test = _get_sample_weight(
                 (y_train, y_test), split_set=sample_weight
             )
 
@@ -541,7 +537,7 @@ def _check_y_dims(y):
     return y.squeeze()
 
 
-def get_sample_weight(y, split_set=None):
+def _get_sample_weight(y, split_set=None):
     """
     _summary_
 
@@ -755,7 +751,7 @@ def _baseline_class(y):
     return baseline_type
 
 
-def get_sample_weight_old(inputs, labels=None, sample_block=None):
+def _get_sample_weight_old(inputs, labels=None, sample_block=None):
     """
     Time averages dataset based on sample class and sample weight
 
