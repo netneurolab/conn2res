@@ -23,7 +23,7 @@ Alternatively, you can install the most up-to-date version from GitHub:
 
    git clone https://github.com/netneurolab/conn2res.git
    cd conn2res
-   pip install . -r requirements.txt
+   pip install .
    cd ..
 
 .. _installation_requirements:
@@ -35,7 +35,8 @@ In order to effectively use ``conn2res`` you must have the
 `Neurogym <https://github.com/neurogym/neurogym>` repository installed and
 accesible in your computer. Right now, the only compatible version of NeuroGym
 with ``conn2res`` is ``Neurogym-v0.0.1``. Large part of the functionalities of 
-the ``conn2res`` toolbox rely on a few functions from the Neurogym repository. 
+the ``conn2res`` toolbox rely on a few functions from the Neurogym repository.
+This version currently works only if installed in editable mode.  
 To install this particular version of Neurogym you can type:
 
 .. code-block:: bash
@@ -43,3 +44,5 @@ To install this particular version of Neurogym you can type:
     git clone -b v0.0.1 https://github.com/neurogym/neurogym.git
     cd neurogym
     pip install -e .
+
+You are ready to go!
