@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 Functionality for connectivity matrix
 """
@@ -5,8 +6,7 @@ import os
 import numpy as np
 import warnings
 from scipy.linalg import eigh
-from bct.algorithms.clustering import get_components
-from bct.algorithms.distance import distance_bin
+from bct import get_components, distance_bin
 
 from .utils import *
 
@@ -17,20 +17,39 @@ DATA_DIR = os.path.join(PROJ_DIR, 'examples', 'data')
 
 class Conn:
     """
-    Class that represents a connectivity matrix representing either weighted
-    or unweighted connectivity data
+    Class that represents a weighted or unweighted network using connectivity
+    data
 
-    Attributes
-    ----------
-    # TODO
+    Note that the diagonal of the matrix is set to zero as well as
+    inf and nan values are replaced to zero. We also makes sure that all nodes
+    are connected to the rest of the network (otherwise the network is
+    reduced to the largest component)
 
-    Methods
+    Parameters
     ----------
-    # TODO
+    w : (N, N, M) numpy.ndarray, optional
+        connectivity matrix (source, target) passed directly instead of
+        being loaded from disc
+        N: number of nodes in the network
+        M: number of subjects
+        subj_id is ignored if array is 2-dimensional (N, N)
+    filename : str, optional
+        filename of the connectivity matrix to be loaded from disc
+        specified using full path (by default, the connectivity matrix is
+        loaded from examples/data)
+    subj_id : int, optional
+        index of subject along axis=2 in the group level connectivity
+        matrix
+    modules : numpy.ndarray, optional
+        array to store for each node which module it belongs to
     """
 
-    def __init__(self, filename=None, subj_id=None, w=None, modules=None,
+
+    def __init__(self, w=None, filename=None, subj_id=0, modules=None,
                  density=None):
+        """
+        Constructor method for class Conn
+        """
         if w is not None:
             # assign provided connectivity data
             self.w = w
@@ -82,18 +101,15 @@ class Conn:
         self.idx_node = np.full(self.n_nodes, True)
 
         # make sure that all nodes are connected to the rest of the network
-        self.subset_nodes(idx_node=np.logical_or(
-            np.any(self.w != 0, axis=0), np.any(self.w != 0, axis=1)))
+        self.subset_nodes()
 
         # assign modules
         self.modules = modules
 
     def scale_and_normalize(self):
         """
-        Scales the connectivity matrix between [0, 1] and divides by spectral
+        Scale the connectivity matrix between [0, 1] and divide by spectral
         radius
-
-        # TODO
         """
 
         # scale connectivity matrix between [0, 1]
@@ -104,9 +120,7 @@ class Conn:
 
     def scale(self):
         """
-        Scales the connectivity matrix between [0, 1]
-
-        # TODO
+        Scale the connectivity matrix between [0, 1]
         """
 
         # scale connectivity matrix between [0, 1]
@@ -114,9 +128,7 @@ class Conn:
 
     def normalize(self):
         """
-        Normalizes the connectivity matrix with spectral radius
-
-        # TODO
+        Normalize the connectivity matrix by spectral radius
         """
 
         # divide connectivity matrix by spectral radius
@@ -125,9 +137,7 @@ class Conn:
 
     def binarize(self):
         """
-        Binarizes the connectivity matrix
-
-        # TODO
+        Binarize the connectivity matrix
         """
 
         # binarize connectivity matrix
@@ -137,7 +147,24 @@ class Conn:
         """
         Add weights to either a binary or weighted connectivity matrix
 
-        # TODO
+        Parameters
+        ----------
+        w : numpy.ndarray
+            the weights to be added to the connectivity matrix
+        mask : str, optional
+            mask to be used to replace weights in the connectivity matrix, by
+            default triu (upper triangular matrix)
+        order : str, optional
+            it decides whether the weights should be added randomly to the
+            connectivity matrix or for instance, the rank of the weights
+            should be kept, by default 30, by default random
+
+        Raises
+        ------
+        ValueError
+            number of elements in mask and w do not match
+        ValueError
+            symmetric connectivity matrix is needed for this method
         """
 
         if mask == 'full':
@@ -164,7 +191,7 @@ class Conn:
         elif mask == 'triu':
             if not self.symmetric:
                 raise ValueError(
-                    'add_weight(w, mask=''triu'') needs a symmetric connectivity matrix')
+                    'add_weight(w, mask=''triu'', order=''random'') needs a symmetric connectivity matrix')
             if w.size != np.sum(np.triu(self.w, 1) != 0):
                 raise ValueError(
                     'number of elements in mask and w do not match')
@@ -190,10 +217,17 @@ class Conn:
 
     def subset_nodes(self, node_set='all', idx_node=None, **kwargs):
         """
-        Defines subset of nodes of the connectivity matrix and reduces
-        the connectivity matrix to this subset
+        Reduce the connectivity matrix to a subset of nodes
 
-        # TODO
+        By default, the connectivity matrix is reduced to the largest
+        connected component
+
+        Parameters
+        ----------
+        node_set : str, optional
+            subset of nodes defined as string, by default all
+        idx_node : numpy.ndarray (dtype=bool), optional
+            boolean indexes of nodes to be used for subset of nodes
         """
 
         # get nodes
@@ -214,10 +248,30 @@ class Conn:
     def get_nodes(self, node_set, nodes_from=None, nodes_without=None,
                   filename=None, n_nodes=1, seed=None, **kwargs):
         """
-        Gets a set of nodes of the connectivity matrix without changing 
-        the connectivity matrix itself
+        Get a set of nodes from the connectivity matrix
 
-        # TODO
+        Parameters
+        ----------
+        node_set : str
+            subset of nodes defined as string
+        nodes_from : numpy.ndarray, optional
+            nodes from which the subset should be selected from
+        nodes_without : numpy.ndarray, optional
+            nodes that should be excluded from the subset
+        filename : str, optional
+            filename of the data to be loaded from disc specified using full
+            path (by default, the data is loaded from examples/data), which
+            contains information about the nodes (e.g., which modules they
+            belong to or whether they belong to cortex or not)
+        n_nodes : int, optional
+            number of nodes in the subset, by default 1
+
+        Raises
+        ------
+        ValueError
+            number of nodes do not exist with given shortest path
+        ValueError
+            given node set does not exist in modules
         """
 
         # initialize fuller set of nodes we want to select from
@@ -268,7 +322,8 @@ class Conn:
             # shortest paths between all nodes of interest
             D = D[np.ix_(nodes_from, nodes_from)]
 
-            # select all node pairs with requested shortest path from each other
+            # select all node pairs with requested shortest path from each
+            # other
             if isinstance(kwargs['shortest_path'], str):
                 node_pairs = np.argwhere(D == np.amax(D))
             elif isinstance(kwargs['shortest_path'], int):
@@ -306,15 +361,14 @@ class Conn:
                 # intersection of nodes we want to select from
                 selected_nodes = np.intersect1d(selected_nodes, nodes_from)
             else:
-                raise ValueError('node_set does not exist with given value')
+                raise ValueError('given node_set does not exist in modules')
 
         return selected_nodes
 
     def _get_largest_component(self, w):
         """
-        Updates a set of nodes so that they belong to one connected component
-
-        #TODO
+        Update a set of nodes so that they belong to the largest connected
+        component
         """
 
         # get all components of the connectivity matrix
@@ -328,9 +382,17 @@ class Conn:
 
     def _update_attributes(self, idx_node):
         """
-        Updates network attributes
+        Update network attributes
 
-        #TODO
+        Parameters
+        ----------
+        idx_node : numpy.ndarray (dtype=bool)
+            boolean indexes of nodes which we want to changes the attributes of
+
+        Raises
+        ------
+        ValueError
+            boolean indexing should be used for nodes
         """
 
         if isinstance(idx_node, np.ndarray) and idx_node.dtype == np.bool:
@@ -345,30 +407,41 @@ class Conn:
             # update density
             self.density = self.n_edges / (self.n_nodes * (self.n_nodes - 1))
         else:
-            raise NotImplementedError
+            raise ValueError('Boolean indexing should be used for nodes')
 
 
 def load_file(filename):
     """
-    #TODO
-    _summary_
+    Load data from disc
 
     Parameters
     ----------
-    filename : _type_
-        _description_
+    filename : str, optional
+        filename of the data to be loaded from DATA_DIR in disc
 
     Returns
     -------
-    _type_
-        _description_
+    result : np.ndarray
+        data stored in the file
     """
     return np.load(os.path.join(DATA_DIR, filename))
 
 
 def get_modules(module_assignment):
     """
-    # TODO
+    Get module assignment of nodes
+
+    Parameters
+    ----------
+    module_assignment : np.ndarray
+        array of modules the nodes belong to
+
+    Returns
+    -------
+    module_ids : np.ndarray
+        array of unique modules
+    readout_modules : np.ndarray
+        indexes of unique modules the nodes belong to
     """
     # get module ids
     module_ids = np.unique(module_assignment)
