@@ -208,7 +208,8 @@ class Conn:
             nodes_from = np.setdiff1d(nodes_from, nodes_without)
 
             # select random nodes
-            selected_nodes = np.random.choice(nodes_from, size=n_nodes)
+            selected_nodes = np.random.choice(nodes_from, size=n_nodes,
+                                              replace=False)
 
         elif node_set == 'shortest_path':
             # calculate shortest paths between all nodes
