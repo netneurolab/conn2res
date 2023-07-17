@@ -3,6 +3,7 @@ Functionality for connectivity matrix
 """
 import os
 import numpy as np
+import warnings
 from scipy.linalg import eigh
 from bct.algorithms.clustering import get_components
 from bct.algorithms.distance import distance_bin
@@ -57,6 +58,9 @@ class Conn:
         # number of edges (in symmetric networks edges are counted twice!)
         self.n_edges = np.sum(self.w != 0)
 
+        # check if network is symmetric (needed e.g. for checking connectedness)
+        self.symmetric = check_symmetric(self.w)
+
         # density of network
         self.density = self.n_edges / (self.n_nodes * (self.n_nodes - 1))
 
@@ -67,8 +71,7 @@ class Conn:
         self.subset_nodes(idx_node=np.logical_or(
             np.any(self.w != 0, axis=0), np.any(self.w != 0, axis=1)))
 
-        self.symmetric = check_symmetric(self.w)
-
+        # assign modules
         self.modules = modules
 
     def scale_and_normalize(self):
@@ -170,7 +173,11 @@ class Conn:
         self._update_attributes(idx_node)
 
         # update component
-        self._get_largest_component()
+        if self.symmetric:
+            self._get_largest_component(self.w)
+        else:
+            self._get_largest_component(np.logical_or(self.w, self.w.T))
+            warnings.warn("Asymmetric connectivity matrix is only weakly checked for connectedness.")
 
     def get_nodes(self, node_set, nodes_from=None, nodes_without=None, filename=None, n_nodes=1, **kwargs):
         """
@@ -267,7 +274,7 @@ class Conn:
 
         return selected_nodes
 
-    def _get_largest_component(self):
+    def _get_largest_component(self, w):
         """
         Updates a set of nodes so that they belong to one connected component
 
@@ -275,7 +282,7 @@ class Conn:
         """
 
         # get all components of the connectivity matrix
-        comps, comp_sizes = get_components(self.w)
+        comps, comp_sizes = get_components(w)
 
         # get indexes pertaining to the largest component
         idx_node = comps == np.argmax(comp_sizes) + 1
