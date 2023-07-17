@@ -29,7 +29,7 @@ class Conn:
     # TODO
     """
 
-    def __init__(self, filename=None, subj_id=0, w=None, modules=None):
+    def __init__(self, filename=None, subj_id=None, w=None, modules=None):
         if w is not None:
             # assign provided connectivity data
             self.w = w
@@ -40,8 +40,9 @@ class Conn:
             else:
                 self.w = load_file('connectivity.npy')
 
-            # select one subject
-            self.w = self.w[:, :, subj_id]
+            # select one subject from group connectivity data
+            if subj_id is not None and self.w.ndim == 3:
+                self.w = self.w[:, :, subj_id]
 
         # set zero diagonal
         np.fill_diagonal(self.w, 0)
