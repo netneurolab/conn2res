@@ -121,13 +121,13 @@ class Conn:
 
     def add_weights(self, w, mask='triu', order='random'):
         """
-        Add weights to either a binary or weighted connecivity matrix
+        Add weights to either a binary or weighted connectivity matrix
 
         # TODO
         """
 
         if mask == 'full':
-            if w.size != np.sum(self.w == 1):
+            if w.size != self.n_edges:
                 raise ValueError(
                     'number of elements in mask and w do not match')
 
@@ -135,8 +135,20 @@ class Conn:
             if order == 'random':
                 self.w[self.w != 0] = w
 
+            elif order == 'absrank':  # keep absolute rank of weights
+                id_ = np.argsort(np.abs(w))
+                w = w[id_[::-1]]
+                id_ = np.argsort(np.abs(self.w), axis=None)
+                self.w[np.unravel_index(id_[:-w.size-1:-1], self.w.shape)] = w
+
+            elif order == 'rank':  # keep rank of weights
+                id_ = np.argsort(w)
+                w = w[id_[::-1]]
+                id_ = np.argsort(self.w, axis=None)
+                self.w[np.unravel_index(id_[:-w.size-1:-1], self.w.shape)] = w
+
         elif mask == 'triu':
-            if not check_symmetric(self.w):
+            if not self.symmetric:
                 raise ValueError(
                     'add_weight(w, mask=''triu'') needs a symmetric connectivity matrix')
             if w.size != np.sum(np.triu(self.w, 1) != 0):
@@ -147,10 +159,16 @@ class Conn:
             if order == 'random':
                 self.w[np.triu(self.w, 1) != 0] = w
 
-            elif order == 'rank':  # keep absolute rank of weights
+            elif order == 'absrank':  # keep absolute rank of weights
                 id_ = np.argsort(np.abs(w))
                 w = w[id_[::-1]]
                 id_ = np.argsort(np.abs(np.triu(self.w, 1)), axis=None)
+                self.w[np.unravel_index(id_[:-w.size-1:-1], self.w.shape)] = w
+
+            elif order == 'rank':  # keep rank of weights
+                id_ = np.argsort(w)
+                w = w[id_[::-1]]
+                id_ = np.argsort(np.triu(self.w, 1), axis=None)
                 self.w[np.unravel_index(id_[:-w.size-1:-1], self.w.shape)] = w
 
             # copy weights to lower diagonal
