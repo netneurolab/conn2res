@@ -29,7 +29,8 @@ class Conn:
     # TODO
     """
 
-    def __init__(self, filename=None, subj_id=None, w=None, modules=None):
+    def __init__(self, filename=None, subj_id=None, w=None, modules=None,
+                 density=None):
         if w is not None:
             # assign provided connectivity data
             self.w = w
@@ -61,6 +62,18 @@ class Conn:
 
         # check if network is symmetric (needed e.g. for checking connectedness)
         self.symmetric = check_symmetric(self.w)
+
+        # use fixed density if set
+        if density is not None:
+            if self.symmetric:
+                nedges = int(self.n_nodes * (self.n_nodes - 1) * density // 2)
+                id_ = np.argsort(np.triu(self.w, 1), axis=None)
+                self.w[np.unravel_index(id_[:-nedges], self.w.shape)] = 0
+                self.w = make_symmetric(self.w, copy_lower=False)
+            else:
+                nedges = int(self.n_nodes * (self.n_nodes - 1) * density)
+                id_ = np.argsort(self.w, axis=None)
+                self.w[np.unravel_index(id_[:-nedges], self.w.shape)] = 0
 
         # density of network
         self.density = self.n_edges / (self.n_nodes * (self.n_nodes - 1))
