@@ -48,6 +48,9 @@ class Conn:
         # remove inf and nan
         self.w[np.logical_or(np.isinf(self.w), np.isnan(self.w))] = 0
 
+        # make sure weights are float
+        self.w = self.w.astype(float)
+
         # number of all active nodes
         self.n_nodes = len(self.w)
 
