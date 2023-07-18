@@ -211,7 +211,8 @@ class Conn:
             self._get_largest_component(np.logical_or(self.w, self.w.T))
             warnings.warn("Asymmetric connectivity matrix is only weakly checked for connectedness.")
 
-    def get_nodes(self, node_set, nodes_from=None, nodes_without=None, filename=None, n_nodes=1, **kwargs):
+    def get_nodes(self, node_set, nodes_from=None, nodes_without=None,
+                  filename=None, n_nodes=1, seed=None, **kwargs):
         """
         Gets a set of nodes of the connectivity matrix without changing 
         the connectivity matrix itself
@@ -249,9 +250,12 @@ class Conn:
             # nodes we want to select from
             nodes_from = np.setdiff1d(nodes_from, nodes_without)
 
+            # use random number generator for reproducibility
+            rng = np.random.default_rng(seed=seed)
+
             # select random nodes
-            selected_nodes = np.random.choice(nodes_from, size=n_nodes,
-                                              replace=False)
+            selected_nodes = rng.choice(nodes_from, size=n_nodes,
+                                        replace=False)
 
         elif node_set == 'shortest_path':
             # calculate shortest paths between all nodes

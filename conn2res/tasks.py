@@ -376,8 +376,11 @@ class Conn2ResTask(Task):
         if win < abs_horizon_max:
             raise ValueError("Absolute maximum horizon should be within window")
 
+        # use random number generator for reproducibility
+        rng = np.random.default_rng(seed=seed)
+
         # generate input data
-        x = np.random.uniform(-1, 1, (self.n_trials + win + abs_horizon_max + 1))[
+        x = rng.uniform(-1, 1, (self.n_trials + win + abs_horizon_max + 1))[
             :, np.newaxis
         ]
 
