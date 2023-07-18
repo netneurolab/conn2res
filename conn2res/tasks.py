@@ -129,7 +129,7 @@ class NeuroGymTask(Task):
 
         self._name = name
 
-    def fetch_data(self, n_trials=None, **kwargs):
+    def fetch_data(self, n_trials=None, add_bias=False, **kwargs):
         """
         Fetch task dataset
 
@@ -160,16 +160,19 @@ class NeuroGymTask(Task):
             env.new_trial()
             ob, gt = env.ob, env.gt
 
-            # store inputs
+            # reshape data if needed
             if ob.ndim == 1:
-                x.append(ob[:, np.newaxis])
-            else:
-                x.append(ob)
-
+                ob = ob[:, np.newaxis]
             if gt.ndim == 1:
-                y.append(gt[:, np.newaxis])
-            else:
-                y.append(gt)
+                gt = gt[:, np.newaxis]
+
+            # add bias to input data if needed
+            if add_bias:
+                ob = np.hstack((np.ones((n_trials, 1)), ob))
+
+            # store input and output
+            x.append(ob)
+            y.append(gt)
 
         # set attributes
         if x[0].squeeze().ndim == 1:
@@ -220,7 +223,8 @@ class ReservoirPyTask(Task):
 
         self._name = name
 
-    def fetch_data(self, n_trials=None, horizon=1, win=30, **kwargs):
+    def fetch_data(self, n_trials=None, horizon=1, win=30, add_bias=False,
+                   **kwargs):
         """
         _summary_
 
@@ -271,11 +275,15 @@ class ReservoirPyTask(Task):
         # update input data
         x = x[win : -abs_horizon_max - 1]
 
+        # reshape data if needed
         if x.ndim == 1:
             x = x[:, np.newaxis]
-
         if y.ndim == 1:
             y = y[:, np.newaxis]
+
+        # add bias to input data if needed
+        if add_bias:
+            x = np.hstack((np.ones((n_trials, 1)), x))
 
         # set attributes
         if x.squeeze().ndim == 1:
@@ -326,7 +334,8 @@ class Conn2ResTask(Task):
 
         self._name = name
 
-    def fetch_data(self, n_trials=None, horizon_max=-20, win=30, **kwargs):
+    def fetch_data(self, n_trials=None, horizon_max=-20, win=30,
+                   add_bias=False, seed=None, **kwargs):
         """
         _summary_
 
@@ -378,11 +387,15 @@ class Conn2ResTask(Task):
         # update input data
         x = x[win : -abs_horizon_max - 1]
 
+        # reshape data if needed
         if x.ndim == 1:
             x = x[:, np.newaxis]
-
         if y.ndim == 1:
             y = y[:, np.newaxis]
+
+        # add bias to input data if needed
+        if add_bias:
+            x = np.hstack((np.ones((n_trials, 1)), x))
 
         # set attributes
         if x.squeeze().ndim == 1:
