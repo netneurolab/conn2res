@@ -172,10 +172,6 @@ class EchoStateNetwork(Reservoir):
         else:
             convert_to_list = False
 
-        # scale connectivity matrix
-        if input_gain is not None:
-            w_in = input_gain * w_in
-
         # initialize reservoir states
         timesteps = range(1, len(ext_input) + 1)
         self._state = np.zeros((len(timesteps) + 1, self.n_nodes))

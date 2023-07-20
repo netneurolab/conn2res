@@ -129,7 +129,8 @@ class NeuroGymTask(Task):
 
         self._name = name
 
-    def fetch_data(self, n_trials=None, add_bias=False, **kwargs):
+    def fetch_data(self, n_trials=None, input_gain=None, add_bias=False,
+                   **kwargs):
         """
         Fetch task dataset
 
@@ -165,6 +166,10 @@ class NeuroGymTask(Task):
                 ob = ob[:, np.newaxis]
             if gt.ndim == 1:
                 gt = gt[:, np.newaxis]
+
+            # scale input data
+            if input_gain is not None:
+                ob *= input_gain
 
             # add bias to input data if needed
             if add_bias:
@@ -223,8 +228,8 @@ class ReservoirPyTask(Task):
 
         self._name = name
 
-    def fetch_data(self, n_trials=None, horizon=1, win=30, add_bias=False,
-                   **kwargs):
+    def fetch_data(self, n_trials=None, horizon=1, win=30,
+                   input_gain=None, add_bias=False, **kwargs):
         """
         _summary_
 
@@ -281,6 +286,10 @@ class ReservoirPyTask(Task):
         if y.ndim == 1:
             y = y[:, np.newaxis]
 
+        # scale input data
+        if input_gain is not None:
+            x *= input_gain
+
         # add bias to input data if needed
         if add_bias:
             x = np.hstack((np.ones((n_trials, 1)), x))
@@ -335,7 +344,7 @@ class Conn2ResTask(Task):
         self._name = name
 
     def fetch_data(self, n_trials=None, horizon_max=-20, win=30,
-                   low=-1, high=1, add_bias=False,
+                   low=-1, high=1, input_gain=None, add_bias=False,
                    seed=None):
         """
         _summary_
@@ -396,6 +405,10 @@ class Conn2ResTask(Task):
             x = x[:, np.newaxis]
         if y.ndim == 1:
             y = y[:, np.newaxis]
+
+        # scale input data
+        if input_gain is not None:
+            x *= input_gain
 
         # add bias to input data if needed
         if add_bias:
