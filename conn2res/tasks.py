@@ -335,7 +335,8 @@ class Conn2ResTask(Task):
         self._name = name
 
     def fetch_data(self, n_trials=None, horizon_max=-20, win=30,
-                   add_bias=False, seed=None, **kwargs):
+                   low=-1, high=1, add_bias=False,
+                   seed=None):
         """
         _summary_
 
@@ -380,7 +381,7 @@ class Conn2ResTask(Task):
         rng = np.random.default_rng(seed=seed)
 
         # generate input data
-        x = rng.uniform(-1, 1, (self.n_trials + win + abs_horizon_max + 1))[
+        x = rng.uniform(low=low, high=high, size=(self.n_trials + win + abs_horizon_max + 1))[
             :, np.newaxis
         ]
 
