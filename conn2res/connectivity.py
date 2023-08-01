@@ -3,6 +3,7 @@ Functionality for connectivity matrix
 """
 import os
 import numpy as np
+import warnings
 from scipy.linalg import eigh
 from bct.algorithms.clustering import get_components
 from bct.algorithms.distance import distance_bin
@@ -28,7 +29,8 @@ class Conn:
     # TODO
     """
 
-    def __init__(self, filename=None, subj_id=0, w=None, modules=None):
+    def __init__(self, filename=None, subj_id=None, w=None, modules=None,
+                 density=None):
         if w is not None:
             # assign provided connectivity data
             self.w = w
@@ -39,8 +41,9 @@ class Conn:
             else:
                 self.w = load_file('connectivity.npy')
 
-            # select one subject
-            self.w = self.w[:, :, subj_id]
+            # select one subject from group connectivity data
+            if subj_id is not None and self.w.ndim == 3:
+                self.w = self.w[:, :, subj_id]
 
         # set zero diagonal
         np.fill_diagonal(self.w, 0)
@@ -48,11 +51,29 @@ class Conn:
         # remove inf and nan
         self.w[np.logical_or(np.isinf(self.w), np.isnan(self.w))] = 0
 
+        # make sure weights are float
+        self.w = self.w.astype(float)
+
         # number of all active nodes
         self.n_nodes = len(self.w)
 
         # number of edges (in symmetric networks edges are counted twice!)
         self.n_edges = np.sum(self.w != 0)
+
+        # check if network is symmetric (needed e.g. for checking connectedness)
+        self.symmetric = check_symmetric(self.w)
+
+        # use fixed density if set
+        if density is not None:
+            if self.symmetric:
+                nedges = int(self.n_nodes * (self.n_nodes - 1) * density // 2)
+                id_ = np.argsort(np.triu(self.w, 1), axis=None)
+                self.w[np.unravel_index(id_[:-nedges], self.w.shape)] = 0
+                self.w = make_symmetric(self.w, copy_lower=False)
+            else:
+                nedges = int(self.n_nodes * (self.n_nodes - 1) * density)
+                id_ = np.argsort(self.w, axis=None)
+                self.w[np.unravel_index(id_[:-nedges], self.w.shape)] = 0
 
         # density of network
         self.density = self.n_edges / (self.n_nodes * (self.n_nodes - 1))
@@ -64,8 +85,7 @@ class Conn:
         self.subset_nodes(idx_node=np.logical_or(
             np.any(self.w != 0, axis=0), np.any(self.w != 0, axis=1)))
 
-        self.symmetric = check_symmetric(self.w)
-
+        # assign modules
         self.modules = modules
 
     def scale_and_normalize(self):
@@ -115,13 +135,13 @@ class Conn:
 
     def add_weights(self, w, mask='triu', order='random'):
         """
-        Add weights to either a binary or weighted connecivity matrix
+        Add weights to either a binary or weighted connectivity matrix
 
         # TODO
         """
 
         if mask == 'full':
-            if w.size != np.sum(self.w == 1):
+            if w.size != self.n_edges:
                 raise ValueError(
                     'number of elements in mask and w do not match')
 
@@ -129,8 +149,20 @@ class Conn:
             if order == 'random':
                 self.w[self.w != 0] = w
 
+            elif order == 'absrank':  # keep absolute rank of weights
+                id_ = np.argsort(np.abs(w))
+                w = w[id_[::-1]]
+                id_ = np.argsort(np.abs(self.w), axis=None)
+                self.w[np.unravel_index(id_[:-w.size-1:-1], self.w.shape)] = w
+
+            elif order == 'rank':  # keep rank of weights
+                id_ = np.argsort(w)
+                w = w[id_[::-1]]
+                id_ = np.argsort(self.w, axis=None)
+                self.w[np.unravel_index(id_[:-w.size-1:-1], self.w.shape)] = w
+
         elif mask == 'triu':
-            if not check_symmetric(self.w):
+            if not self.symmetric:
                 raise ValueError(
                     'add_weight(w, mask=''triu'') needs a symmetric connectivity matrix')
             if w.size != np.sum(np.triu(self.w, 1) != 0):
@@ -141,10 +173,16 @@ class Conn:
             if order == 'random':
                 self.w[np.triu(self.w, 1) != 0] = w
 
-            elif order == 'rank':  # keep absolute rank of weights
+            elif order == 'absrank':  # keep absolute rank of weights
                 id_ = np.argsort(np.abs(w))
                 w = w[id_[::-1]]
                 id_ = np.argsort(np.abs(np.triu(self.w, 1)), axis=None)
+                self.w[np.unravel_index(id_[:-w.size-1:-1], self.w.shape)] = w
+
+            elif order == 'rank':  # keep rank of weights
+                id_ = np.argsort(w)
+                w = w[id_[::-1]]
+                id_ = np.argsort(np.triu(self.w, 1), axis=None)
                 self.w[np.unravel_index(id_[:-w.size-1:-1], self.w.shape)] = w
 
             # copy weights to lower diagonal
@@ -167,9 +205,14 @@ class Conn:
         self._update_attributes(idx_node)
 
         # update component
-        self._get_largest_component()
+        if self.symmetric:
+            self._get_largest_component(self.w)
+        else:
+            self._get_largest_component(np.logical_or(self.w, self.w.T))
+            warnings.warn("Asymmetric connectivity matrix is only weakly checked for connectedness.")
 
-    def get_nodes(self, node_set, nodes_from=None, nodes_without=None, filename=None, n_nodes=1, **kwargs):
+    def get_nodes(self, node_set, nodes_from=None, nodes_without=None,
+                  filename=None, n_nodes=1, seed=None, **kwargs):
         """
         Gets a set of nodes of the connectivity matrix without changing 
         the connectivity matrix itself
@@ -207,9 +250,12 @@ class Conn:
             # nodes we want to select from
             nodes_from = np.setdiff1d(nodes_from, nodes_without)
 
+            # use random number generator for reproducibility
+            rng = np.random.default_rng(seed=seed)
+
             # select random nodes
-            selected_nodes = np.random.choice(nodes_from, size=n_nodes,
-                                              replace=False)
+            selected_nodes = rng.choice(nodes_from, size=n_nodes,
+                                        replace=False)
 
         elif node_set == 'shortest_path':
             # calculate shortest paths between all nodes
@@ -264,7 +310,7 @@ class Conn:
 
         return selected_nodes
 
-    def _get_largest_component(self):
+    def _get_largest_component(self, w):
         """
         Updates a set of nodes so that they belong to one connected component
 
@@ -272,7 +318,7 @@ class Conn:
         """
 
         # get all components of the connectivity matrix
-        comps, comp_sizes = get_components(self.w)
+        comps, comp_sizes = get_components(w)
 
         # get indexes pertaining to the largest component
         idx_node = comps == np.argmax(comp_sizes) + 1

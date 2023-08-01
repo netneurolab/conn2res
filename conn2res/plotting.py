@@ -23,7 +23,7 @@ if not os.path.isdir(FIG_DIR):
 
 def transform_data(
     data, feature_set=None, idx_features=None, n_features=None, scaler=None,
-    model=None, **kwargs
+    model=None, seed=None, **kwargs
 ):
     """
     #TODO
@@ -59,8 +59,11 @@ def transform_data(
         if n_features is None:
             n_features = 1
 
+        # use random number generator for reproducibility
+        rng = np.random.default_rng(seed=seed)
+
         # choose features randomly
-        data = data[:, np.random.choice(
+        data = data[:, rng.choice(
             np.arange(data.shape[1]), size=n_features)]
 
     elif feature_set == 'decfun':

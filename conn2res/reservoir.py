@@ -172,10 +172,6 @@ class EchoStateNetwork(Reservoir):
         else:
             convert_to_list = False
 
-        # scale connectivity matrix
-        if input_gain is not None:
-            w_in = input_gain * w_in
-
         # initialize reservoir states
         timesteps = range(1, len(ext_input) + 1)
         self._state = np.zeros((len(timesteps) + 1, self.n_nodes))
@@ -373,7 +369,7 @@ class MemristiveReservoir:
         else:
             return w
 
-    def init_property(self, mean, std=0.1):
+    def init_property(self, mean, std=0.1, seed=None):
         """
         This function initializes property matrices following a normal
         distribution with mean = 'mean' and standard deviation = 'mean' * 'std'
@@ -387,8 +383,11 @@ class MemristiveReservoir:
         # TODO
 
         """
+        
+        # use random number generator for reproducibility
+        rng = np.random.default_rng(seed=seed)
 
-        p = np.random.normal(mean, std*mean, size=self._W.shape)
+        p = rng.normal(mean, std*mean, size=self._W.shape)
         p = make_symmetric(p)
 
         return p * self._W  # ma.masked_array(p, mask=np.logical_not(self._W))
@@ -744,7 +743,7 @@ class MSSNetwork(MemristiveReservoir):
         self._Nb = self.init_property(Nb, noise)
         self._G = self._Nb * (self._Gb - self._Ga) + self.NMSS * self._Ga
 
-    def dG(self, V, G=None, dt=1e-4):
+    def dG(self, V, G=None, dt=1e-4, seed=None):
         """
         # TODO
         This function updates the conductance matrix G given V
@@ -789,8 +788,11 @@ class MSSNetwork(MemristiveReservoir):
         # compute dNb
         Na = self.NMSS - Nb
 
-        Gab = np.random.binomial(Na.astype(int), mask(self, Pa))
-        Gba = np.random.binomial(Nb.astype(int), mask(self, Pb))
+        # use random number generator for reproducibility
+        rng = np.random.default_rng(seed=seed)
+
+        Gab = rng.binomial(Na.astype(int), mask(self, Pa))
+        Gba = rng.binomial(Nb.astype(int), mask(self, Pb))
 
         if check_symmetric(self._W):
             Gab = make_symmetric(Gab)
