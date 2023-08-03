@@ -575,7 +575,7 @@ def _get_sample_weight(y, split_set=None):
     return sample_weight_train, sample_weight_test
 
 
-def _sample_weight(y, split_set):
+def _sample_weight(y, split_set, seed=None):
     """
     _summary_
 
@@ -637,8 +637,12 @@ def _sample_weight(y, split_set):
 
     if split_set == 'train':
         print('-----------------------------------')
+        
+        # use random number generator for reproducibility
+        rng = np.random.default_rng(seed=seed)
+        
         idx = np.where(sample_weight == 0)[0]
-        sample_weight[idx] = np.random.rand((len(idx)))
+        sample_weight[idx] = rng.rand((len(idx)))
 
     if convert_to_list:
         sample_weight = split(sample_weight, sections)
