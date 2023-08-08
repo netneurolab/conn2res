@@ -43,6 +43,9 @@ def transform_data(
         _description_, by default None
     model : _type_, optional
         _description_, by default None
+    seed : int, array_like[ints], SeedSequence, BitGenerator, Generator, optional
+        seed to initialize the random number generator, by default None
+        for details, see numpy.random.default_rng()
 
     Returns
     -------

@@ -20,10 +20,21 @@ class Conn:
     Class that represents a weighted or unweighted network using connectivity
     data
 
-    Note that the diagonal of the matrix is set to zero as well as
-    inf and nan values are replaced to zero. We also makes sure that all nodes
-    are connected to the rest of the network (otherwise the network is
-    reduced to the largest component)
+    Notes:
+    1. The diagonal of the connectivity matrix is set to zero as well as 
+    inf and nan values are replaced to zero.
+
+    2. We makes sure that all nodes are connected to the rest of the network,
+    otherwise the network is reduced to the largest component. Importantly,
+    the original indexes of nodes is kept during this process, i.e., for
+    instance, node 95 stays node 95 even if node 90 is removed.
+
+    3. The input and output nodes should be set such that they belong to the
+    largest component, otherwise the signal cannot propagate from/to them.
+
+    4. Symmetric networks are checked for connectedness only in a weak sense,
+    i.e., using a network where the directed edges are replaced with
+    symmetric edges.
 
     Parameters
     ----------
@@ -42,8 +53,11 @@ class Conn:
         matrix
     modules : numpy.ndarray, optional
         array to store for each node which module it belongs to
+    density : float, optional
+        density to which the network should be set (note that
+        connectedness in not checked during this process, so it should
+        be used with care!)
     """
-
 
     def __init__(self, w=None, filename=None, subj_id=0, modules=None,
                  density=None):
@@ -157,7 +171,7 @@ class Conn:
         order : str, optional
             it decides whether the weights should be added randomly to the
             connectivity matrix or for instance, the rank of the weights
-            should be kept, by default 30, by default random
+            should be kept, by default random
 
         Raises
         ------
@@ -265,6 +279,9 @@ class Conn:
             belong to or whether they belong to cortex or not)
         n_nodes : int, optional
             number of nodes in the subset, by default 1
+        seed : int, array_like[ints], SeedSequence, BitGenerator, Generator, optional
+            seed to initialize the random number generator, by default None
+            for details, see numpy.random.default_rng()
 
         Raises
         ------

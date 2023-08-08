@@ -377,6 +377,9 @@ class MemristiveReservoir:
         Parameters
         ----------
         # TODO
+        seed : int, array_like[ints], SeedSequence, BitGenerator, Generator, optional
+            seed to initialize the random number generator, by default None
+            for details, see numpy.random.default_rng()
 
         Returns
         -------
@@ -752,6 +755,9 @@ class MSSNetwork(MemristiveReservoir):
         ----------
         V : (N,N) numpy.ndarray
             matrix of voltages accross memristors
+        seed : int, array_like[ints], SeedSequence, BitGenerator, Generator, optional
+            seed to initialize the random number generator, by default None
+            for details, see numpy.random.default_rng()
 
         Returns
         -------
