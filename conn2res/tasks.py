@@ -138,6 +138,11 @@ class NeuroGymTask(Task):
         ----------
         n_trials : int, optional
             number of trials to be generated, by default None
+        input_gain : float, optional
+            gain on the input signal, i.e., scalar multiplier, by default None
+        add_bias : bool, optional
+            decides whether bias is added to the input signal or not,
+            by default False
 
         Returns
         -------
@@ -241,6 +246,11 @@ class ReservoirPyTask(Task):
             _description_, by default 1
         win : int, optional
             _description_, by default 30
+        input_gain : float, optional
+            gain on the input signal, i.e., scalar multiplier, by default None
+        add_bias : bool, optional
+            decides whether bias is added to the input signal or not,
+            by default False
 
         Returns
         -------
@@ -357,6 +367,20 @@ class Conn2ResTask(Task):
             _description_, by default None
         win : int, optional
             _description_, by default 30
+        low : float, optional
+            lower boundary of the output interval of numpy.uniform(),
+            by default -1
+        high : float, optional
+            upper boundary of the output interval of numpy.uniform(),
+            by default 1
+        input_gain : float, optional
+            gain on the input signal, i.e., scalar multiplier, by default None
+        add_bias : bool, optional
+            decides whether bias is added to the input signal or not,
+            by default False
+        seed : int, array_like[ints], SeedSequence, BitGenerator, Generator, optional
+            seed to initialize the random number generator, by default None
+            for details, see numpy.random.default_rng()
 
         Returns
         -------
