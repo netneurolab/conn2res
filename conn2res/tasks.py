@@ -69,7 +69,7 @@ class Task(metaclass=ABCMeta):
     name : str
         name of the task
     n_trials : int, optional
-        number of trials if task indicated by 'name' is a 
+        number of trials if task indicated by 'name' is a
         a trial-based task, by default 10
     """
 
@@ -107,7 +107,7 @@ class NeuroGymTask(Task):
     name : str
         name of the task
     n_trials : int, optional
-        number of trials if task indicated by 'name' is a 
+        number of trials if task indicated by 'name' is a
         a trial-based task, by default 10
     """
 
@@ -211,7 +211,7 @@ class ReservoirPyTask(Task):
     name : str
         name of the task
     n_trials : int, optional
-        number of trials if task indicated by 'name' is a 
+        number of trials if task indicated by 'name' is a
         a trial-based task, by default 10
     """
 
@@ -331,7 +331,7 @@ class Conn2ResTask(Task):
     name : str
         name of the task
     n_trials : int, optional
-        number of trials if task indicated by 'name' is a 
+        number of trials if task indicated by 'name' is a
         a trial-based task, by default 10
     """
 

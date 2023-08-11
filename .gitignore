@@ -2,6 +2,7 @@
 examples/data
 examples/tutorial_unittests.py
 examples/tests.py
+examples/results
 *figs/
 
 # data files
