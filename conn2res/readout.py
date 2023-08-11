@@ -585,6 +585,9 @@ def _sample_weight(y, split_set, seed=None):
         _description_
     split_set : _type_
         _description_
+    seed : int, array_like[ints], SeedSequence, BitGenerator, Generator, optional
+        seed to initialize the random number generator, by default None
+        for details, see numpy.random.default_rng()
 
     Returns
     -------
