@@ -10,17 +10,17 @@ from reservoirpy import datasets
 
 NEUROGYM_TASKS = [
     'AntiReach',
-    'Bandit',  # *
+    # 'Bandit',  # *
     'ContextDecisionMaking',
-    'DawTwoStep',  # *
+    # 'DawTwoStep',  # *
     'DelayComparison',
     'DelayMatchCategory',
     'DelayMatchSample',
     'DelayMatchSampleDistractor1D',
     'DelayPairedAssociation',
-    'Detection',  # *
+    # 'Detection',  # *
     'DualDelayMatchSample',
-    'EconomicDecisionMaking',  # *
+    # 'EconomicDecisionMaking',  # *
     'GoNogo',
     'HierarchicalReasoning',
     'IntervalDiscrimination',
@@ -39,7 +39,7 @@ NEUROGYM_TASKS = [
     'ReadySetGo',
     'SingleContextDecisionMaking',
     'SpatialSuppressMotion',
-    'ToneDetection'  # *
+    # 'ToneDetection'  # *
 ]
 
 RESERVOIRPY_TASKS = [
@@ -429,3 +429,26 @@ class Conn2ResTask(Task):
         # self._data = {'x': x, 'y': y}
 
         return x, y
+
+
+def get_task_list(repository):
+    """
+    Returns list of tasks in repository
+
+    Parameters
+    ----------
+    repository : str
+        _description_
+
+    Returns
+    -------
+    _type_
+        _description_
+    """
+    repository = repository.lower()
+    if repository == 'neurogym':
+        return NEUROGYM_TASKS
+    elif repository == 'reservoirpy':
+        return RESERVOIRPY_TASKS
+    elif repository == 'conn2res':
+        return CONN2RES_TASKS
