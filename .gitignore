@@ -1,5 +1,7 @@
 # other files
 examples/data
+examples/tutorial_unittests.py
+examples/tests.py
 *figs/
 
 # data files

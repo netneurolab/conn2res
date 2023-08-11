@@ -5,8 +5,8 @@ Functionality for simulating reservoirs
 from abc import ABCMeta, abstractmethod
 import numpy as np
 from numpy.linalg import pinv
-from .connectivity import Conn
-from .utils import *
+from . import utils
+
 
 class Reservoir(metaclass=ABCMeta):
     """
@@ -166,8 +166,8 @@ class EchoStateNetwork(Reservoir):
 
         # if ext_input is list or tuple convert to numpy.ndarray
         if isinstance(ext_input, (list, tuple)):
-            sections = get_sections(ext_input)
-            ext_input = concat(ext_input)
+            sections = utils.get_sections(ext_input)
+            ext_input = utils.concat(ext_input)
             convert_to_list = True
         else:
             convert_to_list = False
@@ -179,6 +179,10 @@ class EchoStateNetwork(Reservoir):
         # set initial conditions
         if ic is not None:
             self._state[0, :] = ic
+
+        # scale input connectivity matrix
+        if input_gain is not None:
+            w_in = input_gain * w_in
 
         # simulate dynamics
         for t in timesteps:
@@ -194,7 +198,7 @@ class EchoStateNetwork(Reservoir):
 
         # convert back to list or tuple
         if convert_to_list:
-            self._state = split(self._state, sections)
+            self._state = utils.split(self._state, sections)
 
         # return the same type
         if return_states:
@@ -350,7 +354,7 @@ class MemristiveReservoir:
         np.fill_diagonal(w, 0)
 
         # make symmetric if w is directed
-        if not check_symmetric(w):
+        if not utils.check_symmetric(w):
 
             # connections in upper diagonal
             upper_diag = w[np.triu_indices_from(w, 1)]
@@ -364,7 +368,7 @@ class MemristiveReservoir:
                                                           lower_diag
                                                           ).astype(int)
 
-            return make_symmetric(W, copy_lower=False)
+            return utils.make_symmetric(W, copy_lower=False)
 
         else:
             return w
@@ -391,7 +395,7 @@ class MemristiveReservoir:
         rng = np.random.default_rng(seed=seed)
 
         p = rng.normal(mean, std*mean, size=self._W.shape)
-        p = make_symmetric(p)
+        p = utils.make_symmetric(p)
 
         return p * self._W  # ma.masked_array(p, mask=np.logical_not(self._W))
 
@@ -426,7 +430,7 @@ class MemristiveReservoir:
 
         # inverse matrix A_II
         A_II = A[np.ix_(self._I, self._I)]
-        # print(matrix_rank(A_II, hermitian=check_symmetric(A_II)))
+        # print(matrix_rank(A_II, hermitian=utils.check_symmetric(A_II)))
         A_II_inv = pinv(A_II)
 
         # matrix HI
@@ -800,9 +804,9 @@ class MSSNetwork(MemristiveReservoir):
         Gab = rng.binomial(Na.astype(int), mask(self, Pa))
         Gba = rng.binomial(Nb.astype(int), mask(self, Pb))
 
-        if check_symmetric(self._W):
-            Gab = make_symmetric(Gab)
-            Gba = make_symmetric(Gba)
+        if utils.check_symmetric(self._W):
+            Gab = utils.make_symmetric(Gab)
+            Gba = utils.make_symmetric(Gba)
 
         dNb = (Gab-Gba)
 
@@ -830,4 +834,3 @@ class MSSNetwork(MemristiveReservoir):
 
         else:
             return self._G.copy() + dG  # updated conductance
-
