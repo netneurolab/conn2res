@@ -51,7 +51,6 @@ RSN_MAPPING = np.load(os.path.join(DATA_DIR, 'rsn_mapping.npy'))
 CORTICAL = np.load(os.path.join(DATA_DIR, 'cortical.npy'))
 RSN_MAPPING = RSN_MAPPING[CORTICAL == 1]
 
-# -----------------------------------------------------
 def run_workflow(w, x, y, rand=True, filename=None):
 
     conn = Conn(w=w)
@@ -113,7 +112,7 @@ def run_workflow(w, x, y, rand=True, filename=None):
         index=False
         )
 
-# -----------------------------------------------------
+
 def main():
     # w = np.load(os.path.join(DATA_DIR, 'connectivity.npy'))
     # coords = np.load(os.path.join(DATA_DIR, 'coords.npy'))
@@ -156,7 +155,7 @@ def main():
         )
 
     # run workflow in parallel
-    print(f'\nINITIATING PROCESSING TIME')
+    print('\nINITIATING PROCESSING TIME')
     t0 = time.perf_counter()
 
     run_workflow(w, x, y, rand=False, filename='empirical')
@@ -166,9 +165,10 @@ def main():
     for r in res: r.get()
     pool.close()
 
-    print(f'\nTOTAL PROCESSING TIME - {TASK}')
+    print('\nTOTAL PROCESSING TIME')
     print(time.perf_counter()-t0, "seconds process time")
     print('END')
+
 
 if __name__ == '__main__':
     main()
