@@ -1,8 +1,7 @@
 # other files
 examples/data
-examples/tutorial_unittests.py
-examples/tests.py
 examples/results
+examples/sensitivity_analysis
 *figs/
 
 # data files
