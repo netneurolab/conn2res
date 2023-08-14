@@ -40,13 +40,16 @@ if not os.path.isdir(OUTPUT_DIR):
 # -----------------------------------------------------
 N_PROCESS = 15
 TASK = 'MemoryCapacity'
-METRIC = 'corrcoef'
+METRIC = ['corrcoef']
 metric_kwargs = {
     'multioutput': 'sum',
     'nonnegative': 'absolute'
 }
 INPUT_GAIN = 1.0
 ALPHAS = np.linspace(0, 2, 41)[1:]
+RSN_MAPPING = np.load(os.path.join(DATA_DIR, 'rsn_mapping.npy'))
+CORTICAL = np.load(os.path.join(DATA_DIR, 'cortical.npy'))
+RSN_MAPPING = RSN_MAPPING[CORTICAL == 1]
 
 # -----------------------------------------------------
 def run_workflow(w, x, y, rand=True, filename=None):
@@ -96,7 +99,7 @@ def run_workflow(w, x, y, rand=True, filename=None):
         df_res = readout_module.run_task(
             X=(rs_train, rs_test), y=(y_train, y_test),
             sample_weight=None, metric=METRIC,
-            readout_modules=None, readout_nodes=None,
+            readout_modules=RSN_MAPPING, readout_nodes=None,
             **metric_kwargs
         )
 
@@ -104,7 +107,7 @@ def run_workflow(w, x, y, rand=True, filename=None):
         df_alpha.append(df_res)
 
     df_alpha = pd.concat(df_alpha, ignore_index=True)
-    df_alpha = df_alpha[['alpha', METRIC]]
+    df_alpha = df_alpha[['alpha', 'module', 'n_nodes', METRIC[0]]]
     df_alpha.to_csv(
         os.path.join(OUTPUT_DIR, f'res_{filename}.csv'),
         index=False
@@ -112,7 +115,6 @@ def run_workflow(w, x, y, rand=True, filename=None):
 
 # -----------------------------------------------------
 def main():
-
     # w = np.load(os.path.join(DATA_DIR, 'connectivity.npy'))
     # coords = np.load(os.path.join(DATA_DIR, 'coords.npy'))
     # hemiid = np.load(os.path.join(DATA_DIR, 'hemiid.npy'))
