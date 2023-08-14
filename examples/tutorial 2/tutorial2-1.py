@@ -38,15 +38,15 @@ if not os.path.isdir(OUTPUT_DIR):
     os.makedirs(OUTPUT_DIR)
 
 # -----------------------------------------------------
-N_PROCESS = 15
+N_PROCESS = 30
 TASK = 'MemoryCapacity'
 METRIC = ['corrcoef']
 metric_kwargs = {
     'multioutput': 'sum',
     'nonnegative': 'absolute'
 }
-INPUT_GAIN = 0.01
-ALPHAS = np.linspace(0, 2, 11)[1:]  # 41
+INPUT_GAIN = 15.0
+ALPHAS = np.linspace(0, 2, 41)[1:]
 RSN_MAPPING = np.load(os.path.join(DATA_DIR, 'rsn_mapping.npy'))
 CORTICAL = np.load(os.path.join(DATA_DIR, 'cortical.npy'))
 RSN_MAPPING = RSN_MAPPING[CORTICAL == 1]
@@ -95,15 +95,6 @@ def run_workflow(w, x, y, rand=True, filename=None):
             output_nodes=output_nodes
         )
 
-        plotting.plot_reservoir_states(
-            x=x_train, reservoir_states=rs_train,
-            title=TASK,
-            savefig=True,
-            fname=os.path.join(OUTPUT_DIR, f'res_states_{INPUT_GAIN}_{np.round(alpha,2)}'),
-            rc_params={'figure.dpi': 300, 'savefig.dpi': 300},
-            show=False
-        )
-
         df_res = readout_module.run_task(
             X=(rs_train, rs_test), y=(y_train, y_test),
             sample_weight=None, metric=METRIC,
@@ -148,23 +139,20 @@ def main():
     w = np.load(os.path.join(DATA_DIR, 'consensus.npy'))
 
     task = Conn2ResTask(name=TASK)
-    # x, y = task.fetch_data(n_trials=1000)
-    # np.save(os.path.join(OUTPUT_DIR, 'input.npy'), x)
-    # np.save(os.path.join(OUTPUT_DIR, 'output.npy'), y)
+    x, y = task.fetch_data(n_trials=1000)
+    np.save(os.path.join(OUTPUT_DIR, 'input.npy'), x)
+    np.save(os.path.join(OUTPUT_DIR, 'output.npy'), y)
 
-    x = np.load(os.path.join(OUTPUT_DIR, 'input.npy'))
-    y = np.load(os.path.join(OUTPUT_DIR, 'output.npy'))
-
-    # params = []
-    # for i in range(1000):
-    #     params.append(
-    #         {
-    #             'w': w.copy(),
-    #             'x': x.copy(),
-    #             'y': y.copy(),
-    #             'filename': f'null_{i}'
-    #         }
-    #     )
+    params = []
+    for i in range(1000):
+        params.append(
+            {
+                'w': w.copy(),
+                'x': x.copy(),
+                'y': y.copy(),
+                'filename': f'null_{i}'
+            }
+        )
 
     # run workflow in parallel
     print('\nINITIATING PROCESSING TIME')
@@ -172,10 +160,10 @@ def main():
 
     run_workflow(w, x, y, rand=False, filename='empirical')
 
-    # pool = mp.Pool(processes=N_PROCESS)
-    # res = [pool.apply_async(run_workflow, (), p) for p in params]
-    # for r in res: r.get()
-    # pool.close()
+    pool = mp.Pool(processes=N_PROCESS)
+    res = [pool.apply_async(run_workflow, (), p) for p in params]
+    for r in res: r.get()
+    pool.close()
 
     print('\nTOTAL PROCESSING TIME')
     print(time.perf_counter()-t0, "seconds process time")
