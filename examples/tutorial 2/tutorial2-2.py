@@ -14,7 +14,8 @@ import matplotlib.pyplot as plt
 from conn2res import plotting
 
 PROJ_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-OUTPUT_DIR = os.path.join(PROJ_DIR, 'results', 'results_rsn')
+# OUTPUT_DIR = os.path.join(PROJ_DIR, 'results', 'results_new_generated_data', 'results_rsn_gain_15')
+OUTPUT_DIR = os.path.join(PROJ_DIR, 'results', 'results_old_iodata', 'results_rsn_gain_15x0.0001')
 
 rsn_labels = ['VIS', 'SM', 'DA', 'VA', 'LIM', 'FP', 'DMN']
 
@@ -64,11 +65,6 @@ sns.scatterplot(
     y=df_emp_avg['corrcoef'].values,
     ax=ax
 )
-
-# plt.plot(
-#     np.arange(len(np.unique(df_null_avg['alpha']))),  # df_emp_avg['alpha'].values,
-#     df_emp_avg['corrcoef'].values,
-# )
 
 plt.show()
 plt.close()

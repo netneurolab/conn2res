@@ -1,7 +1,7 @@
 # other files
 examples/data
 examples/results
-examples/sensitivity_analysis
+examples/sensitivity_analysis_code
 *figs/
 
 # data files
