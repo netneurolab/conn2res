@@ -134,7 +134,7 @@ def run_workflow(w, x, y, rand=True, filename=None, **kwargs):
     df_alpha = pd.concat(df_alpha, ignore_index=True)
     df_alpha = df_alpha[['alpha', 'module', 'n_nodes', METRIC[0]]]
     df_alpha.to_csv(
-        os.path.join(OUTPUT_DIR, f'res_{filename}.csv'),
+        os.path.join(OUTPUT_DIR, f'{filename}_scores.csv'),
         index=False
         )
 
@@ -146,10 +146,10 @@ def run_experiment(exp_number, x, y, bootstrap):
     hemiid = np.load(os.path.join(DATA_DIR, 'hemiid.npy'))
 
     w_consensus = consensus_network(w, coords, hemiid, bootstrap)
-    np.save(os.path.join(DATA_DIR, f'w_consensus_{exp_number}.npy'), w_consensus)
+    np.save(os.path.join(DATA_DIR, f'{exp_number}_w_consensus.npy'), w_consensus)
 
     # run workflow for empirical connectome
-    run_workflow(w_consensus.copy(), x, y, rand=False, filename='empirical')
+    run_workflow(w_consensus.copy(), x, y, rand=False, filename=f'{exp_number}_empirical')
 
     # run workflow for nulls
     params = []
@@ -187,7 +187,6 @@ def main():
 
     for i in range(1, 6):
         run_experiment(i, x, y, bootstrap=True)
-
 
 
 if __name__ == '__main__':
