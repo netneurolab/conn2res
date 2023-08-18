@@ -38,14 +38,14 @@ if not os.path.isdir(OUTPUT_DIR):
     os.makedirs(OUTPUT_DIR)
 
 # -----------------------------------------------------
-N_PROCESS = 15
+N_PROCESS = 30
 TASK = 'MemoryCapacity'
 METRIC = ['corrcoef']
 metric_kwargs = {
     'multioutput': 'sum',
     'nonnegative': 'absolute'
 }
-INPUT_GAIN = 15
+INPUT_GAIN = 0.0001
 ALPHAS = np.linspace(0, 2, 41)[1:]
 RSN_MAPPING = np.load(os.path.join(DATA_DIR, 'rsn_mapping.npy'))
 CORTICAL = np.load(os.path.join(DATA_DIR, 'cortical.npy'))
@@ -139,27 +139,27 @@ def main():
     w = np.load(os.path.join(DATA_DIR, 'consensus.npy'))
 
     task = Conn2ResTask(name=TASK)
-    # x, y = task.fetch_data(n_trials=1000)
-    # np.save(os.path.join(OUTPUT_DIR, 'input.npy'), x)
-    # np.save(os.path.join(OUTPUT_DIR, 'output.npy'), y)
+    x, y = task.fetch_data(n_trials=1000)
+    np.save(os.path.join(OUTPUT_DIR, 'input.npy'), x)
+    np.save(os.path.join(OUTPUT_DIR, 'output.npy'), y)
 
     # -------------------------------------------------------
-    x = np.load(os.path.join(OUTPUT_DIR, 'input_rel.npy'))
-    y = np.load(os.path.join(OUTPUT_DIR, 'output_rel.npy'))
+    # x = np.load(os.path.join(OUTPUT_DIR, 'input_rel.npy'))
+    # y = np.load(os.path.join(OUTPUT_DIR, 'output_rel.npy'))
 
     run_workflow(w, x, y, rand=False, filename='empirical')
 
     # -------------------------------------------------------
-    xn = np.load(os.path.join(OUTPUT_DIR, 'input_sig.npy'))
-    yn = np.load(os.path.join(OUTPUT_DIR, 'output_sig.npy'))
+    # xn = np.load(os.path.join(OUTPUT_DIR, 'input_sig.npy'))
+    # yn = np.load(os.path.join(OUTPUT_DIR, 'output_sig.npy'))
 
     params = []
     for i in range(1000):
         params.append(
             {
                 'w': w.copy(),
-                'x': xn.copy(),
-                'y': yn.copy(),
+                'x': x.copy(),
+                'y': y.copy(),
                 'filename': f'null_{i}'
             }
         )

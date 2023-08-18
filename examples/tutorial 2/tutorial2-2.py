@@ -2,7 +2,7 @@
 """
 Title
 =======================================================================
-This example demonstrates how ... 
+This example demonstrates how ...
 """
 
 import os
@@ -14,8 +14,8 @@ import matplotlib.pyplot as plt
 from conn2res import plotting
 
 PROJ_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-# OUTPUT_DIR = os.path.join(PROJ_DIR, 'results', 'results_new_generated_data', 'results_rsn_gain_15')
-OUTPUT_DIR = os.path.join(PROJ_DIR, 'results', 'results_old_iodata', 'results_rsn_gain_15x0.0001')
+OUTPUT_DIR = os.path.join(PROJ_DIR, 'results', 'results_new_generated_iodata', 'results_rsn_gain_15x0.0001')
+# OUTPUT_DIR = os.path.join(PROJ_DIR, 'results', 'results_old_iodata_sig-and-relia', 'results_rsn_gain_15')
 
 rsn_labels = ['VIS', 'SM', 'DA', 'VA', 'LIM', 'FP', 'DMN']
 
@@ -26,7 +26,12 @@ def concat_results():
     for sample_id in range(1000):
         df = pd.read_csv(os.path.join(OUTPUT_DIR, f'res_null_{sample_id}.csv')).reset_index(drop=True)
         df['sample_id'] = sample_id
-        scores.append(df[['sample_id', 'alpha', 'module', 'n_nodes', 'corrcoef']])
+
+        try:
+            scores.append(df[['sample_id', 'alpha', 'module', 'n_nodes', 'corrcoef']])
+        except:
+            scores.append(df[['sample_id', 'alpha', 'corrcoef']])
+
     scores = pd.concat(scores).reset_index(drop=True)
 
     scores.to_csv(
@@ -34,19 +39,15 @@ def concat_results():
         index=False
         )
 
-# concat_results()
+concat_results()
 
 df_emp = pd.read_csv(os.path.join(OUTPUT_DIR, 'res_empirical.csv')).reset_index(drop=True)
 df_emp_avg = df_emp[['alpha', 'corrcoef']]
 df_emp_avg = df_emp_avg.groupby('alpha').mean().reset_index()
-# print(np.unique(df_emp_avg['alpha']))
-
 
 df_null  = pd.read_csv(os.path.join(OUTPUT_DIR, 'res_null.csv')).reset_index(drop=True)
 df_null_avg = df_null[['sample_id', 'alpha', 'corrcoef']]
 df_null_avg = df_null_avg.groupby(['sample_id', 'alpha']).mean().reset_index()
-# print(np.unique(df_null_avg['alpha']))
-
 
 sns.set(style="ticks", font_scale=1.0)
 fig = plt.figure(figsize=(15,5))
