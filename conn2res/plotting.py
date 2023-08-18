@@ -337,9 +337,9 @@ def plot_reservoir_states(
     )
 
     palette = sns.color_palette("tab10", reservoir_states.shape[1])
-    reservoir_states = transform_data(
-        transform_data(reservoir_states, scaler='scale', with_std=False),
-        scaler='minmax_scale', feature_range=(-1, 1))
+    # reservoir_states = transform_data(
+    #     transform_data(reservoir_states, scaler='scale', with_std=False),
+    #     scaler='minmax_scale', feature_range=(-1, 1))
     sns.lineplot(
         data=reservoir_states, palette=palette, dashes=False, legend=False,
         linewidth=0.5, ax=axs[1], **kwargs
@@ -350,6 +350,9 @@ def plot_reservoir_states(
     lg_defaults = {'labels': x_labels}
     lg_defaults.update(**lg_params)
     axs[0].legend(handles=axs[0].lines, **lg_defaults)
+
+    yabs_max = abs(max(axs[1].get_ylim(), key=abs))
+    axs[1].set_ylim(ymin=-yabs_max, ymax=yabs_max)
 
     # set axes properties
     xlabel = ['', 'time steps']
