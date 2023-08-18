@@ -51,12 +51,38 @@ RSN_MAPPING = np.load(os.path.join(DATA_DIR, 'rsn_mapping.npy'))
 CORTICAL = np.load(os.path.join(DATA_DIR, 'cortical.npy'))
 RSN_MAPPING = RSN_MAPPING[CORTICAL == 1]
 
-def run_workflow(w, x, y, rand=True, filename=None):
+
+def consensus_network(w, coords, hemiid, bootstrap=True):
+
+    # remove bad subjects
+    bad_subj = [7, 12, 43]  #SC: 7,12,43 #FC: 32
+    w = np.delete(w, bad_subj, axis=2)
+
+    # remove nans
+    nan_subjs = np.unique(np.where(np.isnan(w))[-1])
+    w = np.delete(w, nan_subjs, axis=2)
+
+    # bootstrap subjects
+    if bootstrap:
+        n_subj = w.shape[2]
+        sample = np.random.choice(np.arange(n_subj), size=n_subj, replace=False)
+        w = w.copy()[:, :, sample]
+
+    stru_conn_avg = utils.struct_consensus(data=w.copy(),
+        distance=cdist(coords, coords, metric='euclidean'),
+        hemiid=hemiid[:, np.newaxis]
+    )
+
+    return stru_conn_avg*np.mean(w, axis=2)
+
+
+def run_workflow(w, x, y, rand=True, filename=None, **kwargs):
+
 
     conn = Conn(w=w)
     if rand:
         conn.randomize(swaps=10)
-        np.save(os.path.join(OUTPUT_DIR, f'{filename}.npy'), conn.w)
+        # np.save(os.path.join(OUTPUT_DIR, f'{filename}.npy'), conn.w)
 
     conn.scale_and_normalize()
 
@@ -113,58 +139,30 @@ def run_workflow(w, x, y, rand=True, filename=None):
         )
 
 
-def main():
-    # w = np.load(os.path.join(DATA_DIR, 'connectivity.npy'))
-    # coords = np.load(os.path.join(DATA_DIR, 'coords.npy'))
-    # hemiid = np.load(os.path.join(DATA_DIR, 'hemiid.npy'))
-    #
-    # def consensus_network(w, coords, hemiid):
-    #
-    #     # remove bad subjects
-    #     bad_subj = [7, 12, 43] #SC:7,12,43 #FC:32
-    #     w = np.delete(w, bad_subj, axis=2)
-    #
-    #     # remove nans
-    #     nan_subjs = np.unique(np.where(np.isnan(w))[-1])
-    #     w = np.delete(w, nan_subjs, axis=2)
-    #     stru_conn_avg = utils.struct_consensus(data=w.copy(),
-    #                                            distance=cdist(coords, coords, metric='euclidean'),
-    #                                            hemiid=hemiid[:, np.newaxis]
-    #                                            )
-    #
-    #     return stru_conn_avg*np.mean(w, axis=2)
-    # w_consensus = consensus_network(w, coords, hemiid)
-    # np.save(os.path.join(DATA_DIR, 'w_consensus.npy'), consensus)
+def run_experiment(exp_number, x, y, bootstrap):
 
-    w = np.load(os.path.join(DATA_DIR, 'consensus.npy'))
+    w = np.load(os.path.join(DATA_DIR, 'connectivity.npy'))
+    coords = np.load(os.path.join(DATA_DIR, 'coords.npy'))
+    hemiid = np.load(os.path.join(DATA_DIR, 'hemiid.npy'))
 
-    task = Conn2ResTask(name=TASK)
-    x, y = task.fetch_data(n_trials=1000)
-    np.save(os.path.join(OUTPUT_DIR, 'input.npy'), x)
-    np.save(os.path.join(OUTPUT_DIR, 'output.npy'), y)
+    w_consensus = consensus_network(w, coords, hemiid, bootstrap)
+    np.save(os.path.join(DATA_DIR, f'w_consensus_{exp_number}.npy'), w_consensus)
 
-    # -------------------------------------------------------
-    # x = np.load(os.path.join(OUTPUT_DIR, 'input_rel.npy'))
-    # y = np.load(os.path.join(OUTPUT_DIR, 'output_rel.npy'))
+    # run workflow for empirical connectome
+    run_workflow(w_consensus.copy(), x, y, rand=False, filename='empirical')
 
-    run_workflow(w, x, y, rand=False, filename='empirical')
-
-    # -------------------------------------------------------
-    # xn = np.load(os.path.join(OUTPUT_DIR, 'input_sig.npy'))
-    # yn = np.load(os.path.join(OUTPUT_DIR, 'output_sig.npy'))
-
+    # run workflow for nulls
     params = []
-    for i in range(1000):
+    for i in range(500):
         params.append(
             {
-                'w': w.copy(),
-                'x': x.copy(),
-                'y': y.copy(),
-                'filename': f'null_{i}'
+                'w': w_consensus.copy(),
+                'x': x,
+                'y': y,
+                'filename': f'{exp_number}_null_{i}'
             }
         )
 
-    # run workflow in parallel
     print('\nINITIATING PROCESSING TIME')
     t0 = time.perf_counter()
 
@@ -176,6 +174,20 @@ def main():
     print('\nTOTAL PROCESSING TIME')
     print(time.perf_counter()-t0, "seconds process time")
     print('END')
+
+
+def main():
+
+    task = Conn2ResTask(name=TASK)
+    x, y = task.fetch_data(n_trials=1000)
+    np.save(os.path.join(OUTPUT_DIR, 'input.npy'), x)
+    np.save(os.path.join(OUTPUT_DIR, 'output.npy'), y)
+
+    run_experiment(0, x, y, bootstrap=False)
+
+    for i in range(1, 6):
+        run_experiment(i, x, y, bootstrap=True)
+
 
 
 if __name__ == '__main__':
