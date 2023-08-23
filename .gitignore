@@ -1,5 +1,6 @@
 # other files
 examples/data
+examples/connectomes
 examples/results
 examples/sensitivity_analysis_code
 *figs/

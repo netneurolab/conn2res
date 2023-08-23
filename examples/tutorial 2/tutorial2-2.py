@@ -1,71 +1,164 @@
 # -*- coding: utf-8 -*-
 """
-Title
+Connectome-informed reservoir - Echo-State Network
 =======================================================================
-This example demonstrates how ...
+This example demonstrates how to use the conn2res toolbox to implement
+perform multiple tasks across dynamical regimes, and using different
+types local dynamics
 """
+import warnings
 
 import os
+os.environ['OPENBLAS_NUM_THREADS'] = "1"
+os.environ['MKL_NUM_THREADS'] = "1"
+
+import time
+import multiprocessing as mp
+
 import numpy as np
 import pandas as pd
-import seaborn as sns
-import matplotlib.pyplot as plt
+from scipy.spatial.distance import cdist
 
-from conn2res import plotting
+from conn2res import tasks
+from conn2res.tasks import Conn2ResTask
+from conn2res.connectivity import Conn
+from conn2res.reservoir import EchoStateNetwork
+from conn2res.readout import Readout
+from conn2res import readout, plotting, utils
 
+warnings.simplefilter(action='ignore', category=FutureWarning)
+warnings.simplefilter(action='ignore', category=RuntimeWarning)
+warnings.simplefilter(action='ignore', category=UserWarning)
+
+# -----------------------------------------------------
 PROJ_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-OUTPUT_DIR = os.path.join(PROJ_DIR, 'results', 'results_new_generated_iodata', 'results_rsn_gain_15x0.0001')
-# OUTPUT_DIR = os.path.join(PROJ_DIR, 'results', 'results_old_iodata_sig-and-relia', 'results_rsn_gain_15')
+DATA_DIR = os.path.join(PROJ_DIR, 'connectomes')
+OUTPUT_DIR = os.path.join(PROJ_DIR, 'results')
+if not os.path.isdir(OUTPUT_DIR):
+    os.makedirs(OUTPUT_DIR)
 
-rsn_labels = ['VIS', 'SM', 'DA', 'VA', 'LIM', 'FP', 'DMN']
+# -----------------------------------------------------
+N_PROCESS = 30
+TASK = 'MemoryCapacity'
+METRIC = ['corrcoef']
+metric_kwargs = {
+    'multioutput': 'sum',
+    'nonnegative': 'absolute'
+}
+INPUT_GAIN = 0.0001
+ALPHAS = np.linspace(0, 2, 41)[1:]
 
 
-def concat_results():
+def run_workflow(w, x, y, input_nodes, output_nodes, rand=True, filename=None, **kwargs):
 
-    scores = []
-    for sample_id in range(1000):
-        df = pd.read_csv(os.path.join(OUTPUT_DIR, f'res_null_{sample_id}.csv')).reset_index(drop=True)
-        df['sample_id'] = sample_id
+    conn = Conn(w=w)
+    if rand:
+        conn.randomize(swaps=10)
+        # np.save(os.path.join(OUTPUT_DIR, f'{filename}.npy'), conn.w)
 
-        try:
-            scores.append(df[['sample_id', 'alpha', 'module', 'n_nodes', 'corrcoef']])
-        except:
-            scores.append(df[['sample_id', 'alpha', 'corrcoef']])
+    conn.scale_and_normalize()
 
-    scores = pd.concat(scores).reset_index(drop=True)
+    w_in = np.zeros((1, conn.n_nodes))
+    w_in[:, input_nodes] = np.eye(1)
 
-    scores.to_csv(
-        os.path.join(OUTPUT_DIR, 'res_null.csv'),
+    esn = EchoStateNetwork(w=conn.w, activation_function='tanh')
+    readout_module = Readout(estimator=readout.select_model(y))
+
+    x_train, x_test, y_train, y_test = readout.train_test_split(x, y)
+
+    df_alpha = []
+    for alpha in ALPHAS:
+
+        print(f'\n\t\t\t----- alpha = {alpha} -----')
+
+        esn.w = alpha * conn.w
+
+        rs_train = esn.simulate(
+            ext_input=x_train, w_in=w_in, input_gain=INPUT_GAIN,
+            output_nodes=output_nodes
+        )
+
+        rs_test = esn.simulate(
+            ext_input=x_test, w_in=w_in, input_gain=INPUT_GAIN,
+            output_nodes=output_nodes
+        )
+
+        df_res = readout_module.run_task(
+            X=(rs_train, rs_test), y=(y_train, y_test),
+            sample_weight=None, metric=METRIC,
+            readout_modules=None, readout_nodes=None,
+            **metric_kwargs
+        )
+
+        df_res['alpha'] = np.round(alpha, 3)
+        df_alpha.append(df_res)
+
+    df_alpha = pd.concat(df_alpha, ignore_index=True)
+    df_alpha = df_alpha[['alpha', METRIC[0]]]
+    df_alpha.to_csv(
+        os.path.join(OUTPUT_DIR, f'{filename}_scores.csv'),
         index=False
         )
 
-concat_results()
 
-df_emp = pd.read_csv(os.path.join(OUTPUT_DIR, 'res_empirical.csv')).reset_index(drop=True)
-df_emp_avg = df_emp[['alpha', 'corrcoef']]
-df_emp_avg = df_emp_avg.groupby('alpha').mean().reset_index()
+def run_experiment(connectome, x, y):
+    w = np.loadtxt(os.path.join(DATA_DIR, connectome, 'conn.csv'), delimiter=',', dtype=float)
+    labels = pd.read_csv(os.path.join(DATA_DIR, connectome, 'labels.csv'))['Sensory'].values
 
-df_null  = pd.read_csv(os.path.join(OUTPUT_DIR, 'res_null.csv')).reset_index(drop=True)
-df_null_avg = df_null[['sample_id', 'alpha', 'corrcoef']]
-df_null_avg = df_null_avg.groupby(['sample_id', 'alpha']).mean().reset_index()
+    run_workflow(w.copy(), x, y,
+        input_nodes=np.where(labels == 1)[0],
+        output_nodes=np.where(labels == 0)[0],
+        rand=False,
+        filename=f'{connectome}_empirical')
 
-sns.set(style="ticks", font_scale=1.0)
-fig = plt.figure(figsize=(15,5))
-ax = plt.subplot(111)
+    # run workflow for nulls
+    params = []
+    for i in range(500):
+        params.append(
+            {
+                'w': w.copy(),
+                'x': x,
+                'y': y,
+                'input_nodes': np.where(labels == 1)[0],
+                'output_nodes': np.where(labels == 0)[0],
+                'filename': f'{connectome}_null_{i}'
+            }
+        )
 
-sns.boxplot(
-    data=df_null_avg,
-    x='alpha',
-    y='corrcoef',
-    sym='',
-    ax=ax
-)
+    print('\nINITIATING PROCESSING TIME')
+    t0 = time.perf_counter()
 
-sns.scatterplot(
-    x=np.arange(len(np.unique(df_null_avg['alpha']))),
-    y=df_emp_avg['corrcoef'].values,
-    ax=ax
-)
+    pool = mp.Pool(processes=N_PROCESS)
+    res = [pool.apply_async(run_workflow, (), p) for p in params]
+    for r in res: r.get()
+    pool.close()
 
-plt.show()
-plt.close()
+    print('\nTOTAL PROCESSING TIME')
+    print(time.perf_counter()-t0, "seconds process time")
+    print('END')
+
+
+def main():
+
+    task = Conn2ResTask(name=TASK)
+    x, y = task.fetch_data(n_trials=4050)
+    np.save(os.path.join(OUTPUT_DIR, 'input.npy'), x)
+    np.save(os.path.join(OUTPUT_DIR, 'output.npy'), y)
+
+    # x = np.load(os.path.join(OUTPUT_DIR, 'input.npy'))
+    # y = np.load(os.path.join(OUTPUT_DIR, 'output.npy'))
+
+    connectomes = [
+        'celegans',
+        'drosophila',
+        'macaque_modha',
+        'mouse',
+        'rat'
+    ]
+
+    for connectome in connectomes:
+        run_experiment(connectome, x, y)
+
+
+if __name__ == '__main__':
+    main()

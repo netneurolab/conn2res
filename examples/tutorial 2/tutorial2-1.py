@@ -179,9 +179,12 @@ def run_experiment(exp_number, x, y, bootstrap):
 def main():
 
     task = Conn2ResTask(name=TASK)
-    x, y = task.fetch_data(n_trials=1000)
+    x, y = task.fetch_data(n_trials=4050)
     np.save(os.path.join(OUTPUT_DIR, 'input.npy'), x)
     np.save(os.path.join(OUTPUT_DIR, 'output.npy'), y)
+
+    # x = np.load(os.path.join(OUTPUT_DIR, 'input.npy'))
+    # y = np.load(os.path.join(OUTPUT_DIR, 'output.npy'))
 
     run_experiment(0, x, y, bootstrap=False)
 
