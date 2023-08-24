@@ -65,7 +65,7 @@ def consensus_network(w, coords, hemiid, bootstrap=True):
     # bootstrap subjects
     if bootstrap:
         n_subj = w.shape[2]
-        sample = np.random.choice(np.arange(n_subj), size=n_subj, replace=False)
+        sample = np.random.choice(np.arange(n_subj), size=n_subj, replace=True)
         w = w.copy()[:, :, sample]
 
     stru_conn_avg = utils.struct_consensus(data=w.copy(),
