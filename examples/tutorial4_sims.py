@@ -55,7 +55,7 @@ SPINS = np.genfromtxt(
 ).astype(int)
 
 def run_workflow(
-    w, x, y, readout_modules, filename=None, **kwargs
+    w, x, y, readout_modules, filename=None
 ):
 
     conn = Conn(w=w)

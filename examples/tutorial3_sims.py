@@ -50,7 +50,7 @@ ALPHAS = np.linspace(0, 2, 41)[1:]
 
 
 def run_workflow(
-    w, x, y, input_nodes, output_nodes, rewire=True, filename=None, **kwargs
+    w, x, y, input_nodes, output_nodes, rewire=True, filename=None
 ):
 
     conn = Conn(w=w)

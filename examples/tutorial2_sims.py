@@ -53,7 +53,7 @@ RSN_MAPPING = RSN_MAPPING[CORTICAL == 1]
 
 
 def run_workflow(
-    w, x, y, rewire=True, filename=None, **kwargs
+    w, x, y, rewire=True, filename=None
 ):
 
     conn = Conn(w=w)
