@@ -32,8 +32,8 @@ warnings.simplefilter(action='ignore', category=UserWarning)
 
 # -----------------------------------------------------
 PROJ_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-DATA_DIR = os.path.join(PROJ_DIR, 'connectomes')
-OUTPUT_DIR = os.path.join(PROJ_DIR, 'results')
+DATA_DIR = os.path.join(PROJ_DIR, 'examples', 'data')
+OUTPUT_DIR = os.path.join(PROJ_DIR, 'examples', 'results')
 if not os.path.isdir(OUTPUT_DIR):
     os.makedirs(OUTPUT_DIR)
 
@@ -49,10 +49,12 @@ INPUT_GAIN = 0.0001
 ALPHAS = np.linspace(0, 2, 41)[1:]
 
 
-def run_workflow(w, x, y, input_nodes, output_nodes, rand=True, filename=None, **kwargs):
+def run_workflow(
+    w, x, y, input_nodes, output_nodes, rewire=True, filename=None, **kwargs
+):
 
     conn = Conn(w=w)
-    if rand:
+    if rewire:
         conn.randomize(swaps=10)
         # np.save(os.path.join(OUTPUT_DIR, f'{filename}.npy'), conn.w)
 
@@ -102,14 +104,17 @@ def run_workflow(w, x, y, input_nodes, output_nodes, rand=True, filename=None, *
 
 
 def run_experiment(connectome, x, y):
+
     w = np.loadtxt(os.path.join(DATA_DIR, connectome, 'conn.csv'), delimiter=',', dtype=float)
     labels = pd.read_csv(os.path.join(DATA_DIR, connectome, 'labels.csv'))['Sensory'].values
 
-    run_workflow(w.copy(), x, y,
+    run_workflow(
+        w.copy(), x, y,
         input_nodes=np.where(labels == 1)[0],
         output_nodes=np.where(labels == 0)[0],
-        rand=False,
-        filename=f'{connectome}_empirical')
+        rewire=False,
+        filename=f'{connectome}_empirical'
+    )
 
     # run workflow for nulls
     params = []
@@ -144,9 +149,6 @@ def main():
     x, y = task.fetch_data(n_trials=4050)
     np.save(os.path.join(OUTPUT_DIR, 'input.npy'), x)
     np.save(os.path.join(OUTPUT_DIR, 'output.npy'), y)
-
-    # x = np.load(os.path.join(OUTPUT_DIR, 'input.npy'))
-    # y = np.load(os.path.join(OUTPUT_DIR, 'output.npy'))
 
     connectomes = [
         'celegans',

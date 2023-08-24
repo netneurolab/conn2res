@@ -32,8 +32,8 @@ warnings.simplefilter(action='ignore', category=UserWarning)
 
 # -----------------------------------------------------
 PROJ_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-DATA_DIR = os.path.join(PROJ_DIR, 'data')
-OUTPUT_DIR = os.path.join(PROJ_DIR, 'results')
+DATA_DIR = os.path.join(PROJ_DIR, 'examples', 'data', 'human')
+OUTPUT_DIR = os.path.join(PROJ_DIR, 'examples', 'results')
 if not os.path.isdir(OUTPUT_DIR):
     os.makedirs(OUTPUT_DIR)
 
@@ -52,35 +52,12 @@ CORTICAL = np.load(os.path.join(DATA_DIR, 'cortical.npy'))
 RSN_MAPPING = RSN_MAPPING[CORTICAL == 1]
 
 
-def consensus_network(w, coords, hemiid, bootstrap=True):
-
-    # remove bad subjects
-    bad_subj = [7, 12, 43]  #SC: 7,12,43 #FC: 32
-    w = np.delete(w, bad_subj, axis=2)
-
-    # remove nans
-    nan_subjs = np.unique(np.where(np.isnan(w))[-1])
-    w = np.delete(w, nan_subjs, axis=2)
-
-    # bootstrap subjects
-    if bootstrap:
-        n_subj = w.shape[2]
-        sample = np.random.choice(np.arange(n_subj), size=n_subj, replace=True)
-        w = w.copy()[:, :, sample]
-
-    stru_conn_avg = utils.struct_consensus(data=w.copy(),
-        distance=cdist(coords, coords, metric='euclidean'),
-        hemiid=hemiid[:, np.newaxis]
-    )
-
-    return stru_conn_avg*np.mean(w, axis=2)
-
-
-def run_workflow(w, x, y, rand=True, filename=None, **kwargs):
-
+def run_workflow(
+    w, x, y, rewire=True, filename=None, **kwargs
+):
 
     conn = Conn(w=w)
-    if rand:
+    if rewire:
         conn.randomize(swaps=10)
         # np.save(os.path.join(OUTPUT_DIR, f'{filename}.npy'), conn.w)
 
@@ -139,27 +116,25 @@ def run_workflow(w, x, y, rand=True, filename=None, **kwargs):
         )
 
 
-def run_experiment(exp_number, x, y, bootstrap):
+def run_experiment(connectome, x, y):
 
-    w = np.load(os.path.join(DATA_DIR, 'connectivity.npy'))
-    coords = np.load(os.path.join(DATA_DIR, 'coords.npy'))
-    hemiid = np.load(os.path.join(DATA_DIR, 'hemiid.npy'))
+    w = np.load(os.path.join(DATA_DIR, f'{connectome}.npy'))
 
-    w_consensus = consensus_network(w, coords, hemiid, bootstrap)
-    np.save(os.path.join(DATA_DIR, f'{exp_number}_w_consensus.npy'), w_consensus)
-
-    # run workflow for empirical connectome
-    run_workflow(w_consensus.copy(), x, y, rand=False, filename=f'{exp_number}_empirical')
+    run_workflow(
+        w.copy(), x, y,
+        rewire=False,
+        filename=f'{connectome}_empirical'
+    )
 
     # run workflow for nulls
     params = []
     for i in range(500):
         params.append(
             {
-                'w': w_consensus.copy(),
+                'w': w.copy(),
                 'x': x,
                 'y': y,
-                'filename': f'{exp_number}_null_{i}'
+                'filename': f'{connectome}_null_{i}'
             }
         )
 
@@ -183,13 +158,17 @@ def main():
     np.save(os.path.join(OUTPUT_DIR, 'input.npy'), x)
     np.save(os.path.join(OUTPUT_DIR, 'output.npy'), y)
 
-    # x = np.load(os.path.join(OUTPUT_DIR, 'input.npy'))
-    # y = np.load(os.path.join(OUTPUT_DIR, 'output.npy'))
+    connectomes = [
+        'consensus',
+        'consensus_1',
+        'consensus_2',
+        'consensus_3',
+        'consensus_4',
+        'consensus_5'
+    ]
 
-    run_experiment(0, x, y, bootstrap=False)
-
-    for i in range(1, 6):
-        run_experiment(i, x, y, bootstrap=True)
+    for connectome in connectomes:
+        run_experiment(connectome, x, y)
 
 
 if __name__ == '__main__':

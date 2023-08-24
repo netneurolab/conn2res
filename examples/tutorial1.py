@@ -24,11 +24,9 @@ warnings.simplefilter(action='ignore', category=UserWarning)
 # #####################################################################
 # First, let's initialize some constant variables
 # #####################################################################
-PROJ_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-
 # project and figure directory
 PROJ_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-OUTPUT_DIR = os.path.join(PROJ_DIR, 'figs')
+OUTPUT_DIR = os.path.join(PROJ_DIR, 'examples', 'figs')
 if not os.path.isdir(OUTPUT_DIR):
     os.makedirs(OUTPUT_DIR)
 
