@@ -32,7 +32,7 @@ class Conn:
     3. The input and output nodes should be set such that they belong to the
     largest component, otherwise the signal cannot propagate from/to them.
 
-    4. Symmetric networks are checked for connectedness only in a weak sense,
+    4. Asymmetric networks are checked for connectedness only in a weak sense,
     i.e., using a network where the directed edges are replaced with
     symmetric edges.
 
