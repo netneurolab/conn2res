@@ -436,7 +436,7 @@ class Conn2ResTask(Task):
         y = np.hstack([x[win + h : -abs_horizon_max + h - 1] for h in horizon])
 
         # update input data
-        x = x[win : -abs_horizon_max - 1]
+        #x = x[win : -abs_horizon_max - 1]
 
         # reshape data if needed
         if x.ndim == 1:
@@ -463,7 +463,9 @@ class Conn2ResTask(Task):
         elif y.squeeze().ndim == 2:
             self.n_targets = y.shape[1]
 
+        self.win = win
         self.horizon_max = horizon_max
+        self.abs_horizon_max = abs_horizon_max
         # self._data = {'x': x, 'y': y}
 
         return x, y

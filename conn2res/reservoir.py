@@ -7,7 +7,6 @@ import numpy as np
 from numpy.linalg import pinv
 from . import utils
 
-
 class Reservoir(metaclass=ABCMeta):
     """
     Class that represents a general Reservoir object
@@ -90,8 +89,14 @@ class EchoStateNetwork(Reservoir):
         reservoir activation states
     n_nodes : int
         dimension of the reservoir
-    activation_function : {'tanh', 'piecewise'}
+    activation_function : fct
         type of activation function
+    activation_function_derivative : fct
+        derivative of activation function
+    LE : numpy.ndarray
+        Lyapunov exponents of the reservoir
+    LE_trajectory : numpy.ndarray
+        Lyapunov exponents of the reservoir over time
 
     Methods
     -------
@@ -122,7 +127,9 @@ class EchoStateNetwork(Reservoir):
 
         # activation function
         self.activation_function = self.set_activation_function(
-            activation_function)
+            activation_function, **kwargs)
+        self.activation_function_derivative = self.get_derivative(
+            activation_function, **kwargs)
 
     def simulate(
         self, ext_input, w_in, ic=None, output_nodes=None,
@@ -150,6 +157,8 @@ class EchoStateNetwork(Reservoir):
             'return_states' is True.
         return_states : bool, optional
             If True, simulated resrvoir states are returned. True by default.
+        compute_LE : bool, optional
+            If True, compute the Lyapunov spectrum of the reservoir. False by default.
         kwargs:
             Other keyword arguments are passed to self.activation_function
 
@@ -186,6 +195,18 @@ class EchoStateNetwork(Reservoir):
                 self._state[t-1, :], self.w) + np.dot(ext_input[t-1, :], w_in)
             self._state[t, :] = self.activation_function(synap_input, **kwargs)
 
+            if compute_LE and self.activation_function_derivative is not None:
+                J = np.dot(self.w, np.diag(self.activation_function_derivative(synap_input)))
+                Q = np.dot(J, Q)
+                Q, R = np.linalg.qr(Q)
+                yt = np.log(np.abs(np.diag(R)))
+                self.LE_trajectory[t-1, :] = yt
+                if t > warmup:
+                    y += yt
+        
+        if compute_LE and self.activation_function_derivative is not None:
+            self.LE = y / (timesteps[-1] - warmup)
+
         # remove initial condition (to match the time index of _state
         # and ext_input)
         self._state = self._state[1:]
@@ -204,19 +225,22 @@ class EchoStateNetwork(Reservoir):
             else:
                 return self._state
 
-    def set_activation_function(self, function):
+    def set_activation_function(self, function, **kwargs):
 
-        def linear(x, m=1):
+        def linear(x, **kwargs):
+            m = kwargs.get('m', 1)
             return m * x
 
-        def elu(x, alpha=0.5):
+        def elu(x, **kwargs):
+            alpha = kwargs.get('alpha', 0.5)
             x[x <= 0] = alpha*(np.exp(x[x <= 0]) - 1)
             return x
 
         def relu(x):
             return np.maximum(0, x)
 
-        def leaky_relu(x, alpha=0.5):
+        def leaky_relu(x, **kwargs):
+            alpha = kwargs.get('alpha', 0.5)
             return np.maximum(alpha * x, x)
 
         def sigmoid(x):
@@ -225,7 +249,10 @@ class EchoStateNetwork(Reservoir):
         def tanh(x):
             return np.tanh(x)
 
-        def step(x, thr=0.5, vmin=0, vmax=1):
+        def step(x, **kwargs):
+            thr = kwargs.get('thr', 0.5)
+            vmin = kwargs.get('vmin', 0)
+            vmax = kwargs.get('vmax', 1)
             return np.piecewise(x, [x < thr, x >= thr], [vmin, vmax]).astype(int)
 
         if function == 'linear':

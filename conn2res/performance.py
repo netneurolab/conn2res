@@ -7,7 +7,7 @@ from sklearn import metrics
 
 
 def r2_score(
-    y_true, y_pred, sample_weight=None, multioutput='uniform_average', **kwargs
+    y_true, y_pred, sample_weight=None, **kwargs
 ):
     """
     Coefficient of determination of the regression R^2.
@@ -41,12 +41,15 @@ def r2_score(
         A floating point value or an array of floating
         point values, one for each individual target.
     """
+
+    multioutput = kwargs.get('multioutput', 'uniform_average')
+
     func = getattr(metrics, 'r2_score')
     return func(y_true, y_pred, sample_weight=sample_weight, multioutput=multioutput)
 
 
 def mean_squared_error(
-    y_true, y_pred, sample_weight=None, multioutput='uniform_average', **kwargs
+    y_true, y_pred, sample_weight=None, **kwargs
 ):
     """
     Mean squared error.
@@ -76,13 +79,15 @@ def mean_squared_error(
         A floating point value or an array of floating
         point values, one for each individual target.
     """
+
+    multioutput = kwargs.get('multioutput', 'uniform_average')
+
     func = getattr(metrics, 'mean_squared_error')
     return func(y_true, y_pred, sample_weight=sample_weight, multioutput=multioutput, squared=True)
 
 
 def root_mean_squared_error(
-    y_true, y_pred, sample_weight=None, multioutput='uniform_average',
-    normalize=True, **kwargs
+    y_true, y_pred, sample_weight=None, **kwargs
 ):
     """
     Root mean squared error. If normalize is True, the error is
@@ -115,6 +120,10 @@ def root_mean_squared_error(
         A floating point value or an array of floating 
         point values, one for each individual target.
     """
+
+    multioutput = kwargs.get('multioutput', 'uniform_average')
+    normalize = kwargs.get('normalize', False)
+
     func = getattr(metrics, 'mean_squared_error')
     if normalize:
         if multioutput == 'uniform_average':
@@ -127,7 +136,7 @@ def root_mean_squared_error(
 
 
 def mean_absolute_error(
-    y_true, y_pred, sample_weight=None, multioutput='uniform_average', **kwargs
+    y_true, y_pred, sample_weight=None, **kwargs
 ):
     """
     Mean absolute error.
@@ -157,13 +166,15 @@ def mean_absolute_error(
         A floating point value or an array of floating
         point values, one for each individual target.
     """
+
+    multioutput = kwargs.get('multioutput', 'uniform_average')
+
     func = getattr(metrics, 'mean_absolute_error')
     return func(y_true, y_pred, sample_weight=sample_weight, multioutput=multioutput)
 
 
 def corrcoef(
-    y_true, y_pred, sample_weight=None, multioutput='uniform_average',
-    nonnegative=None, **kwargs
+    y_true, y_pred, sample_weight=None, **kwargs
 ):
     """
     Pearson's correlation coefficient.
@@ -195,6 +206,9 @@ def corrcoef(
 
     """
 
+    multioutput = kwargs.get('multioutput', 'uniform_average')
+    nonnegative = kwargs.get('nonnegative', None)
+
     if y_true.ndim <= 1:
         r = np.corrcoef(y_true, y_pred)[0][1]
         if nonnegative == 'squared':
@@ -225,7 +239,7 @@ def corrcoef(
 
 
 def accuracy_score(
-    y_true, y_pred, sample_weight=None, normalize=True, **kwargs
+    y_true, y_pred, sample_weight=None, **kwargs
 ):
     """
     Accuracy score.
@@ -248,6 +262,8 @@ def accuracy_score(
     score : float.
         A floating point value.
     """
+
+    normalize = kwargs.get('normalize', True)
 
     func = getattr(metrics, 'accuracy_score')
     return func(y_true, y_pred, sample_weight=sample_weight, normalize=normalize)
@@ -279,12 +295,14 @@ def balanced_accuracy_score(
         A floating point value.
     """
 
+    adjusted = kwargs.get('adjusted', False)
+
     func = getattr(metrics, 'balanced_accuracy_score')
     return func(y_true, y_pred, sample_weight=sample_weight, adjusted=adjusted)
 
 
 def f1_score(
-    y_true, y_pred, sample_weight=None, average='weighted', **kwargs
+    y_true, y_pred, sample_weight=None, **kwargs
 ):
     """
     F1-score.
@@ -323,12 +341,14 @@ def f1_score(
         A floating point value.
     """
 
+    average = kwargs.get('average', 'weighted')
+
     func = getattr(metrics, 'f1_score')
     return func(y_true, y_pred, sample_weight=sample_weight, average=average, zero_division='warn')
 
 
 def precision_score(
-    y_true, y_pred, sample_weight=None, average='weighted', **kwargs
+    y_true, y_pred, sample_weight=None, **kwargs
 ):
     """
     Precision score.
@@ -367,12 +387,14 @@ def precision_score(
         A floating point value.
     """
 
+    average = kwargs.get('average', 'weighted')
+
     func = getattr(metrics, 'precision_score')
     return func(y_true, y_pred, sample_weight=sample_weight, average=average, zero_division='warn')
 
 
 def recall_score(
-    y_true, y_pred, sample_weight=None, average='weighted', **kwargs
+    y_true, y_pred, sample_weight=None, **kwargs
 ):
     """
     Recall score.
@@ -410,6 +432,8 @@ def recall_score(
     score : float.
         A floating point value.
     """
+
+    average = kwargs.get('average', 'weighted')
 
     func = getattr(metrics, 'recall_score')
     return func(y_true, y_pred, sample_weight=sample_weight, average=average, zero_division='warn')
