@@ -132,8 +132,8 @@ class EchoStateNetwork(Reservoir):
             activation_function, **kwargs)
 
     def simulate(
-        self, ext_input, w_in, ic=None, output_nodes=None,
-        return_states=True, **kwargs
+        self, ext_input, w_in, input_gain=None, ic=None, output_nodes=None,
+        return_states=True, compute_LE = False, warmup = 0, **kwargs
     ):
         """
         Simulates reservoir dynamics given an external input signal
@@ -187,6 +187,15 @@ class EchoStateNetwork(Reservoir):
         if ic is not None:
             self._state[0, :] = ic
 
+        # scale input connectivity matrix
+        if input_gain is not None:
+            w_in = input_gain * w_in
+
+        if compute_LE and self.activation_function_derivative is not None:
+            Q = np.eye(self.n_nodes)
+            y = np.zeros(self.n_nodes)
+            self.LE_trajectory = np.zeros((len(timesteps), self.n_nodes))
+
         # simulate dynamics
         for t in timesteps:
             # if (t > 0) and (t % 100 == 0):
@@ -196,10 +205,10 @@ class EchoStateNetwork(Reservoir):
             self._state[t, :] = self.activation_function(synap_input, **kwargs)
 
             if compute_LE and self.activation_function_derivative is not None:
-                J = np.dot(self.w, np.diag(self.activation_function_derivative(synap_input)))
+                J = np.dot(np.diag(self.activation_function_derivative(synap_input)), self.w)
                 Q = np.dot(J, Q)
                 Q, R = np.linalg.qr(Q)
-                yt = np.log(np.abs(np.diag(R)))
+                yt = np.log2(np.abs(np.diag(R)))
                 self.LE_trajectory[t-1, :] = yt
                 if t > warmup:
                     y += yt
