@@ -370,15 +370,32 @@ class Conn:
             # get modules
             module_ids, modules = get_modules(rsn_mapping)
 
-            if node_set in module_ids:
-                # select all nodes in the requested module
-                selected_nodes = [e for i, e in enumerate(
-                    modules) if (module_ids == node_set)[i]][0]
+            # modules are contained in a list of groups
+            if isinstance(node_set, (list, np.ndarray)):
+                selected_nodes = np.empty(0)
 
+                for node_group in node_set:
+                    if node_group in module_ids:
+                        # select all nodes in the requested module
+                        selected_nodes = np.append(selected_nodes, [e for i, e in enumerate(
+                            modules) if (module_ids == node_group)[i]][0]).astype(int)
+                    else:
+                        raise ValueError('node_set does not exist with given value')
+                                        
                 # intersection of nodes we want to select from
                 selected_nodes = np.intersect1d(selected_nodes, nodes_from)
+
+            # modules are contained in a single group 
             else:
-                raise ValueError('given node_set does not exist in modules')
+                if node_set in module_ids:
+                    # select all nodes in the requested module
+                    selected_nodes = [e for i, e in enumerate(
+                        modules) if (module_ids == node_set)[i]][0]
+
+                    # intersection of nodes we want to select from
+                    selected_nodes = np.intersect1d(selected_nodes, nodes_from)
+                else:
+                    raise ValueError('node_set does not exist with given value')
 
         return selected_nodes
 
