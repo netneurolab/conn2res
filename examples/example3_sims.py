@@ -1,10 +1,30 @@
 # -*- coding: utf-8 -*-
 """
-Connectome-informed reservoir - Echo-State Network
+Example 3: Cross-species comparison
 =======================================================================
-This example demonstrates how to use the conn2res toolbox to implement
-perform multiple tasks across dynamical regimes, and using different
-types local dynamics
+This example shows how the toolbox can be applied to compare networks
+across species. Specifically, we implement connectomes reconstructed
+from four different organisms: fruit fly [1], mouse [2], rat [3] and
+macaque [4] to perform a memory capacity task. We compare task
+performance in each empirical connectome with a population of 500
+rewired null networks.
+
+[1] Chiang, A. S., Lin, C. Y., Chuang, C. C., Chang, H. M., Hsieh, C. H.,
+Yeh, C. W., ... & Hwang, J. K. (2011). Three-dimensional reconstruction
+of brain-wide wiring networks in Drosophila at single-cell resolution.
+Current biology, 21(1), 1-11.
+
+[2] Rubinov, M., Ypma, R. J., Watson, C., & Bullmore, E. T. (2015). Wiring
+cost and topological participation of the mouse brain connectome.
+Proceedings of the National Academy of Sciences, 112(32), 10032-10037.
+
+[3] Bota, M., Sporns, O., & Swanson, L. W. (2015). Architecture of the
+cerebral cortical association connectome underlying cognition. Proceedings
+of the National Academy of Sciences, 112(16), E2093-E2101.
+
+[4] Modha, D. S., & Singh, R. (2010). Network architecture of the
+long-distance pathways in the macaque brain. Proceedings of the
+National Academy of Sciences, 107(30), 13485-13490.
 """
 import warnings
 
@@ -32,13 +52,13 @@ warnings.simplefilter(action='ignore', category=UserWarning)
 
 # -----------------------------------------------------
 PROJ_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-DATA_DIR = os.path.join(PROJ_DIR, 'examples', 'data', 'human')
-OUTPUT_DIR = os.path.join(PROJ_DIR, 'examples', 'results')
+DATA_DIR = os.path.join(PROJ_DIR, 'examples', 'data')
+OUTPUT_DIR = os.path.join(PROJ_DIR, 'examples', 'results', 'example3')
 if not os.path.isdir(OUTPUT_DIR):
     os.makedirs(OUTPUT_DIR)
 
 # -----------------------------------------------------
-N_PROCESS = 30
+N_PROCESS = 32
 TASK = 'MemoryCapacity'
 METRIC = ['corrcoef']
 metric_kwargs = {
@@ -47,31 +67,17 @@ metric_kwargs = {
 }
 INPUT_GAIN = 0.0001
 ALPHAS = np.linspace(0, 2, 41)[1:]
-RSN_MAPPING = np.load(os.path.join(DATA_DIR, 'rsn_mapping.npy'))
-CORTICAL = np.load(os.path.join(DATA_DIR, 'cortical.npy'))
-RSN_MAPPING = RSN_MAPPING[CORTICAL == 1]
 
 
 def run_workflow(
-    w, x, y, rewire=True, filename=None
+    w, x, y, input_nodes, output_nodes, rewire=True, filename=None
 ):
 
     conn = Conn(w=w)
     if rewire:
         conn.randomize(swaps=10)
-        # np.save(os.path.join(OUTPUT_DIR, f'{filename}.npy'), conn.w)
 
     conn.scale_and_normalize()
-
-    input_nodes = conn.get_nodes(
-        nodes_from=None,
-        node_set='subctx',
-    )
-
-    output_nodes = conn.get_nodes(
-        nodes_from=None,
-        node_set='ctx',
-    )
 
     w_in = np.zeros((1, conn.n_nodes))
     w_in[:, input_nodes] = np.eye(1)
@@ -101,7 +107,7 @@ def run_workflow(
         df_res = readout_module.run_task(
             X=(rs_train, rs_test), y=(y_train, y_test),
             sample_weight=None, metric=METRIC,
-            readout_modules=RSN_MAPPING, readout_nodes=None,
+            readout_modules=None, readout_nodes=None,
             **metric_kwargs
         )
 
@@ -109,7 +115,7 @@ def run_workflow(
         df_alpha.append(df_res)
 
     df_alpha = pd.concat(df_alpha, ignore_index=True)
-    df_alpha = df_alpha[['alpha', 'module', 'n_nodes', METRIC[0]]]
+    df_alpha = df_alpha[['alpha', METRIC[0]]]
     df_alpha.to_csv(
         os.path.join(OUTPUT_DIR, f'{filename}_scores.csv'),
         index=False
@@ -118,10 +124,14 @@ def run_workflow(
 
 def run_experiment(connectome, x, y):
 
-    w = np.load(os.path.join(DATA_DIR, f'{connectome}.npy'))
+    w = np.loadtxt(os.path.join(DATA_DIR, connectome, 'conn.csv'), delimiter=',', dtype=float)
+    labels = pd.read_csv(os.path.join(DATA_DIR, connectome, 'labels.csv'))['Sensory'].values
 
+    # run workflow for empirical network
     run_workflow(
         w.copy(), x, y,
+        input_nodes=np.where(labels == 1)[0],
+        output_nodes=np.where(labels == 0)[0],
         rewire=False,
         filename=f'{connectome}_empirical'
     )
@@ -134,6 +144,8 @@ def run_experiment(connectome, x, y):
                 'w': w.copy(),
                 'x': x,
                 'y': y,
+                'input_nodes': np.where(labels == 1)[0],
+                'output_nodes': np.where(labels == 0)[0],
                 'filename': f'{connectome}_null_{i}'
             }
         )
@@ -159,12 +171,10 @@ def main():
     np.save(os.path.join(OUTPUT_DIR, 'output.npy'), y)
 
     connectomes = [
-        'consensus',
-        'consensus_1',
-        'consensus_2',
-        'consensus_3',
-        'consensus_4',
-        'consensus_5'
+        'drosophila',
+        'macaque_modha',
+        'mouse',
+        'rat'
     ]
 
     for connectome in connectomes:

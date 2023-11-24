@@ -1,10 +1,12 @@
 # -*- coding: utf-8 -*-
 """
-Connectome-informed reservoir - Echo-State Network
+Example 1: Inferences on global network organization
 =======================================================================
-This example demonstrates how to use the conn2res toolbox to implement
-perform multiple tasks across dynamical regimes, and using different
-types local dynamics
+This example shows how global computational capacity relates to global
+network topology. Specifically, we implement 5 group-consensus human
+connectomes as reservoirs (echo-state networks) to perform a memory
+capacity task. The performance of each empirical connectome is then
+compared against the performance of a family of 500 rewired nulls.
 """
 import warnings
 
@@ -33,12 +35,12 @@ warnings.simplefilter(action='ignore', category=UserWarning)
 # -----------------------------------------------------
 PROJ_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA_DIR = os.path.join(PROJ_DIR, 'examples', 'data', 'human')
-OUTPUT_DIR = os.path.join(PROJ_DIR, 'examples', 'results')
+OUTPUT_DIR = os.path.join(PROJ_DIR, 'examples', 'results', 'example1')
 if not os.path.isdir(OUTPUT_DIR):
     os.makedirs(OUTPUT_DIR)
 
 # -----------------------------------------------------
-N_PROCESS = 30
+N_PROCESS = 32
 TASK = 'MemoryCapacity'
 METRIC = ['corrcoef']
 metric_kwargs = {
@@ -50,15 +52,16 @@ ALPHAS = np.linspace(0, 2, 41)[1:]
 RSN_MAPPING = np.load(os.path.join(DATA_DIR, 'rsn_mapping.npy'))
 CORTICAL = np.load(os.path.join(DATA_DIR, 'cortical.npy'))
 RSN_MAPPING = RSN_MAPPING[CORTICAL == 1]
-SPINS = np.genfromtxt(
-    os.path.join(DATA_DIR, 'spins.csv'), delimiter=','
-).astype(int)
+
 
 def run_workflow(
-    w, x, y, readout_modules, filename=None
+    w, x, y, rewire=True, filename=None
 ):
 
     conn = Conn(w=w)
+    if rewire:
+        conn.randomize(swaps=10)
+
     conn.scale_and_normalize()
 
     input_nodes = conn.get_nodes(
@@ -99,7 +102,7 @@ def run_workflow(
         df_res = readout_module.run_task(
             X=(rs_train, rs_test), y=(y_train, y_test),
             sample_weight=None, metric=METRIC,
-            readout_modules=readout_modules, readout_nodes=None,
+            readout_modules=RSN_MAPPING, readout_nodes=None,
             **metric_kwargs
         )
 
@@ -118,10 +121,11 @@ def run_experiment(connectome, x, y):
 
     w = np.load(os.path.join(DATA_DIR, f'{connectome}.npy'))
 
+    # run workflow for empirical network
     run_workflow(
         w.copy(), x, y,
-        readout_modules=RSN_MAPPING,
-        filename=f'{connectome}_empirical_spin'
+        rewire=False,
+        filename=f'{connectome}_empirical'
     )
 
     # run workflow for nulls
@@ -132,8 +136,7 @@ def run_experiment(connectome, x, y):
                 'w': w.copy(),
                 'x': x,
                 'y': y,
-                'readout_modules': RSN_MAPPING.copy()[SPINS[:, i]],
-                'filename': f'{connectome}_spinnull_{i}'
+                'filename': f'{connectome}_null_{i}'
             }
         )
 
@@ -158,7 +161,7 @@ def main():
     np.save(os.path.join(OUTPUT_DIR, 'output.npy'), y)
 
     connectomes = [
-        'consensus',
+        'consensus_0',
         'consensus_1',
         'consensus_2',
         'consensus_3',
