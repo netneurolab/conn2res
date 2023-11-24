@@ -243,6 +243,7 @@ class EchoStateNetwork(Reservoir):
         elif function == 'step':
             return step
 
+
 class SpikingNeuralNetwork(Reservoir):
     """
     Class that represents a Spiking Neural Network
@@ -261,7 +262,7 @@ class SpikingNeuralNetwork(Reservoir):
     n_nodes : int
         dimension of the reservoir
     inh : (N,) numpy.ndarray
-        boolean array indicating whether a node is 
+        boolean array indicating whether a node is
         inhibitory (True) or excitatory (False)
         N: number of nodes in the network
     exc : (N,) numpy.ndarray
@@ -269,7 +270,7 @@ class SpikingNeuralNetwork(Reservoir):
         excitatory (True) or inhibitory (False)
         N: number of nodes in the network
     som : (N,) numpy.ndarray
-        boolean array indicating whether a node is 
+        boolean array indicating whether a node is
         somatostatin-expressing (True) or not (False)
         N: number of nodes in the network
     dt : float
@@ -336,13 +337,13 @@ class SpikingNeuralNetwork(Reservoir):
         ----------
         w: (N, N) numpy.ndarray
             Reservoir connectivity matrix (source, target)
-            N: number of nodes in the network. If w is directed, 
+            N: number of nodes in the network. If w is directed,
             then rows (columns) should correspond to source (target) nodes.
         inh: float or (N,) numpy.ndarray, optional
             If float, inh should be in the range [0, 1] and
             indicates the proportion of inhibitory neurons in the network.
             If numpy.ndarray of shape (N,), then inh is a
-            boolean array indicating whether a node is 
+            boolean array indicating whether a node is
             inhibitory (True) or excitatory (False).
             This parameter is used to apply Dale's principle, constraining
             the connectivity matrix such that a neuron can only be either
@@ -350,14 +351,14 @@ class SpikingNeuralNetwork(Reservoir):
             Default: 0.2
         som: float or (N,) numpy.ndarray, optional
             If float, som inh should be in the range [0, 1] and
-            indicates the proportion of somatostatin-expressing interneurons 
+            indicates the proportion of somatostatin-expressing interneurons
             in the network.
             If numpy.ndarray of shape (N,), then som is a
             boolean array indicating whether a node is
             somatostatin-expressing (True) or not (False).
             Importantly, somatostatin-expressing interneurons are a
             subset of the inhibitory neurons.
-            This parameter is used to constrain a 
+            This parameter is used to constrain a
             common cortical microcircuit motif where somatostatin-expressing
             inhibitory neurons do not receive inhibitory input.
             Default: 0
@@ -402,11 +403,11 @@ class SpikingNeuralNetwork(Reservoir):
                 som[som_idx] = True
             else:
                 som = np.zeros(self.n_nodes, dtype=bool)
-        
+
         # apply Dale's principle if inhibitory neurons are specified
         if np.any(inh):
             w = np.abs(self.w)
-        
+
             # mask matrix imposing Dale's principle
             mask = np.eye(self.n_nodes, dtype=np.float32)
             mask[np.where(inh)[0], np.where(inh)[0]] = -1
@@ -417,7 +418,7 @@ class SpikingNeuralNetwork(Reservoir):
             if np.any(som):
                 for i in som_idx:
                     som_mask[i, np.where(inh)[0]] = 0
-            
+
             self.w = np.multiply(np.matmul(w, mask), som_mask)
 
         self.inh = inh
@@ -425,10 +426,10 @@ class SpikingNeuralNetwork(Reservoir):
         self.som = som
 
     def simulate(
-        self, ext_input, w_in, 
-        downsample = 1, taus = 35, 
+        self, ext_input, w_in,
+        downsample = 1, taus = 35,
         tau_min = 20, tau_max = 50, sig_param = None,
-        timescale = 100, dt = 0.05, tref = 2, tm = 10, 
+        timescale = 100, dt = 0.05, tref = 2, tm = 10,
         vreset = -65, vpeak = -40, tr = 2,
         stim_mode = None, stim_dur = None, stim_units = None, stim_val = 0.5,
         input_gain=None, ic=None, output_nodes=None,
@@ -436,7 +437,7 @@ class SpikingNeuralNetwork(Reservoir):
     ):
         """
         Simulates the dynamics of a spiking neural network given
-        an external input signal 'ext_input', 
+        an external input signal 'ext_input',
         an input connectivity matrix 'w_in', and
         synaptic decay time constants 'taus'
 
@@ -451,8 +452,8 @@ class SpikingNeuralNetwork(Reservoir):
             N: number of nodes in the network
         taus : float or (2,) array_like, optional
             Parameter(s) that modify the decay time constants of the
-            synaptic filter model. 
-            If float, then the same decay time constant is used 
+            synaptic filter model.
+            If float, then the same decay time constant is used
             for all neurons.
             If array_like, then:
             taus[0]: minimum
@@ -461,7 +462,7 @@ class SpikingNeuralNetwork(Reservoir):
             Downsamples external input signal by a factor of 'downsample'.
             Default: 1
         taus : float or (N,) numpy.ndarray, optional
-            Decay time constants of the synaptic filter model (in ms). 
+            Decay time constants of the synaptic filter model (in ms).
             If float, then the same decay time constant tau
             is used for all neurons.
             If numpy.ndarray of shape (N,), then:
@@ -471,7 +472,7 @@ class SpikingNeuralNetwork(Reservoir):
         tau_min : float, optional
             Minimum decay time constant of the synaptic filter model (in ms).
             Default: 20
-            Note: used in combination with tau_max and sig_param; 
+            Note: used in combination with tau_max and sig_param;
             overrides taus
         tau_max : float, optional
             Maximum decay time constant of the synaptic filter model (in ms).
@@ -479,7 +480,7 @@ class SpikingNeuralNetwork(Reservoir):
             Note: used in combination with tau_min and sig_param;
             overrides taus
         sig_param : float, (N,) numpy.ndarray, or string, optional
-            Parameter(s) of the sigmoid function that constrains 
+            Parameter(s) of the sigmoid function that constrains
             the decay time constants of the synaptic filter model.
             If float, then the same parameter is used for all neurons
             yielding a single decay time constant for all neurons.
@@ -508,12 +509,12 @@ class SpikingNeuralNetwork(Reservoir):
         tr : float, optional
             Rise time constant (in ms). Default: 2
         stim_mode : {'exc', 'inh'}, optional
-            Indicates whether to apply artificial 
+            Indicates whether to apply artificial
             depolarizing ('exc') or hyperpolarizing ('inh')
-            stimulation (modelling optogenetic stimulation). 
+            stimulation (modelling optogenetic stimulation).
             Default: None
         stim_dur : (2,) numpy.ndarray, optional
-            Time interval (in timesteps) during which 
+            Time interval (in timesteps) during which
             artificial stimulation or inhibition is applied.
             stim_dur[0]: stimulus onset
             stim_dur[1]: stimulus offset
@@ -566,7 +567,7 @@ class SpikingNeuralNetwork(Reservoir):
         ext_input = ext_input.T
         ext_input = ext_input[:, ::downsample]
         ext_stim = np.dot(w_in, ext_input)
-        
+
         # Set simulation parameters
         # sampling rate (s)
         dt = dt/1000 * downsample
@@ -581,13 +582,13 @@ class SpikingNeuralNetwork(Reservoir):
         # rise time constant (s)
         tr = tr/1000
 
-        # Synaptic decay time constants (in sec) 
+        # Synaptic decay time constants (in sec)
         # for the synaptic filter
         # td: decay time constants
         if sig_param is not None:
             if sig_param == 'normal':
                 sig_param = np.random.randn(self.n_nodes)
-            td = (1 / (1 + np.exp(-sig_param)) * (tau_max - tau_min) 
+            td = (1 / (1 + np.exp(-sig_param)) * (tau_max - tau_min)
                   + tau_min) / 1000
         else:
             td = taus/1000
@@ -605,13 +606,13 @@ class SpikingNeuralNetwork(Reservoir):
         JD = np.zeros(self.n_nodes)
         # number of spikes
         ns = 0
-        
+
         # Initialize voltage
         if ic is not None:
             v = ic
         else:
             v = vreset + np.random.rand(self.n_nodes) * (30 - vreset)
-        
+
         # Initialize storage arrays for recording results
         # membrane voltage tracings (mV)
         REC = np.zeros((nt, self.n_nodes))
@@ -625,25 +626,25 @@ class SpikingNeuralNetwork(Reservoir):
         rs = np.zeros((self.n_nodes, nt))
         # filtered firing rates over time (synaptic input accumulation)
         hs = np.zeros((self.n_nodes, nt))
-        
+
         tlast = np.zeros(self.n_nodes) # last spike time
-        
+
         BIAS = vpeak # bias current
 
         # Start the simulation loop
         for i in range(nt):
             # Record IPSC over time
             IPSCs[:, i] = IPSC
-            
+
             # Calculate synaptic current
             I = IPSC + BIAS
             I = I + ext_stim[:, i // timescale]
             Is[:, i] = ext_stim[:, i // timescale]
-            
+
             # Compute voltage change according to LIF equation
             dv = (dt * i > tlast + tref) * (-v + I) / tm
             v = v + dt * dv + np.random.randn(self.n_nodes) / 10
-            
+
             # Apply artificial stimulation/inhibition
             if stim_mode == 'exc':
                 if stim_dur is None:
@@ -661,10 +662,10 @@ class SpikingNeuralNetwork(Reservoir):
                         raise ValueError('stim_units not specified')
                     elif np.random.rand() < 0.5:
                         v[stim_units] = v[stim_units] - stim_val
-            
+
             # Indices of neurons that have fired
             index = np.where(v >= vpeak)[0]
-            
+
             # Store spike times and compute weighted contributions to IPSC
             if len(index) > 0:
                 JD = np.sum(self.w[:, index], axis=1)
@@ -674,13 +675,13 @@ class SpikingNeuralNetwork(Reservoir):
                 else:
                     tspike = np.append(tspike, curr_ts, axis=0)
                 ns = ns + len(index)
-            
+
             # Set refractory period
             tlast = tlast + (dt * i - tlast) * (v >= vpeak)
-            
+
             # Compute IPSC and filtered firing rates
             # If the rise time is 0, then use the single synaptic filter,
-            # otherwise (i.e. if the rise time is positive) 
+            # otherwise (i.e. if the rise time is positive)
             # use the double-exponential filter
             if tr == 0:
                 IPSC = IPSC * np.exp(-dt / td) + JD * (len(index) > 0) / td
@@ -690,11 +691,11 @@ class SpikingNeuralNetwork(Reservoir):
                 IPSC = IPSC * np.exp(-dt / td) + h * dt
                 h = h * np.exp(-dt / tr) + JD * (len(index) > 0) / (tr * td)
                 hs[:, i] = h
-                
+
                 r = r * np.exp(-dt / td) + hr * dt
                 hr = hr * np.exp(-dt / tr) + (v >= vpeak) / (tr * td)
                 rs[:, i] = r
-            
+
             # Record spikes
             spk[:, i] = v >= vpeak
 
@@ -703,19 +704,19 @@ class SpikingNeuralNetwork(Reservoir):
 
             # Record membrane voltage
             REC[i, :] = v
-            
+
             # Reset voltage after spike
             v = v + (vreset - v) * (v >= vpeak)
-        
+
         # Compute average firing rates for different populations
         inh_fr = np.zeros(len(inh_ind))
         for i in range(len(inh_ind)):
             inh_fr[i] = np.sum(spk[inh_ind[i], :] > 0) / T
-        
+
         exc_fr = np.zeros(len(exc_ind))
         for i in range(len(exc_ind)):
             exc_fr[i] = np.sum(spk[exc_ind[i], :] > 0) / T
-        
+
         all_fr = np.zeros(self.n_nodes)
         for i in range(self.n_nodes):
             all_fr[i] = np.sum(spk[i, 10:] > 0) / T
@@ -752,6 +753,7 @@ class SpikingNeuralNetwork(Reservoir):
                     return self._state[:, output_nodes]
             else:
                 return self._state
+
 
 class MemristiveReservoir:
     """
@@ -893,7 +895,7 @@ class MemristiveReservoir:
         # TODO
 
         """
-        
+
         # use random number generator for reproducibility
         rng = np.random.default_rng(seed=seed)
 

@@ -48,7 +48,7 @@ if not os.path.isdir(OUTPUT_DIR):
     os.makedirs(OUTPUT_DIR)
 
 # -----------------------------------------------------
-N_PROCESS = 1
+N_PROCESS = 32
 TASK = 'ContextDecisionMaking'
 METRIC = ['balanced_accuracy_score']
 INPUT_GAIN = 1
@@ -58,7 +58,7 @@ RSN_MAPPING = np.load(os.path.join(DATA_DIR, 'rsn_mapping.npy'))
 def run_workflow(filename=None):
 
     task = NeuroGymTask(name=TASK)
-    x, y = task.fetch_data(n_trials=1000)
+    x, y = task.fetch_data(n_trials=1000, input_gain=INPUT_GAIN)
 
     conn = Conn(subj_id=0)
     conn.scale_and_normalize()
@@ -91,12 +91,12 @@ def run_workflow(filename=None):
         esn.w = alpha * conn.w
 
         rs_train = esn.simulate(
-            ext_input=x_train, w_in=w_in, input_gain=INPUT_GAIN,
+            ext_input=x_train, w_in=w_in,
             output_nodes=output_nodes
         )
 
         rs_test = esn.simulate(
-            ext_input=x_test, w_in=w_in, input_gain=INPUT_GAIN,
+            ext_input=x_test, w_in=w_in,
             output_nodes=output_nodes
         )
 

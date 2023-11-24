@@ -90,12 +90,12 @@ def run_workflow(
         esn.w = alpha * conn.w
 
         rs_train = esn.simulate(
-            ext_input=x_train, w_in=w_in, input_gain=INPUT_GAIN,
+            ext_input=x_train, w_in=w_in,
             output_nodes=output_nodes
         )
 
         rs_test = esn.simulate(
-            ext_input=x_test, w_in=w_in, input_gain=INPUT_GAIN,
+            ext_input=x_test, w_in=w_in,
             output_nodes=output_nodes
         )
 
@@ -156,7 +156,7 @@ def run_experiment(connectome, x, y):
 def main():
 
     task = Conn2ResTask(name=TASK)
-    x, y = task.fetch_data(n_trials=4050)
+    x, y = task.fetch_data(n_trials=4050, input_gain=INPUT_GAIN)
     np.save(os.path.join(OUTPUT_DIR, 'input.npy'), x)
     np.save(os.path.join(OUTPUT_DIR, 'output.npy'), y)
 
