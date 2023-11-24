@@ -3,8 +3,11 @@ can be applied to address specific biological questions. The processed
 connectivity data is publicly available and can be downloaded
 `HERE <>`_.
 
-Tutorial
---------
+Tutorial 1: the main conn2res workflow
+=======================================================================
+This tutorial consists of a detailed step-by-step example to
+illustrate the main conn2res workflow in action.
+
 
 Example 1: Inferences on global network organization
 =======================================================================
