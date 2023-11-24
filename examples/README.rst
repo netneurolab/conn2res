@@ -1,7 +1,7 @@
 This folder contains several use-case examples of how the ``conn2res`` toolbox
 can be applied to address specific biological questions. The processed
 connectivity data is publicly available and can be downloaded
-`HERE <>`_.
+`HERE <https://zenodo.org/records/10205004>`_.
 
 Tutorial 1: Main conn2res workflow
 =======================================================================
