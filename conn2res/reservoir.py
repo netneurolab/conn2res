@@ -125,7 +125,7 @@ class EchoStateNetwork(Reservoir):
             activation_function)
 
     def simulate(
-        self, ext_input, w_in, input_gain=None, ic=None, output_nodes=None,
+        self, ext_input, w_in, ic=None, output_nodes=None,
         return_states=True, **kwargs
     ):
         """
@@ -141,8 +141,6 @@ class EchoStateNetwork(Reservoir):
             Input connectivity matrix (source, target)
             N_inputs: number of external input signals
             N: number of nodes in the network
-        input_gain : float
-            Constant gain that scales w_in
         ic : (N,) numpy.ndarray, optional
             Initial conditions
             N: number of nodes in the network. If w is directed, then rows
@@ -179,10 +177,6 @@ class EchoStateNetwork(Reservoir):
         # set initial conditions
         if ic is not None:
             self._state[0, :] = ic
-
-        # scale input connectivity matrix
-        if input_gain is not None:
-            w_in = input_gain * w_in
 
         # simulate dynamics
         for t in timesteps:
