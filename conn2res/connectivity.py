@@ -6,13 +6,13 @@ import os
 import numpy as np
 import warnings
 from scipy.linalg import eigh
-from bct import get_components, distance_bin
+from bct import get_components, distance_bin, reference
 
-from .utils import *
+from conn2res import utils
 
 
 PROJ_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-DATA_DIR = os.path.join(PROJ_DIR, 'examples', 'data')
+DATA_DIR = os.path.join(PROJ_DIR, 'examples', 'data', 'human')
 
 
 class Conn:
@@ -21,7 +21,7 @@ class Conn:
     data
 
     Notes:
-    1. The diagonal of the connectivity matrix is set to zero as well as 
+    1. The diagonal of the connectivity matrix is set to zero as well as
     inf and nan values are replaced to zero.
 
     2. We makes sure that all nodes are connected to the rest of the network,
@@ -94,7 +94,7 @@ class Conn:
         self.n_edges = np.sum(self.w != 0)
 
         # check if network is symmetric (needed e.g. for checking connectedness)
-        self.symmetric = check_symmetric(self.w)
+        self.symmetric = utils.check_symmetric(self.w)
 
         # use fixed density if set
         if density is not None:
@@ -102,7 +102,7 @@ class Conn:
                 nedges = int(self.n_nodes * (self.n_nodes - 1) * density // 2)
                 id_ = np.argsort(np.triu(self.w, 1), axis=None)
                 self.w[np.unravel_index(id_[:-nedges], self.w.shape)] = 0
-                self.w = make_symmetric(self.w, copy_lower=False)
+                self.w = utils.make_symmetric(self.w, copy_lower=False)
             else:
                 nedges = int(self.n_nodes * (self.n_nodes - 1) * density)
                 id_ = np.argsort(self.w, axis=None)
@@ -156,6 +156,19 @@ class Conn:
 
         # binarize connectivity matrix
         self.w = self.w.astype(bool).astype(float)
+
+    def randomize(self, swaps=10):
+        """
+        Binarize the connectivity matrix
+        """
+
+        # randomize weights while preserving degree
+        # sequence of the nodes
+        if utils.check_symmetric(self.w):
+            self.w, _ = reference.randmio_und_connected(self.w, swaps)
+
+        else:
+            self.w, _ = reference.randmio_dir_connected(self.w, swaps)
 
     def add_weights(self, w, mask='triu', order='random'):
         """
@@ -227,7 +240,7 @@ class Conn:
                 self.w[np.unravel_index(id_[:-w.size-1:-1], self.w.shape)] = w
 
             # copy weights to lower diagonal
-            self.w = make_symmetric(self.w, copy_lower=False)
+            self.w = utils.make_symmetric(self.w, copy_lower=False)
 
     def subset_nodes(self, node_set='all', idx_node=None, **kwargs):
         """
@@ -465,49 +478,3 @@ def get_modules(module_assignment):
     readout_modules = [np.where(module_assignment == i)[0] for i in module_ids]
 
     return module_ids, readout_modules
-
-
-def get_readout_nodes(readout_modules):
-    """
-    Return a list with the set(s) of nodes in each module in
-    'readout_modules', plus a set of module ids
-
-    Parameters
-    ----------
-    readout_modules : (N,) list, tuple, numpy.ndarray or dict
-        Can be a 1D array-like that assigns modules to each node. Can
-        be a list of lists, where each sublist corresponds to the
-        indexes of subsets of nodes. Can be a dictionary key:val pairs,
-        where the keys correspond to modules and the values correspond
-        to list/tuple that contains the subset of nodes in each module.
-
-    Returns
-    -------
-    readout_nodes : list
-        list that contains lists with indexes of subsets of nodes in
-        'readout_modules'
-    ids : list
-        list that contains lists with indexes of subsets of nodes in
-        'readout_modules'
-
-    Raises
-    ------
-    TypeError
-        _description_
-    """
-    if isinstance(readout_modules, (list, tuple, np.ndarray)):
-        if all(isinstance(i, (list, tuple, np.ndarray)) for i in readout_modules):
-            ids = list(range(len(readout_modules)))
-            readout_nodes = list(module for module in readout_modules)
-        else:
-            ids = list(set(readout_modules))
-            readout_nodes = list(
-                np.where(np.array(readout_modules) == i)[0] for i in ids
-            )
-    elif isinstance(readout_modules, dict):
-        ids = list(readout_modules.keys())
-        readout_nodes = list(readout_modules.values())
-    else:
-        raise TypeError("")
-
-    return readout_nodes, ids
