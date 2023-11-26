@@ -12,7 +12,6 @@ from sklearn import linear_model
 # from sklearn.multiclass import OneVsRestClassifier
 
 from . import utils
-from .connectivity import get_readout_nodes
 from . import performance
 
 
@@ -640,10 +639,10 @@ def _sample_weight(y, split_set, seed=None):
 
     if split_set == 'train':
         print('-----------------------------------')
-        
+
         # use random number generator for reproducibility
         rng = np.random.default_rng(seed=seed)
-        
+
         idx = np.where(sample_weight == 0)[0]
         sample_weight[idx] = rng.rand((len(idx)))
 
@@ -683,7 +682,7 @@ def _baseline(y):
         for target in range(n_targets):
             values, counts = np.unique(y[:, target], return_counts=True)
             baseline.extend(values[counts == counts.max()])
-    
+
     if not len(baseline) == n_targets:
         warnings.warn("There is more than one baseline value per target")
 
@@ -746,7 +745,7 @@ def _baseline_class(y):
     baseline_included = False
     if baseline in labels_per_trial:
         baseline_included = True
-    
+
     # determine baseline_type
     if baseline_exists and not baseline_included:
         baseline_type = 'class1'
@@ -756,6 +755,52 @@ def _baseline_class(y):
         baseline_type = 'class3'
 
     return baseline_type
+
+
+def get_readout_nodes(readout_modules):
+    """
+    Return a list with the set(s) of nodes in each module in
+    'readout_modules', plus a set of module ids
+
+    Parameters
+    ----------
+    readout_modules : (N,) list, tuple, numpy.ndarray or dict
+        Can be a 1D array-like that assigns modules to each node. Can
+        be a list of lists, where each sublist corresponds to the
+        indexes of subsets of nodes. Can be a dictionary key:val pairs,
+        where the keys correspond to modules and the values correspond
+        to list/tuple that contains the subset of nodes in each module.
+
+    Returns
+    -------
+    readout_nodes : list
+        list that contains lists with indexes of subsets of nodes in
+        'readout_modules'
+    ids : list
+        list that contains lists with indexes of subsets of nodes in
+        'readout_modules'
+
+    Raises
+    ------
+    TypeError
+        _description_
+    """
+    if isinstance(readout_modules, (list, tuple, np.ndarray)):
+        if all(isinstance(i, (list, tuple, np.ndarray)) for i in readout_modules):
+            ids = list(range(len(readout_modules)))
+            readout_nodes = list(module for module in readout_modules)
+        else:
+            ids = list(set(readout_modules))
+            readout_nodes = list(
+                np.where(np.array(readout_modules) == i)[0] for i in ids
+            )
+    elif isinstance(readout_modules, dict):
+        ids = list(readout_modules.keys())
+        readout_nodes = list(readout_modules.values())
+    else:
+        raise TypeError("")
+
+    return readout_nodes, ids
 
 
 def _get_sample_weight_old(inputs, labels=None, sample_block=None):

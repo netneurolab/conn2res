@@ -11,14 +11,63 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 from cycler import cycler
 
-from .utils import *
+from conn2res import utils
 from .readout import _check_xy_type, _check_x_dims, _check_y_dims
-
 
 PROJ_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 FIG_DIR = os.path.join(PROJ_DIR, 'figs')
 if not os.path.isdir(FIG_DIR):
     os.makedirs(FIG_DIR)
+
+
+_figs_params_docs = dict(
+    rc_params="""\
+rc_params : dict, optional
+    Dictionary of keyword arguments for `matplotlib.rcParams <https://matplotlib.org/stable/api/matplotlib_configuration_api.html#matplotlib.rcParams>`__.\
+""",
+    fig_params="""\
+fig_params : dict, optional
+    Dictionary of keyword arguments for `matplotlib.pyplot.figure <https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.figure.html>`__.
+    Values to set figure properties.\
+""",
+    ax_params="""\
+ax_params : dict, optional
+    Dictionary of keyword arguments for `matplotlib.pyplot.axes <https://matplotlib.org/stable/api/_as_gen/matplotlib.axes.Axes.html#matplotlib.axes.Axes`__.
+    Values to set axes's properties.\
+""",
+    lg_params="""\
+lg_params : dict, optional
+    Dictionary of keyword arguments for `matplotlib.axes.Axes.legend <https://matplotlib.org/stable/api/_as_gen/matplotlib.axes.Axes.legend.html`__.
+    Values to set legend's properties.\
+""",
+    col_params="""\
+col_params : dict, optional
+    Dictionary of keyword arguments for `seaborn.color_palette <https://seaborn.pydata.org/generated/seaborn.color_palette.html`__.
+    Values to set color settings.\
+""",
+    title="""\
+title : str, optional
+    Title to be shown at the superior part of the figure.
+""",
+    show="""\
+show : bool, optional
+    If True, it will display the matplotlib.pyplot.figure object
+""",
+    savefig="""\
+savefig : bool, optional
+    If True, it will save the matploblib.pyplot.figure object as a '.png' file by default.
+    The format of the file can be changed using the 'savefig.format'
+    keyword in the rc_params argument.
+""",
+    fname="""\
+fname : str or path-like
+    Path where the figure will be saved.
+""",
+    kwargs="""\
+kwargs : key-value pairs
+    Other keyword arguments pass directly to the underlying seaborn plotting function.
+"""
+)
 
 
 def transform_data(
@@ -134,8 +183,7 @@ def transform_data(
 def plot_iodata(
     x, y, n_trials=7, palette=None,
     rc_params={}, fig_params={}, ax_params={}, lg_params={},
-    title=None, show=True, savefig=False, fname='io_data',
-    **kwargs
+    title=None, show=True, savefig=False, fname='io_data', **kwargs
 ):
     """
     Plot input (x) and output (y) data.
@@ -150,23 +198,16 @@ def plot_iodata(
         _description_, by default 7
     palette : _type_, optional
         _description_, by default None
-    rc_params : dict
-        dictionary of matplotlib rc parameters, by default {}
-    fig_params : dict
-        dictionary of figure properties, by default {}
-    ax_params : dict
-        dictionary of axes properties, by default {}
-    lg_params : dict
-        dictionary of legend settings, by default {}
-    title : _type_, optional
-        _description_, by default None
-    show : bool, optional
-        _description_, by default True
-    savefig : bool, optional
-        _description_, by default False
-    fname : _type_, optional
-        _description_, by default None
-    """
+    {rc_params}
+    {fig_params}
+    {ax_params}
+    {lg_params}
+    {title}
+    {show}
+    {savefig}
+    {fname}
+    {kwargs}
+    """.format(**_figs_params_docs)
     # get end points for trials to plot trial separators
     if isinstance(x, list):
         n_trials = np.min([len(x), 10])
@@ -273,23 +314,18 @@ def plot_reservoir_states(
         _description_, by default 7
     palette : _type_, optional
         _description_, by default None
-    rc_params : dict
-        dictionary of matplotlib rc parameters, by default {}
-    fig_params : dict
-        dictionary of figure properties, by default {}
+    {rc_params}
+    {fig_params}
     ax_params : list of dict
-        list of dictionaries setting axes properties, by default [{}] * 2
-    lg_params : dict
-        dictionary of legend settings for first axis, by default {}
-    title : _type_, optional
-        _description_, by default None
-    show : bool, optional
-        _description_, by default True
-    savefig : bool, optional
-        _description_, by default False
-    fname : _type_, optional
-        _description_, by default 'res_states'
-    """
+        list of dictionaries with keyword arguments for `matplotlib.pyplot.axes <https://matplotlib.org/stable/api/_as_gen/matplotlib.axes.Axes.html#matplotlib.axes.Axes`__.
+        Values to set axes's properties, by default [{}] * 2.
+    {lg_params}
+    {title}
+    {show}
+    {savefig}
+    {fname}
+    {kwargs}
+    """.format(**_figs_params_docs)
     # get end points for trials to plot trial separators
     if isinstance(reservoir_states, list):
         n_trials = np.min([len(x), 10])
@@ -308,7 +344,7 @@ def plot_reservoir_states(
 
     # check reservoir_states is array
     if isinstance(reservoir_states, (list, tuple)):
-        reservoir_states = concat(reservoir_states)
+        reservoir_states = utils.concat(reservoir_states)
 
     # check X dimensions
     x = _check_x_dims(x)
@@ -337,9 +373,9 @@ def plot_reservoir_states(
     )
 
     palette = sns.color_palette("tab10", reservoir_states.shape[1])
-    reservoir_states = transform_data(
-        transform_data(reservoir_states, scaler='scale', with_std=False),
-        scaler='minmax_scale', feature_range=(-1, 1))
+    # reservoir_states = transform_data(
+    #     transform_data(reservoir_states, scaler='scale', with_std=False),
+    #     scaler='minmax_scale', feature_range=(-1, 1))
     sns.lineplot(
         data=reservoir_states, palette=palette, dashes=False, legend=False,
         linewidth=0.5, ax=axs[1], **kwargs
@@ -350,6 +386,9 @@ def plot_reservoir_states(
     lg_defaults = {'labels': x_labels}
     lg_defaults.update(**lg_params)
     axs[0].legend(handles=axs[0].lines, **lg_defaults)
+
+    yabs_max = abs(max(axs[1].get_ylim(), key=abs))
+    axs[1].set_ylim(ymin=-yabs_max, ymax=yabs_max)
 
     # set axes properties
     xlabel = ['', 'time steps']
@@ -425,29 +464,27 @@ def plot_diagnostics(
         _description_, by default None
     palette : _type_, optional
         _description_, by default None
-    rc_params : dict
-        dictionary of matplotlib rc parameters, by default {}
-    fig_params : dict
-        dictionary of figure properties, by default {}
+    {rc_params}
+    {fig_params}
     ax_params : list of dict
-        list of dictionaries setting axes properties, by default [{}] * 3
+        list of dictionaries with keyword arguments for `matplotlib.pyplot.axes <https://matplotlib.org/stable/api/_as_gen/matplotlib.axes.Axes.html#matplotlib.axes.Axes`__.
+        Values to set axes's properties, by default [{}] * 3.
     lg_params : list of dict
-        list of dictionaries setting legend, by default [{}] * 3
-    title : _type_, optional
-        _description_, by default None
-    show : bool, optional
-        _description_, by default True
-    savefig : bool, optional
-        _description_, by default False
-    fname : _type_, optional
-        _description_, by default None
-    """
+        list of dictionaries with keyword arguments for `matplotlib.axes.Axes.legend <https://matplotlib.org/stable/api/_as_gen/matplotlib.axes.Axes.legend.html`__. 
+        Values to set legend's properties, by default [{}] * 3.
+    {title}
+    {show}
+    {savefig}
+    {fname}
+    kwargs : key-value pairs
+        Other keyword arguments are passed to the `~conn2res.plotting.transform_data` function.
+    """.format(**_figs_params_docs)
     # check X and y are arrays
     x, y = _check_xy_type(x, y)
 
     # check reservoir_states is an array
     if isinstance(reservoir_states, (list, tuple)):
-        reservoir_states = concat(reservoir_states)
+        reservoir_states = utils.concat(reservoir_states)
 
     # check X and y dimensions
     x = _check_x_dims(x)
@@ -565,25 +602,17 @@ def plot_performance(
         _description_, by default False
     hue : optional
         _description_, by default None
-    rc_params : dict
-        dictionary of matplotlib rc parameters, by default {}
-    fig_params : dict
-        dictionary of figure properties, by default {}
-    ax_params : dict
-        dictionary of axes properties, by default {}
-    lg_params : dict
-        dictionary of legend settings, by default {}
-    col_params : dict
-        dictionary of color settings in sns.color_palette, by default {}
-    title : optional
-        _description_, by default None
-    show : bool, optional
-        _description_, by default True
-    savefig : bool, optional
-        _description_, by default False
-    fname : _type_, optional
-        _description_, by default 'performance_curve'
-    """
+    {rc_params}
+    {fig_params}
+    {ax_params}
+    {lg_params}
+    {col_params}
+    {title}
+    {show}
+    {savefig}
+    {fname}
+    {kwargs}
+    """.format(**_figs_params_docs)
     if normalize:
         df[y] = df[y] / max(df[y])
 
@@ -650,7 +679,7 @@ def plot_performance(
 
 def plot_phase_space(
     x, y, sample=None, palette=None,
-    fig_params={}, ax_params={}, rc_params={},
+    rc_params={}, fig_params={}, ax_params={},
     title=None, show=False, savefig=False, fname='phase_space'
 ):
     """
@@ -666,21 +695,14 @@ def plot_phase_space(
         _description_, by default None
     palette : _type_, optional
         _description_, by default None
-    fig_params : dict
-        dictionary of figure properties, by default {}
-    ax_params : dict
-        dictionary of axes properties, by default {}
-    rc_params : dict
-        dictionary of matplotlib rc parameters, by default {}
-    title : _type_, optional
-        _description_, by default None
-    show : bool, optional
-        _description_, by default True
-    savefig : bool, optional
-        _description_, by default False
-    fname : _type_, optional
-        _description_, by default 'phase_space'
-    """
+    {rc_params}
+    {fig_params}
+    {ax_params}
+    {title}
+    {show}
+    {savefig}
+    {fname}
+    """.format(**_figs_params_docs)
     # time steps
     if sample is None:
         t = np.arange(x.shape[0])
@@ -734,3 +756,89 @@ def plot_phase_space(
    
     # reset rc defaults
     mpl.rcdefaults()
+
+def plot_spike_raster(tspike, x1, x2, title = "Spike Raster"):
+    """
+    Plot a spike raster plot.
+
+    Parameters
+    ----------
+    tspike : (N_spikes, 2) numpy.ndarray
+        spike times (in s)
+        N_spikes: number of spikes
+        tspike[:, 0]: spike neuronal indices
+        tspike[:, 1]: spike times (in s)
+    x1 : float
+        start time (in s)
+    x2 : float
+        end time (in s)
+    title : str, optional
+        title of the plot, by default "Spike Raster"
+    """
+
+    nneurons = int(np.max(np.unique(tspike[:, 0])) + 1)
+
+    plt.figure(figsize=(max((x2 - x1)/0.1*10, 10), max(.02*nneurons, 1)))
+    plt.title(title)
+    plt.xlabel("Time (ms)")
+    plt.ylabel("Neuron")
+
+    spike_times = []
+    for neuron in range(nneurons):
+        idx = np.where(tspike[:, 0] == neuron)[0]
+        spike_times.append(tspike[:, 1][idx]*1000)
+    
+    for neuron in range(nneurons):
+        spike_train = spike_times[neuron]
+        plt.scatter(spike_train, [neuron] * len(spike_train), marker='|', color='black')
+
+    plt.xlim(x1*1000, x2*1000)
+    plt.ylim(-0.5, nneurons - 0.5)
+    plt.gca().invert_yaxis()
+    plt.grid(True, linestyle='--', alpha = 0.7)
+    plt.show()
+
+def plot_membrane_voltages(membrane_voltages, x1, x2, neuron_idx = None, 
+                           dt = 0.05, title="Membrane Voltages"):
+    """
+    Plot the membrane voltages of the neurons.
+    
+    Parameters
+    ----------
+    membrane_voltages : (nt, N) numpy.ndarray
+        membrane voltage tracings (mV)
+        nt: number of time steps
+        N: number of nodes
+    x1 : float
+        start timestep
+    x2 : float
+        end timestep
+    neuron_idx : numpy.ndarray, optional
+        indices of neurons to plot
+        Default: None
+    dt : float, optional
+        sampling rate (in s)
+        Default: 0.05
+    title : str, optional
+        title of the plot, by default "Membrane Voltages"
+    """
+    
+    if neuron_idx is None:
+        neuron_idx = np.arange(membrane_voltages.shape[1])
+    nneurons = len(neuron_idx)
+
+    time_arr = np.arange(x1, x2)*dt
+
+    fig, axes = plt.subplots(nneurons, 1, figsize=(max(10, (x2 - x1)/1000*10), nneurons), sharex=True, sharey=False)
+    if nneurons == 1:
+        axes = [axes]
+    for idx, ax in enumerate(axes):
+        ax.plot(time_arr, membrane_voltages[x1:x2, neuron_idx[idx]], c = 'k')
+        ax.set_ylabel(f"Neuron {neuron_idx[idx]}")
+        ax.grid(True)
+
+    fig.suptitle(title, y = 1.03)
+    fig.supylabel('Voltage (mV)', x = -0.03)
+    fig.supxlabel('Time (ms)', y = -0.03)
+    fig.tight_layout()
+    plt.show()

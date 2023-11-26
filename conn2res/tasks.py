@@ -69,7 +69,7 @@ class Task(metaclass=ABCMeta):
     name : str
         name of the task
     n_trials : int, optional
-        number of trials if task indicated by 'name' is a 
+        number of trials if task indicated by 'name' is a
         a trial-based task, by default 10
     """
 
@@ -107,7 +107,7 @@ class NeuroGymTask(Task):
     name : str
         name of the task
     n_trials : int, optional
-        number of trials if task indicated by 'name' is a 
+        number of trials if task indicated by 'name' is a
         a trial-based task, by default 10
     """
 
@@ -132,7 +132,7 @@ class NeuroGymTask(Task):
     def fetch_data(self, n_trials=None, input_gain=None, add_bias=False,
                    **kwargs):
         """
-        Fetch task dataset
+        Fetch data for Neurogym tasks
 
         Parameters
         ----------
@@ -146,7 +146,7 @@ class NeuroGymTask(Task):
 
         Returns
         -------
-        x,y: numpy.ndarray, list
+        x, y : numpy.ndarray, list
             input (x) and output (y) training data
         """
         if n_trials is not None:
@@ -211,7 +211,7 @@ class ReservoirPyTask(Task):
     name : str
         name of the task
     n_trials : int, optional
-        number of trials if task indicated by 'name' is a 
+        number of trials if task indicated by 'name' is a
         a trial-based task, by default 10
     """
 
@@ -236,16 +236,23 @@ class ReservoirPyTask(Task):
     def fetch_data(self, n_trials=None, horizon=1, win=30,
                    input_gain=None, add_bias=False, **kwargs):
         """
-        _summary_
+        Fetch data for ReservoirPy tasks, which are defined as single-
+        or multi-output tasks using chaotic time series as input signal
+        and preceded or delayed output signal(s) with respect to the input
 
         Parameters
         ----------
-        n_trials : _type_, optional
-            _description_, by default None
-        horizon : int, optional
-            _description_, by default 1
+        n_trials : int, optional
+            number of time steps in input and output, by default None
+        horizon : int, numpy.ndarray or list, optional
+            shift between input and output, i.e., positive number for
+            prediction and negative number for memory task, by default 1
+            note that array/list is used for multi-output task
         win : int, optional
-            _description_, by default 30
+            initial window of the input signal to be used for generating the
+            delayed output signal in case of memory tasks, by default 30
+            note that no values in horizon should exceed this window (in
+            absolute value), otherwise ValueError is thrown
         input_gain : float, optional
             gain on the input signal, i.e., scalar multiplier, by default None
         add_bias : bool, optional
@@ -254,15 +261,15 @@ class ReservoirPyTask(Task):
 
         Returns
         -------
-        _type_
-            _description_
+        x, y : numpy.ndarray, list
+            input (x) and output (y) training data
 
         Raises
         ------
         ValueError
-            _description_
+            if horizon has elements with different sign
         ValueError
-            _description_
+            if any horizon exceeds win (in absolute value)
         """
         if n_trials is not None:
             self.n_trials = n_trials
@@ -323,15 +330,14 @@ class ReservoirPyTask(Task):
 
 class Conn2ResTask(Task):
     """
-    Class for generating task datasets from the
-    ReservoirPy repository
+    Class for generating datasets for MemoryCapacity task
 
     Parameters
     ----------
     name : str
         name of the task
     n_trials : int, optional
-        number of trials if task indicated by 'name' is a 
+        number of trials if task indicated by 'name' is a
         a trial-based task, by default 10
     """
 
@@ -357,16 +363,26 @@ class Conn2ResTask(Task):
                    low=-1, high=1, input_gain=None, add_bias=False,
                    seed=None):
         """
-        _summary_
+        Fetch data for MemoryCapacity, which is defined as a multi-output
+        task using a uniformly distributed input signal and multiple
+        delayed output signals
 
         Parameters
         ----------
-        n_trials : _type_, optional
-            _description_, by default None
-        horizon_max : _type_, optional
-            _description_, by default None
+        n_trials : int, optional
+            number of time steps in input and output, by default None
+        horizon_max : int, optional
+            maximum shift between input and output, i.e., negative number 
+            for memory capacity task, by default -20
+            note that an array of horizons are generated from -1 to 
+            inclusive of horizon_max using a step of -1, which 
+            defines memory capacity task as a multi-output task, i.e., one 
+            task per horizon
         win : int, optional
-            _description_, by default 30
+            initial window of the input signal to be used for generating the
+            delayed output signal, by default 30
+            note that horizon_max should exceed this window (in
+            absolute value), otherwise ValueError is thrown
         low : float, optional
             lower boundary of the output interval of numpy.uniform(),
             by default -1
@@ -384,15 +400,13 @@ class Conn2ResTask(Task):
 
         Returns
         -------
-        _type_
-            _description_
+        x, y : numpy.ndarray, list
+            input (x) and output (y) training data
 
         Raises
         ------
         ValueError
-            _description_
-        ValueError
-            _description_
+            if maximum horizon exceeds win (in absolute value)
         """
         if n_trials is not None:
             self.n_trials = n_trials

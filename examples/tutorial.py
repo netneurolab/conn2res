@@ -24,11 +24,9 @@ warnings.simplefilter(action='ignore', category=UserWarning)
 # #####################################################################
 # First, let's initialize some constant variables
 # #####################################################################
-PROJ_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-
 # project and figure directory
 PROJ_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-OUTPUT_DIR = os.path.join(PROJ_DIR, 'figs')
+OUTPUT_DIR = os.path.join(PROJ_DIR, 'examples', 'figs')
 if not os.path.isdir(OUTPUT_DIR):
     os.makedirs(OUTPUT_DIR)
 
@@ -102,7 +100,7 @@ for task_name in TASKS:
             print(f'\n\t\t--- run = {run} ---')
 
             # fetch data to perform task
-            x, y = task.fetch_data(n_trials=1000)
+            x, y = task.fetch_data(n_trials=1000, input_gain=1)
 
             # visualize task dataset
             if run == 0:
@@ -153,12 +151,12 @@ for task_name in TASKS:
 
                 # simulate reservoir states
                 rs_train = esn.simulate(
-                    ext_input=x_train, w_in=w_in, input_gain=1,
+                    ext_input=x_train, w_in=w_in,
                     output_nodes=output_nodes
                 )
 
                 rs_test = esn.simulate(
-                    ext_input=x_test, w_in=w_in, input_gain=1,
+                    ext_input=x_test, w_in=w_in,
                     output_nodes=output_nodes
                 )
 

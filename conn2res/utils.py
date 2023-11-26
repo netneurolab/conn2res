@@ -4,6 +4,8 @@ Functions for basic matrix manipulations
 """
 import numpy as np
 
+# consensus
+from sklearn.utils.validation import (check_consistent_length, check_array)
 
 # functions for connectivity matrix
 def check_symmetric(a, tol=1e-16):
@@ -22,7 +24,11 @@ def check_symmetric(a, tol=1e-16):
     _type_
         _description_
     """
-    return np.allclose(a, a.T, atol=tol)
+    try: 
+        return np.allclose(a, a.T, atol=tol)
+    except ValueError:
+        print("Matrix is not square.")
+        return False
 
 
 def make_symmetric(a, copy_lower=True):
