@@ -6,7 +6,7 @@ import os
 import numpy as np
 import warnings
 from scipy.linalg import eigh
-from bct import get_components, distance_bin, reference
+from bct import get_components, distance_bin, reference, backbone_wu
 
 from conn2res import utils
 
@@ -157,18 +157,37 @@ class Conn:
         # binarize connectivity matrix
         self.w = self.w.astype(bool).astype(float)
 
-    def randomize(self, swaps=10):
+    def randomize(self, swaps=10, **kwargs):
         """
-        Binarize the connectivity matrix
+        Randomize the connectivity matrix
         """
 
         # randomize weights while preserving degree
         # sequence of the nodes
         if utils.check_symmetric(self.w):
-            self.w, _ = reference.randmio_und_connected(self.w, swaps)
-
+            self.w, _ = reference.randmio_und_connected(self.w, swaps,
+                                                        **kwargs)
         else:
-            self.w, _ = reference.randmio_dir_connected(self.w, swaps)
+            self.w, _ = reference.randmio_dir_connected(self.w, swaps,
+                                                        **kwargs)
+
+    def threshold(self, threshold=1, **kwargs):
+        """
+        Threshold the connectivity matrix by keeping the network connected
+        """
+
+        # threshold the connectivity matrix using a spanning tree approach to
+        # make sure the network stays connected
+        if utils.check_symmetric(self.w):
+            _, self.w = backbone_wu(self.w, (self.n_nodes - 1) * threshold,
+                                    **kwargs)
+        else:
+            raise ValueError(
+                'threshold is only implemented for symmetric networks')
+
+        # update class attributes
+        self._update_attributes(np.isin(np.arange(self.n_nodes),
+                                        np.nonzero(self.w)[0]))
 
     def add_weights(self, w, mask='triu', order='random'):
         """
