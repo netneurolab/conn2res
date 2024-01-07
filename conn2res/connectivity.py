@@ -454,7 +454,7 @@ class Conn:
             boolean indexing should be used for nodes
         """
 
-        if isinstance(idx_node, np.ndarray) and idx_node.dtype == np.bool:
+        if isinstance(idx_node, np.ndarray) and idx_node.dtype == bool:
             # update node attributes
             self.n_nodes = sum(idx_node)
             self.idx_node[self.idx_node] = idx_node
