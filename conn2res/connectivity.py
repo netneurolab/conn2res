@@ -189,7 +189,7 @@ class Conn:
         self._update_attributes(np.isin(np.arange(self.n_nodes),
                                         np.nonzero(self.w)[0]))
 
-    def add_weights(self, w, mask='triu', order='random'):
+    def add_weights(self, w, mask='triu', order='random', seed=None):
         """
         Add weights to either a binary or weighted connectivity matrix
 
@@ -204,6 +204,9 @@ class Conn:
             it decides whether the weights should be added randomly to the
             connectivity matrix or for instance, the rank of the weights
             should be kept, by default random
+        seed : int, array_like[ints], SeedSequence, BitGenerator, Generator, optional
+            seed to initialize the random number generator, by default None
+            for details, see numpy.random.default_rng()
 
         Raises
         ------
@@ -213,13 +216,20 @@ class Conn:
             symmetric connectivity matrix is needed for this method
         """
 
+        # use random number generator for reproducibility
+        rng = np.random.default_rng(seed=seed)
+
+        # randomize weights
+        if order == 'random':
+            rng.shuffle(w)
+
         if mask == 'full':
             if w.size != self.n_edges:
                 raise ValueError(
                     'number of elements in mask and w do not match')
 
             # add weights to full matrix
-            if order == 'random':
+            if order == 'random':  # for randomization, see above
                 self.w[self.w != 0] = w
 
             elif order == 'absrank':  # keep absolute rank of weights
@@ -243,7 +253,7 @@ class Conn:
                     'number of elements in mask and w do not match')
 
             # add weights to upper diagonal matrix
-            if order == 'random':
+            if order == 'random':  # for randomization, see above
                 self.w[np.triu(self.w, 1) != 0] = w
 
             elif order == 'absrank':  # keep absolute rank of weights
