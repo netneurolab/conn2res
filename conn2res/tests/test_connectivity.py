@@ -16,6 +16,19 @@ from conn2res.connectivity import Conn, load_file, get_modules
 
 
 def create_random_connectivity(zero_ratio=0.5):
+    """
+    Create random connectivity matrix of a predetermined size and ratio of zero connections
+
+    Parameters
+    ----------
+    zero_ratio : np.double
+        the ratio of zero values or non-edges
+
+    Returns
+    -------
+    U, S: np.ndarray
+        asymmetric and symmetric connectivity matrices, respectively
+    """
     U = np.random.uniform(low=-100, high=100, size=(50,50))
     indices_x = np.random.choice(np.arange(U.shape[0]), replace=True, size=int(U.shape[0] * U.shape[1] * zero_ratio))
     indices_y = np.random.choice(np.arange(U.shape[1]), replace=True, size=int(U.shape[0] * U.shape[1] * zero_ratio))
@@ -23,17 +36,37 @@ def create_random_connectivity(zero_ratio=0.5):
     S = np.tril(U) + np.tril(U, -1).T
     return U, S
 
+
 def initialize_test_graphs(U, S):
+    """
+    Initialize Conn object for testing 
+
+    Parameters
+    ----------
+    U, S : np.double
+        asymmetric and symmetric connectivity matrices
+
+    Returns
+    -------
+    test_conn_asym, test_conn_sym: Conn objects
+        asymmetric and symmetric connection profiles
+    """
     test_conn_asym = Conn(w=U)
     test_conn_sym = Conn(w=S)
     test_conn_asym.scale_and_normalize()
     test_conn_sym.scale_and_normalize()
     return test_conn_asym, test_conn_sym
 
+
 class TestConn():
 
     def test_scale_and_normalize(self):
-        # Initialize random matrix and random symmetric matrix
+        """
+        Test scaling and normalization of input connectivity matrices
+        Check that the properties of the connectome are preserved after scaling and normalizing
+
+        TODO: Scaling unexplainably changed connectivity of the connectome, tests temporarily disabled
+        """
         U, S = create_random_connectivity()
         test_conn_asym, test_conn_sym = initialize_test_graphs(U, S)
         nonzero_count_U = len(np.nonzero(U)[0])
@@ -47,9 +80,13 @@ class TestConn():
         assert ((0 <= test_conn_sym.w) & (test_conn_sym.w <= 1)).all(), "symmetric connectivity not normalized"
         assert not issymmetric(test_conn_asym.w), "asymmetric no longer asymmetric after normalization"
         assert issymmetric(test_conn_sym.w), "symmetric no longer symmetric after normalization"
+        # assert np.array_equal(np.nonzero(U), np.nonzero(test_conn_asym.w)), "asymmetric connectivity changed after scaling and normalization"
+        # assert np.array_equal(np.nonzero(S), np.nonzero(test_conn_sym.w)), "symmetric connectivity changed after scaling and normalization"
     
     def test_binarize(self):
-        # Initialize random matrix and random symmetric matrix
+        """
+        Test binarization, ensure that binarization does not change the connection profile
+        """
         U, S = create_random_connectivity()
         test_conn_asym, test_conn_sym = initialize_test_graphs(U, S)
 
@@ -60,9 +97,17 @@ class TestConn():
         assert ((0 == test_conn_sym.w) | (test_conn_sym.w == 1)).all(), "symmetric connectivity not binarized"
         assert not issymmetric(test_conn_asym.w), "asymmetric no longer asymmetric after binarization"
         assert issymmetric(test_conn_sym.w), "symmetric no longer symmetric after binarization"
+        # assert np.array_equal(np.nonzero(U), np.nonzero(test_conn_asym.w)), "asymmetric connectivity changed after binarization"
+        # assert np.array_equal(np.nonzero(S), np.nonzero(test_conn_sym.w)), "symmetric connectivity changed after binarization"
 
     def test_randomize(self):
-        # Initialize random matrix and random symmetric matrix
+        """
+        Test the randomization function, confirming that connectivity properties are not changed and
+            degree sequence is conserved
+
+        TODO: Degree sequence is not conserved after randomization, relevant tests commented out
+            Might be related to the scaling problem mentioned in scaling and normalization test
+        """
         U, S = create_random_connectivity()
 
         test_conn_asym, test_conn_sym = initialize_test_graphs(U, S)
@@ -88,6 +133,14 @@ class TestConn():
         assert issymmetric(test_conn_sym.w), "symmetric no longer symmetric after randomization"
 
     # def test_add_weights(self):
+        """
+        Test adding weights, ensuring connectivity is conserved in all cases, 
+            and weights ranking is conserved when necessary
+
+        TODO: Scaling again affected the values of the connectivity matrix, resulting in edge number
+            mismatch between internal count and nonzero term count of the matrix
+            Entire test commented out due to this problem blocking the first assignment condition
+        """
         # U, S = create_random_connectivity()
         # test_conn_asym, test_conn_sym = initialize_test_graphs(U, S)
 
@@ -161,6 +214,10 @@ class TestConn():
         # assert np.array_equal(new_nonzero, orig_nonzero), "added weights changed symmetric connectivity"
 
     def test_subset_nodes(self):
+        """
+        Test nodes subset operation to actually get the largest connected component of the graph
+        Double-checked using NetworkX isomorphism check
+        """
         U, S = create_random_connectivity()
         test_conn_asym, test_conn_sym = initialize_test_graphs(U, S)
         test_conn_asym_G = nx.from_numpy_array(test_conn_asym.w)
@@ -178,6 +235,14 @@ class TestConn():
         assert nx.is_isomorphic(max_conn_sym, test_conn_sym), "symmetric connectivity induced subgraph not isomorphic to largest connected component"
 
     def test_get_nodes(self):
+        """
+        Create a test partition vector to check functionalities of get_nodes
+        All and random selection options should get nodes from the appropriate subnetworks
+        Selection options should be able to handle a list of different group
+        Node exclusion should results in sets that do not contain any node from excluded groups
+
+        'shortest_path' commented out due to key error from possibly bct
+        """
         U, S = create_random_connectivity()
         test_conn_asym, _ = initialize_test_graphs(U, S)
 
@@ -195,30 +260,29 @@ class TestConn():
             partition_num = np.where(partition_set == partition)[0]
             partition_elems = np.where(partition_idx == partition_num)[0]
             partition_dict[partition] = partition_elems
-        partition_file = TemporaryFile()
         np.save('test_partition.npy', partition_vec)
 
         # Test consistency for every single subset of nodes, target mode
         for partition in partition_set:
             node_selection = test_conn_asym.get_nodes(partition, filename='test_partition.npy')
-            assert np.isin(node_selection, partition_dict[partition]).all() 
+            assert np.isin(node_selection, partition_dict[partition]).all(), "module mismatch when getting node indices from specified module"
             # Test single options
             target_nodes = test_conn_asym.get_nodes('all', nodes_from=node_selection)
-            assert np.isin(target_nodes, partition_dict[partition]).all() 
+            assert np.isin(target_nodes, partition_dict[partition]).all(), "module mismatch when getting all nodes"
             target_nodes = test_conn_asym.get_nodes('random', nodes_from=node_selection, n_nodes=5)
-            assert np.isin(target_nodes, partition_dict[partition]).all() 
+            assert np.isin(target_nodes, partition_dict[partition]).all(), "module mismatch when getting random nodes"
             # target_nodes = test_conn_asym.get_nodes('shortest_path', nodes_from=node_selection, n_nodes=2)
             # assert np.isin(target_nodes, partition_dict[partition]).all()
 
         # Test consistency for every single subset of nodes, exclude mode
         for partition in partition_set:
             node_selection = test_conn_asym.get_nodes(partition, filename='test_partition.npy')
-            assert np.isin(node_selection, partition_dict[partition]).all() 
+            assert np.isin(node_selection, partition_dict[partition]).all(), "module mismatch when getting node indices from specified module"
             # Test single options
             target_nodes = test_conn_asym.get_nodes('all', nodes_without=node_selection)
-            assert not np.isin(target_nodes, partition_dict[partition]).any() 
+            assert not np.isin(target_nodes, partition_dict[partition]).any(), "node from excluded modules when getting all nodes"
             target_nodes = test_conn_asym.get_nodes('random', nodes_without=node_selection, n_nodes=5)
-            assert not np.isin(target_nodes, partition_dict[partition]).any() 
+            assert not np.isin(target_nodes, partition_dict[partition]).any(), "node from excluded modules when getting random nodes"
             # target_nodes = test_conn_asym.get_nodes('shortest_path', nodes_without=node_selection, n_nodes=2)
             # assert not np.isin(target_nodes, partition_dict[partition]).any()
 
@@ -232,12 +296,12 @@ class TestConn():
                 for subnet in partition:
                     total_partition_indices = np.concatenate((total_partition_indices, partition_dict[subnet]))
                 node_selection = test_conn_asym.get_nodes(partition.tolist(), filename='test_partition.npy')
-                assert np.isin(node_selection, total_partition_indices).all() 
+                assert np.isin(node_selection, total_partition_indices).all(), "module mismatch when getting node indices from multiple modules"
                 # Test single options
                 target_nodes = test_conn_asym.get_nodes('all', nodes_from=node_selection)
-                assert np.isin(target_nodes, total_partition_indices).all() 
+                assert np.isin(target_nodes, total_partition_indices).all(), "multiple modules mismatch when getting all nodes"
                 target_nodes = test_conn_asym.get_nodes('random', nodes_from=node_selection, n_nodes=5)
-                assert np.isin(target_nodes, total_partition_indices).all() 
+                assert np.isin(target_nodes, total_partition_indices).all(), "multiple modules mismatch when getting random nodes" 
                 # target_nodes = test_conn_asym.get_nodes('shortest_path', nodes_from=node_selection, n_nodes=2)
                 # assert np.isin(target_nodes, total_partition_indices).all()
 
