@@ -132,13 +132,26 @@ class Conn:
         # divide connectivity matrix by spectral radius
         self.normalize()
 
-    def scale(self):
+    def scale(self, neg_edges=False):
         """
         Scale the connectivity matrix between [0, 1]
         """
 
-        # scale connectivity matrix between [0, 1]
-        self.w = (self.w - self.w.min()) / (self.w.max() - self.w.min())
+        # scale connectivity matrix between [0, 1], only scale nonzero values in case of negative connectivity
+        # self.w = (self.w - self.w.min()) / (self.w.max() - self.w.min())
+        nonzero_indices = np.nonzero(self.w)
+        nonzero_ele = self.w[nonzero_indices]
+
+        if self.w.min() >= 0:
+            self.w = (self.w - self.w.min()) / (self.w.max() - self.w.min())
+        else:
+            if neg_edges:
+                nonzero_ele = (2 * (nonzero_ele - nonzero_ele.min()) / (nonzero_ele.max() - nonzero_ele.min())) - 1
+            else:
+                nonzero_ele = (nonzero_ele - nonzero_ele.min()) / (nonzero_ele.max() - nonzero_ele.min())
+            self.w[nonzero_indices] = nonzero_ele
+
+
 
     def normalize(self):
         """
@@ -442,7 +455,7 @@ class Conn:
             boolean indexing should be used for nodes
         """
 
-        if isinstance(idx_node, np.ndarray) and idx_node.dtype == np.bool:
+        if isinstance(idx_node, np.ndarray) and idx_node.dtype == bool:
             # update node attributes
             self.n_nodes = sum(idx_node)
             self.idx_node[self.idx_node] = idx_node
