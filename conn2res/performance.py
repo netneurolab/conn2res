@@ -254,7 +254,7 @@ def accuracy_score(
 
 
 def balanced_accuracy_score(
-    y_true, y_pred, sample_weight=None, adjusted=None, **kwargs
+    y_true, y_pred, sample_weight=None, adjusted=True, **kwargs
 ):
     """
     Balance accuracy score. Good to deal with
