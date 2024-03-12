@@ -132,26 +132,13 @@ class Conn:
         # divide connectivity matrix by spectral radius
         self.normalize()
 
-    def scale(self, neg_edges=False):
+    def scale(self):
         """
         Scale the connectivity matrix between [0, 1]
         """
 
-        # scale connectivity matrix between [0, 1], only scale nonzero values in case of negative connectivity
-        # self.w = (self.w - self.w.min()) / (self.w.max() - self.w.min())
-        nonzero_indices = np.nonzero(self.w)
-        nonzero_ele = self.w[nonzero_indices]
-
-        if self.w.min() >= 0:
-            self.w = (self.w - self.w.min()) / (self.w.max() - self.w.min())
-        else:
-            if neg_edges:
-                nonzero_ele = (2 * (nonzero_ele - nonzero_ele.min()) / (nonzero_ele.max() - nonzero_ele.min())) - 1
-            else:
-                nonzero_ele = (nonzero_ele - nonzero_ele.min()) / (nonzero_ele.max() - nonzero_ele.min())
-            self.w[nonzero_indices] = nonzero_ele
-
-
+        # scale connectivity matrix between [0, 1]
+        self.w = (self.w - self.w.min()) / (self.w.max() - self.w.min())
 
     def normalize(self):
         """
@@ -425,32 +412,15 @@ class Conn:
             # get modules
             module_ids, modules = get_modules(rsn_mapping)
 
-            # modules are contained in a list of groups
-            if isinstance(node_set, (list, np.ndarray)):
-                selected_nodes = np.empty(0)
+            if node_set in module_ids:
+                # select all nodes in the requested module
+                selected_nodes = [e for i, e in enumerate(
+                    modules) if (module_ids == node_set)[i]][0]
 
-                for node_group in node_set:
-                    if node_group in module_ids:
-                        # select all nodes in the requested module
-                        selected_nodes = np.append(selected_nodes, [e for i, e in enumerate(
-                            modules) if (module_ids == node_group)[i]][0]).astype(int)
-                    else:
-                        raise ValueError('node_set does not exist with given value')
-                                        
                 # intersection of nodes we want to select from
                 selected_nodes = np.intersect1d(selected_nodes, nodes_from)
-
-            # modules are contained in a single group 
             else:
-                if node_set in module_ids:
-                    # select all nodes in the requested module
-                    selected_nodes = [e for i, e in enumerate(
-                        modules) if (module_ids == node_set)[i]][0]
-
-                    # intersection of nodes we want to select from
-                    selected_nodes = np.intersect1d(selected_nodes, nodes_from)
-                else:
-                    raise ValueError('node_set does not exist with given value')
+                raise ValueError('given node_set does not exist in modules')
 
         return selected_nodes
 
