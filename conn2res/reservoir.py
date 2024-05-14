@@ -986,7 +986,7 @@ class MemristiveReservoir:
             else:
                 V[i, j] = nv_dict[j] - nv_dict[i]
 
-        return mask(self, V)
+        return self.mask(V)
 
     def simulate(self, Vext, ic=None, mode='forward'):
         """
@@ -1027,8 +1027,10 @@ class MemristiveReservoir:
         for t, Ve in enumerate(Vext):
             if mode == 'forward':
 
-                if (t > 0) and (t % 100 == 0):
-                    print(f'\t ----- timestep = {t}')
+                if (t>0) and (t%100 == 0): print(f'\t ----- timestep = {t}')
+
+                # store external voltages
+                #self._state[t, self._E] = Ve
 
                 # get voltage at internal nodes
                 Vi = self.solveVi(Ve)
@@ -1054,6 +1056,10 @@ class MemristiveReservoir:
             # store conductance
             if self.save_conductance:
                 self._G_history[t] = self._G
+
+            # center internal voltage measurements
+            self._state[:, self._I] = self._state[:, self._I] - \
+            np.mean(self._state[:, self._I], axis=1, keepdims=True)    
 
         return self._state
 
@@ -1239,18 +1245,14 @@ class MSSNetwork(MemristiveReservoir):
         """
         super().__init__(*args, **kwargs)
 
-        self.vA = self.init_property(vA, noise)      # constant
-        self.vB = self.init_property(vB, noise)      # constant
-        self.tc = self.init_property(tc, noise)      # constant
-        self.NMSS = self.init_property(NMSS, noise)    # constant
-        self.Woff = self.init_property(Woff, noise)    # constant
-        self.Won = self.init_property(Won, noise)     # constant
-        self._Ga = np.divide(self.Woff, self.NMSS,
-                             where=self.NMSS != 0,
-                             out=np.zeros_like(self.Woff))  # constant
-        self._Gb = np.divide(self.Won, self.NMSS,
-                             where=self.NMSS != 0,
-                             out=np.zeros_like(self.Won))   # constant
+        self.vA     = self.init_property(vA, noise)      # constant
+        self.vB     = self.init_property(vB, noise)      # constant
+        self.tc     = self.init_property(tc, noise)      # constant
+        self.NMSS   = self.init_property(NMSS, noise)    # constant
+        self.Woff   = self.init_property(Woff, noise)    # constant
+        self.Won    = self.init_property(Won, noise)     # constant
+        self._Ga = self.mask(a=np.divide(self.Woff, self.NMSS,where=self.NMSS != 0))  # constant
+        self._Gb = self.mask(a=np.divide(self.Won, self.NMSS,where=self.NMSS != 0))  # constant
 
         self._Nb = self.init_property(Nb, noise)
         self._G = self._Nb * (self._Gb - self._Ga) + self.NMSS * self._Ga
@@ -1280,17 +1282,13 @@ class MSSNetwork(MemristiveReservoir):
         if G is not None:
             Gdiff1 = G - self.NMSS * self._Ga
             Gdiff2 = self._Gb - self._Ga
-            Nb = np.divide(Gdiff1, Gdiff2,
-                           where=Gdiff2 != 0,
-                           out=np.zeros_like(Gdiff1))
+            Nb = self.mask(a=np.divide(Gdiff1, Gdiff2, where=Gdiff2 != 0))
 
         else:
             Nb = self._Nb
 
-        # ration of dt to characterictic time of the device tc
-        alpha = np.divide(dt, self.tc,
-                          where=self.tc != 0,
-                          out=np.zeros_like(self.tc))
+        # ratio of dt to characterictic time of the device tc
+        alpha = np.divide(dt, self.tc, where=self.tc != 0)
 
         # compute Pa
         exponent = -1 * (V - self.vA) / self.VT
@@ -1306,8 +1304,8 @@ class MSSNetwork(MemristiveReservoir):
         # use random number generator for reproducibility
         rng = np.random.default_rng(seed=seed)
 
-        Gab = rng.binomial(Na.astype(int), mask(self, Pa))
-        Gba = rng.binomial(Nb.astype(int), mask(self, Pb))
+        Gab = rng.binomial(Na.astype(int), self.mask(Pa))
+        Gba = rng.binomial(Nb.astype(int), self.mask(Pb))
 
         if utils.check_symmetric(self._W):
             Gab = utils.make_symmetric(Gab)
@@ -1339,3 +1337,10 @@ class MSSNetwork(MemristiveReservoir):
 
         else:
             return self._G.copy() + dG  # updated conductance
+
+
+def reservoir(name, **kwargs):
+    if name == 'EchoStateNetwork':
+        return EchoStateNetwork(**kwargs)
+    if name == 'MSSNetwork':
+        return MSSNetwork(**kwargs)
