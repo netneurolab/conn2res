@@ -986,7 +986,7 @@ class MemristiveReservoir:
             else:
                 V[i, j] = nv_dict[j] - nv_dict[i]
 
-        return mask(self, V)
+        return self.mask(V)
 
     def simulate(self, Vext, ic=None, mode='forward'):
         """
@@ -1013,8 +1013,8 @@ class MemristiveReservoir:
             N: number of nodes in the network
         """
 
-        # print('\n GENERATING RESERVOIR STATES ...')
-        # print(f'\n SIMULATING STATES IN {mode.upper()} MODE ...')
+        print('\n GENERATING RESERVOIR STATES ...')
+        print(f'\n SIMULATING STATES IN {mode.upper()} MODE ...')
 
         # initialize reservoir states
         self._state = np.zeros((len(Vext), self._n_nodes))
@@ -1027,7 +1027,7 @@ class MemristiveReservoir:
         for t, Ve in enumerate(Vext):
             if mode == 'forward':
 
-                if (t > 0) and (t % 100 == 0):
+                if (t > 0) and (t % 2 == 0):
                     print(f'\t ----- timestep = {t}')
 
                 # get voltage at internal nodes
@@ -1306,8 +1306,8 @@ class MSSNetwork(MemristiveReservoir):
         # use random number generator for reproducibility
         rng = np.random.default_rng(seed=seed)
 
-        Gab = rng.binomial(Na.astype(int), mask(self, Pa))
-        Gba = rng.binomial(Nb.astype(int), mask(self, Pb))
+        Gab = rng.binomial(Na.astype(int), self.mask(Pa))
+        Gba = rng.binomial(Nb.astype(int), self.mask(Pb))
 
         if utils.check_symmetric(self._W):
             Gab = utils.make_symmetric(Gab)
