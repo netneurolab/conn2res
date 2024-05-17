@@ -2,8 +2,8 @@ This folder contains several use-case examples of how the ``conn2res`` toolbox
 can be applied to address specific biological questions. The processed
 connectivity data is publicly available and can be downloaded
 `HERE <https://zenodo.org/records/10205004>`_. If you want to run the Tutorials 
-and Examples in this section, download the *data folder from the Zenodo 
-repository, and place it inside the *examples folder.
+and Examples in this section, download the *data* folder from the Zenodo 
+repository, and place it inside the *examples* folder.
 
 Tutorial 1: Main conn2res workflow
 =======================================================================
@@ -42,7 +42,7 @@ performance in each empirical connectome with a population of 500
 rewired null networks.
 
 
-Example 4: Memristive reservoir using human conenctome
+Example 4: Memristive reservoir using human connectome
 =======================================================================
 This example shows how the toolbox can be applied to simulate
 memristive dynamics on reservoirs informed by biological conenctomes.
