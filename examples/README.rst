@@ -42,7 +42,7 @@ performance in each empirical connectome with a population of 500
 rewired null networks.
 
 
-Example 4: Memristive reservoir using human conenctome
+Example 4: Memristive reservoir using human connectome
 =======================================================================
 This example shows how the toolbox can be applied to simulate
 memristive dynamics on reservoirs informed by biological conenctomes.
