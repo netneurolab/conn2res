@@ -6,6 +6,7 @@ from abc import ABCMeta, abstractmethod
 import numpy as np
 from numpy.linalg import pinv
 from . import utils
+from abc import ABC,abstractmethod
 
 class Reservoir(metaclass=ABCMeta):
     """
@@ -790,8 +791,7 @@ class SpikingNeuralNetwork(Reservoir):
             else:
                 return self._state
 
-
-class MemristiveReservoir:
+class MemristiveReservoir(ABC):
     """
     Class that represents a general Memristive Reservoir
 
@@ -938,7 +938,7 @@ class MemristiveReservoir:
         p = rng.normal(mean, std*mean, size=self._W.shape)
         p = utils.make_symmetric(p)
 
-        return p * self._W  # ma.masked_array(p, mask=np.logical_not(self._W))
+        return p * self._W.astype(np.float64)  # ma.masked_array(p, mask=np.logical_not(self._W))
 
     def solveVi(self, Ve, Vgr=None, G=None, **kwargs):
         """
@@ -1004,6 +1004,9 @@ class MemristiveReservoir:
             Vgr = np.zeros((self._n_grounded_nodes))
 
         # set of all nodal voltages
+        #How does it make sure the correct voltages are paired with each correct node
+        #ANSWER: In the below nodes concat, the order of nodes is the same as voltages, thus the nv_dict
+        #        is a pairing of (node_index[in W] , voltage)
         voltage = np.concatenate(
             [Vi[:, np.newaxis], Ve[:, np.newaxis], Vgr[:, np.newaxis]]).squeeze()
 
@@ -1012,16 +1015,20 @@ class MemristiveReservoir:
             [self._I[:, np.newaxis], self._E[:, np.newaxis], self._GR[:, np.newaxis]]).squeeze()
 
         # dictionary that groups pairs of voltage
-        nv_dict = {n: v for n, v in zip(nodes, voltage)}
+        nv_dict = {n:v for n, v in zip(nodes, voltage)}
 
         # voltage across memristors
+        #Goes across each connection (non-zero in W) and find the voltage using kirchoffs law 
+        #loops through all non-zero (i,j) positions in W and sets that "Connection Voltage" as the difference
+        #between individual voltages, stored in the nv_dict -> (node_index, voltage)
+        #This difference in voltage (Voltage Drop) at (i,j) is stored in V at position (i,j)
         V = np.zeros_like(self._W).astype(float)
         for i, j in list(zip(*np.where(self._W != 0))):
             if j > i:
                 V[i, j] = nv_dict[i] - nv_dict[j]
             else:
                 V[i, j] = nv_dict[j] - nv_dict[i]
-
+        #removes voltage values from V in positions where there is no connection in W 
         return self.mask(V)
 
     def simulate(self, Vext, ic=None, mode='forward'):
@@ -1048,6 +1055,7 @@ class MemristiveReservoir:
             activation states of the reservoir; includes all the nodes
             N: number of nodes in the network
         """
+        #Forward is explicit WORKING, backward is implicit 
 
         # print('\n GENERATING RESERVOIR STATES ...')
         # print(f'\n SIMULATING STATES IN {mode.upper()} MODE ...')
@@ -1059,6 +1067,8 @@ class MemristiveReservoir:
         if self.save_conductance:
             self._G_history = np.zeros((len(Vext), self._n_nodes,
                                         self._n_nodes))
+
+        print("\nLength of Vext: ",len(Vext),"\n\n")
 
         for t, Ve in enumerate(Vext):
             if mode == 'forward':
@@ -1093,10 +1103,7 @@ class MemristiveReservoir:
             if self.save_conductance:
                 self._G_history[t] = self._G
 
-            # center internal voltage measurements
-            self._state[:, self._I] = self._state[:, self._I] - \
-            np.mean(self._state[:, self._I], axis=1, keepdims=True)    
-
+        #self._state is a (t x N_nodes) matrix which keeps track of node voltage across time
         return self._state
 
     def iterate(self, Ve, tol=5e-2, iters=100):
@@ -1149,6 +1156,14 @@ class MemristiveReservoir:
             # print(f'\t\t\t max error = {max_err}')
 
         return Vi[-1]
+
+    @abstractmethod
+    def dG(self, V, G=None, dt=1e-4, seed=None):
+        pass
+
+    @abstractmethod
+    def updateG(self, V, G=None, update=False):
+        pass
 
     def getErr(self, x_0, x_1):
         """
@@ -1281,14 +1296,14 @@ class MSSNetwork(MemristiveReservoir):
         """
         super().__init__(*args, **kwargs)
 
-        self.vA     = self.init_property(vA, noise)      # constant
-        self.vB     = self.init_property(vB, noise)      # constant
-        self.tc     = self.init_property(tc, noise)      # constant
-        self.NMSS   = self.init_property(NMSS, noise)    # constant
-        self.Woff   = self.init_property(Woff, noise)    # constant
-        self.Won    = self.init_property(Won, noise)     # constant
-        self._Ga = self.mask(a=np.divide(self.Woff, self.NMSS,where=self.NMSS != 0))  # constant
-        self._Gb = self.mask(a=np.divide(self.Won, self.NMSS,where=self.NMSS != 0))  # constant
+        self.vA = self.init_property(vA, noise)      # constant
+        self.vB = self.init_property(vB, noise)      # constant
+        self.tc = self.init_property(tc, noise)      # constant
+        self.NMSS = self.init_property(NMSS, noise)    # constant Note: This sets a different number of switches per memristor 
+        self.Woff = self.init_property(Woff, noise)    # constant
+        self.Won = self.init_property(Won, noise)     # constant
+        self._Ga = self.mask(np.divide(self.Woff,self.NMSS)) # constant
+        self._Gb = self.mask(np.divide(self.Won,self.NMSS))   # constant
 
         self._Nb = self.init_property(Nb, noise)
         self._G = self._Nb * (self._Gb - self._Ga) + self.NMSS * self._Ga
@@ -1318,7 +1333,7 @@ class MSSNetwork(MemristiveReservoir):
         if G is not None:
             Gdiff1 = G - self.NMSS * self._Ga
             Gdiff2 = self._Gb - self._Ga
-            Nb = self.mask(a=np.divide(Gdiff1, Gdiff2, where=Gdiff2 != 0))
+            Nb = self.mask(np.divide(Gdiff1,Gdiff2))
 
         else:
             Nb = self._Nb
@@ -1340,6 +1355,8 @@ class MSSNetwork(MemristiveReservoir):
         # use random number generator for reproducibility
         rng = np.random.default_rng(seed=seed)
 
+        Gab = rng.binomial(Na.astype(int), self.mask(Pa))
+        Gba = rng.binomial(Nb.astype(int), self.mask(Pb))
         Gab = rng.binomial(Na.astype(int), self.mask(Pa))
         Gba = rng.binomial(Nb.astype(int), self.mask(Pb))
 

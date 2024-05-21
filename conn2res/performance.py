@@ -295,7 +295,7 @@ def balanced_accuracy_score(
         A floating point value.
     """
 
-    adjusted = kwargs.get('adjusted', False)
+    adjusted = kwargs.get('adjusted', True)
 
     func = getattr(metrics, 'balanced_accuracy_score')
     return func(y_true, y_pred, sample_weight=sample_weight, adjusted=adjusted)
