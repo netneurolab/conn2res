@@ -47,25 +47,25 @@ col_params : dict, optional
 """,
     title="""\
 title : str, optional
-    Title to be shown at the superior part of the figure.
+    Title to be shown at the superior part of the figure.\
 """,
     show="""\
 show : bool, optional
-    If True, it will display the matplotlib.pyplot.figure object
+    If True, it will display the matplotlib.pyplot.figure object.\
 """,
     savefig="""\
 savefig : bool, optional
     If True, it will save the matploblib.pyplot.figure object as a '.png' file by default.
-    The format of the file can be changed using the 'savefig.format'
-    keyword in the rc_params argument.
+    The format of the file can be changed using the 'savefig.format'.
+    keyword in the rc_params argument.\
 """,
     fname="""\
 fname : str or path-like
-    Path where the figure will be saved.
+    Path where the figure will be saved.\
 """,
     kwargs="""\
 kwargs : key-value pairs
-    Other keyword arguments pass directly to the underlying seaborn plotting function.
+    Other keyword arguments pass directly to the underlying seaborn plotting function.\
 """
 )
 
@@ -316,9 +316,7 @@ def plot_reservoir_states(
         _description_, by default None
     {rc_params}
     {fig_params}
-    ax_params : list of dict
-        list of dictionaries with keyword arguments for `matplotlib.pyplot.axes <https://matplotlib.org/stable/api/_as_gen/matplotlib.axes.Axes.html#matplotlib.axes.Axes`__.
-        Values to set axes's properties, by default [{}] * 2.
+    {ax_params}
     {lg_params}
     {title}
     {show}
@@ -466,12 +464,8 @@ def plot_diagnostics(
         _description_, by default None
     {rc_params}
     {fig_params}
-    ax_params : list of dict
-        list of dictionaries with keyword arguments for `matplotlib.pyplot.axes <https://matplotlib.org/stable/api/_as_gen/matplotlib.axes.Axes.html#matplotlib.axes.Axes`__.
-        Values to set axes's properties, by default [{}] * 3.
-    lg_params : list of dict
-        list of dictionaries with keyword arguments for `matplotlib.axes.Axes.legend <https://matplotlib.org/stable/api/_as_gen/matplotlib.axes.Axes.legend.html`__. 
-        Values to set legend's properties, by default [{}] * 3.
+    {ax_params}
+    {lg_params}
     {title}
     {show}
     {savefig}
@@ -757,7 +751,8 @@ def plot_phase_space(
     # reset rc defaults
     mpl.rcdefaults()
 
-def plot_spike_raster(tspike, x1, x2, title = "Spike Raster"):
+
+def plot_spike_raster(tspike, x1, x2, title="Spike Raster"):
     """
     Plot a spike raster plot.
 
@@ -798,7 +793,8 @@ def plot_spike_raster(tspike, x1, x2, title = "Spike Raster"):
     plt.grid(True, linestyle='--', alpha = 0.7)
     plt.show()
 
-def plot_membrane_voltages(membrane_voltages, x1, x2, neuron_idx = None, 
+
+def plot_membrane_voltages(membrane_voltages, x1, x2, neuron_idx=None,
                            dt = 0.05, title="Membrane Voltages"):
     """
     Plot the membrane voltages of the neurons.
