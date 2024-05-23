@@ -1088,12 +1088,10 @@ class MemristiveReservoir(ABC):
             self._G_history = np.zeros((len(Vext), self._n_nodes,
                                         self._n_nodes))
 
-        print("\nLength of Vext: ",len(Vext),"\n\n")
-
         for t, Ve in enumerate(Vext):
             if mode == 'forward':
 
-                if (t>0) and (t%100 == 0): print(f'\t ----- timestep = {t}')
+                # if (t>0) and (t%10 == 0): print(f'\t ----- timestep = {t}')
 
                 # store external voltages
                 #self._state[t, self._E] = Ve
@@ -1567,7 +1565,7 @@ class MemristiveReservoirCupy(ABC):
         p = cp.asarray(rng.normal(mean, std*mean, size=self._W.shape))
         p = utils.make_symmetric(p)
 
-        return cp.asarray(p * self._W.astype(np.float64))  # ma.masked_array(p, mask=np.logical_not(self._W))
+        return p * self._W.astype(cp.float64)  # ma.masked_array(p, mask=np.logical_not(self._W))
 
     def solveVi(self, Ve, Vgr=None, G=None, **kwargs):
         """
@@ -1586,14 +1584,10 @@ class MemristiveReservoirCupy(ABC):
 
         """
 
-        Ve = cp.asarray(Ve)
-
         if Vgr is None:
             Vgr = cp.zeros((self._n_grounded_nodes))
         if G is None:
             G = self._G
-
-        G = cp.asarray(G)
 
         # TODO: verify that the axis along which the sum is performed is correct
         # matrix N
@@ -1601,7 +1595,7 @@ class MemristiveReservoirCupy(ABC):
         cp.fill_diagonal(N, cp.sum(G, axis=1))
             
         # matrix A
-        A = cp.asarray(N - G)
+        A = N - G
 
         # inverse matrix A_II
         A_II = A[cp.ix_(self._I, self._I)]
@@ -1640,9 +1634,6 @@ class MemristiveReservoirCupy(ABC):
         if Vgr is None:
             Vgr = cp.zeros((self._n_grounded_nodes))
 
-        Vgr = cp.asarray(Vgr)
-        Ve = cp.asarray(Ve)
-        Vi = cp.asarray(Vi)
         # set of all nodal voltages
         #How does it make sure the correct voltages are paired with each correct node
         #ANSWER: In the below nodes concat, the order of nodes is the same as voltages, thus the nv_dict
@@ -1665,14 +1656,14 @@ class MemristiveReservoirCupy(ABC):
         #loops through all non-zero (i,j) positions in W and sets that "Connection Voltage" as the difference
         #between individual voltages, stored in the nv_dict -> (node_index, voltage)
         #This difference in voltage (Voltage Drop) at (i,j) is stored in V at position (i,j)
-        vec = np.zeros(len(self._W), dtype=np.float32)
+        vec = cp.zeros(len(self._W), dtype=cp.float32)
         for k,v in nv_dict.items():
             vec[k] = v
 
-        V = np.abs(np.subtract.outer(vec,vec))
+        V = cp.abs(cp.subtract.outer(vec,vec))
 
         #removes voltage values from V in positions where there is no connection in W 
-        return cp.asarray(self.mask(V))
+        return self.mask(V)
 
     def simulate(self, Vext, ic=None, mode='forward'):
         """
@@ -1711,12 +1702,13 @@ class MemristiveReservoirCupy(ABC):
             self._G_history = cp.zeros((len(Vext), self._n_nodes,
                                         self._n_nodes))
 
-        print("\nLength of Vext: ",len(Vext),"\n\n")
+        Vext = cp.asarray(Vext)
+
 
         for t, Ve in enumerate(Vext):
             if mode == 'forward':
 
-                if (t>0) and (t%100 == 0): print(f'\t ----- timestep = {t}')
+                if (t>0) and (t%50 == 0): print(f'\t ----- timestep = {t}')
 
                 # store external voltages
                 #self._state[t, self._E] = Ve
@@ -1785,7 +1777,7 @@ class MemristiveReservoirCupy(ABC):
             err_Vi = self.getErr(Vi[-2], Vi[-1])
             err_G = self.getErr(G[-2], G[-1])
 
-            max_err = np.max((np.max(err_Vi), np.max(err_G)))
+            max_err = cp.max((cp.max(err_Vi), cp.max(err_G)))
             if max_err < tol:
                 self.updateG(self.getV(Vi[-1].copy(), Ve), G[-1], update=True)
                 convergence = True
@@ -1798,7 +1790,7 @@ class MemristiveReservoirCupy(ABC):
             # print(f'\t\t n_iter = {n_iters}')
             # print(f'\t\t\t max error = {max_err}')
 
-        return cp.asarray(Vi[-1])
+        return Vi[-1]
 
     @abstractmethod
     def dG(self, V, G=None, dt=1e-4, seed=None):
@@ -1824,8 +1816,8 @@ class MemristiveReservoirCupy(ABC):
         no existent connection
         # TODO
         """
-        W = self._W.get()
-        a[np.where(W == 0)] = 0
+        # W = self._W.get()
+        a[np.where(self._W == 0)] = 0
         return a
 
 
@@ -1947,7 +1939,6 @@ class MSSNetworkCupy(MemristiveReservoirCupy):
         self.Won = self.init_property(Won, noise)     # constant
         self._Ga = self.mask(cp.divide(self.Woff,self.NMSS)) # constant
         self._Gb = self.mask(cp.divide(self.Won,self.NMSS))   # constant
-        print("\n\nTYPES: ",type(self._Ga),",",type(self._Gb))
 
         self._Nb = self.init_property(Nb, noise)
         self._G = cp.asarray(self._Nb * (self._Gb - self._Ga) + self.NMSS * self._Ga)
@@ -1975,7 +1966,6 @@ class MSSNetworkCupy(MemristiveReservoirCupy):
 
         # set Nb values
         if G is not None:
-            G = cp.asarray(G)
             Gdiff1 = G - self.NMSS * self._Ga
             Gdiff2 = self._Gb - self._Ga
             Nb = self.mask(cp.divide(Gdiff1,Gdiff2))
