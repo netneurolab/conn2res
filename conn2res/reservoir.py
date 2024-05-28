@@ -1666,7 +1666,7 @@ class MemristiveReservoirCupy(ABC):
         #removes voltage values from V in positions where there is no connection in W 
         return self.mask(V)
 
-    def simulate(self, Vext, ic=None, mode='forward'):
+    def simulate(self, Vext, ic=None, mode='forward',ret_int_only=False):
         """
         Simulates the dynamics of a memristive reservoir given an external
         voltage signal V_E
@@ -1740,7 +1740,12 @@ class MemristiveReservoirCupy(ABC):
                 self._G_history[t] = self._G
 
         #self._state is a (t x N_nodes) matrix which keeps track of node voltage across time
-        return cp.asnumpy(self._state)
+
+        #This checks if the flag for returning only the internal nodes is set
+        if ret_int_only: 
+            return cp.asnumpy(self._state[:,self._I])
+        else:
+            return cp.asnumpy(self._state)
 
     def iterate(self, Ve, tol=5e-2, iters=100):
         """

@@ -435,6 +435,8 @@ class Conn2ResTask(Task):
         # output data
         y = np.hstack([x[win + h : -abs_horizon_max + h - 1] for h in horizon])
 
+        #This extracts the portion of x that will be sliced off the front
+        z=x[:win]
         # update input data
         x = x[win : -abs_horizon_max - 1]
 
@@ -466,7 +468,7 @@ class Conn2ResTask(Task):
         self.horizon_max = horizon_max
         # self._data = {'x': x, 'y': y}
 
-        return x, y
+        return x, y, z
 
 
 def get_task_list(repository):
