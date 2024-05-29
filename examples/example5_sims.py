@@ -186,7 +186,7 @@ def run_experiment():
                 plotting.plot_performance(
                     df_subj,x='alpha',y=metric,
                     title=task.name, savefig=True,
-                    fname=os.path.join(OUTPUT_DIR, f'perf_{task.name}_{metric}_{lvl+1}'),
+                    fname=os.path.join(OUTPUT_DIR, f'perf_{task.name}_{metric}'),
                     rc_params={'figure.dpi':300,'savefig.dpi':300},
                     show=False
                 )
