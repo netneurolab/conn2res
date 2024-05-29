@@ -9,6 +9,9 @@ from . import utils
 from abc import ABC,abstractmethod
 import cupy as cp
 from joblib import Parallel, delayed
+from abc import ABC,abstractmethod
+import cupy as cp
+from joblib import Parallel, delayed
 
 class Reservoir(metaclass=ABCMeta):
     """
@@ -93,7 +96,14 @@ class EchoStateNetwork(Reservoir):
     n_nodes : int
         dimension of the reservoir
     activation_function : fct
+    activation_function : fct
         type of activation function
+    activation_function_derivative : fct
+        derivative of activation function
+    LE : numpy.ndarray
+        Lyapunov exponents of the reservoir
+    LE_trajectory : numpy.ndarray
+        Lyapunov exponents of the reservoir over time
     activation_function_derivative : fct
         derivative of activation function
     LE : numpy.ndarray
@@ -133,8 +143,13 @@ class EchoStateNetwork(Reservoir):
             activation_function, **kwargs)
         self.activation_function_derivative = self.get_derivative(
             activation_function, **kwargs)
+            activation_function, **kwargs)
+        self.activation_function_derivative = self.get_derivative(
+            activation_function, **kwargs)
 
     def simulate(
+        self, ext_input, w_in, input_gain=None, ic=None, output_nodes=None,
+        return_states=True, compute_LE = False, warmup = 0, **kwargs
         self, ext_input, w_in, input_gain=None, ic=None, output_nodes=None,
         return_states=True, compute_LE = False, warmup = 0, **kwargs
     ):
@@ -160,6 +175,8 @@ class EchoStateNetwork(Reservoir):
             'return_states' is True.
         return_states : bool, optional
             If True, simulated resrvoir states are returned. True by default.
+        compute_LE : bool, optional
+            If True, compute the Lyapunov spectrum of the reservoir. False by default.
         compute_LE : bool, optional
             If True, compute the Lyapunov spectrum of the reservoir. False by default.
         kwargs:
@@ -199,6 +216,15 @@ class EchoStateNetwork(Reservoir):
             y = np.zeros(self.n_nodes)
             self.LE_trajectory = np.zeros((len(timesteps), self.n_nodes))
 
+        # scale input connectivity matrix
+        if input_gain is not None:
+            w_in = input_gain * w_in
+
+        if compute_LE and self.activation_function_derivative is not None:
+            Q = np.eye(self.n_nodes)
+            y = np.zeros(self.n_nodes)
+            self.LE_trajectory = np.zeros((len(timesteps), self.n_nodes))
+
         # simulate dynamics
         for t in timesteps:
             # if (t > 0) and (t % 100 == 0):
@@ -206,6 +232,18 @@ class EchoStateNetwork(Reservoir):
             synap_input = np.dot(
                 self._state[t-1, :], self.w) + np.dot(ext_input[t-1, :], w_in)
             self._state[t, :] = self.activation_function(synap_input, **kwargs)
+
+            if compute_LE and self.activation_function_derivative is not None:
+                J = np.dot(np.diag(self.activation_function_derivative(synap_input)), self.w)
+                Q = np.dot(J, Q)
+                Q, R = np.linalg.qr(Q)
+                yt = np.log2(np.abs(np.diag(R)))
+                self.LE_trajectory[t-1, :] = yt
+                if t > warmup:
+                    y += yt
+        
+        if compute_LE and self.activation_function_derivative is not None:
+            self.LE = y / (timesteps[-1] - warmup)
 
             if compute_LE and self.activation_function_derivative is not None:
                 J = np.dot(np.diag(self.activation_function_derivative(synap_input)), self.w)
@@ -238,11 +276,16 @@ class EchoStateNetwork(Reservoir):
                 return self._state
 
     def set_activation_function(self, function, **kwargs):
+    def set_activation_function(self, function, **kwargs):
 
+        def linear(x, **kwargs):
+            m = kwargs.get('m', 1)
         def linear(x, **kwargs):
             m = kwargs.get('m', 1)
             return m * x
 
+        def elu(x, **kwargs):
+            alpha = kwargs.get('alpha', 0.5)
         def elu(x, **kwargs):
             alpha = kwargs.get('alpha', 0.5)
             x[x <= 0] = alpha*(np.exp(x[x <= 0]) - 1)
@@ -253,6 +296,8 @@ class EchoStateNetwork(Reservoir):
 
         def leaky_relu(x, **kwargs):
             alpha = kwargs.get('alpha', 0.5)
+        def leaky_relu(x, **kwargs):
+            alpha = kwargs.get('alpha', 0.5)
             return np.maximum(alpha * x, x)
 
         def sigmoid(x):
@@ -261,6 +306,10 @@ class EchoStateNetwork(Reservoir):
         def tanh(x):
             return np.tanh(x)
 
+        def step(x, **kwargs):
+            thr = kwargs.get('thr', 0.5)
+            vmin = kwargs.get('vmin', 0)
+            vmax = kwargs.get('vmax', 1)
         def step(x, **kwargs):
             thr = kwargs.get('thr', 0.5)
             vmin = kwargs.get('vmin', 0)
@@ -794,6 +843,7 @@ class SpikingNeuralNetwork(Reservoir):
                 return self._state
 
 class MemristiveReservoir(ABC):
+class MemristiveReservoir(ABC):
     """
     Class that represents a general Memristive Reservoir
 
@@ -941,6 +991,7 @@ class MemristiveReservoir(ABC):
         p = utils.make_symmetric(p)
 
         return p * self._W.astype(np.float64)  # ma.masked_array(p, mask=np.logical_not(self._W))
+        return p * self._W.astype(np.float64)  # ma.masked_array(p, mask=np.logical_not(self._W))
 
     def solveVi(self, Ve, Vgr=None, G=None, **kwargs):
         """
@@ -967,6 +1018,7 @@ class MemristiveReservoir(ABC):
         # matrix N
         N = np.zeros((self._n_nodes, self._n_nodes))
         np.fill_diagonal(N, np.sum(G, axis=1))
+            
             
         # matrix A
         A = N - G
@@ -1009,6 +1061,9 @@ class MemristiveReservoir(ABC):
         #How does it make sure the correct voltages are paired with each correct node
         #ANSWER: In the below nodes concat, the order of nodes is the same as voltages, thus the nv_dict
         #        is a pairing of (node_index[in W] , voltage)
+        #How does it make sure the correct voltages are paired with each correct node
+        #ANSWER: In the below nodes concat, the order of nodes is the same as voltages, thus the nv_dict
+        #        is a pairing of (node_index[in W] , voltage)
         voltage = np.concatenate(
             [Vi[:, np.newaxis], Ve[:, np.newaxis], Vgr[:, np.newaxis]]).squeeze()
 
@@ -1017,6 +1072,7 @@ class MemristiveReservoir(ABC):
             [self._I[:, np.newaxis], self._E[:, np.newaxis], self._GR[:, np.newaxis]]).squeeze()
 
         # dictionary that groups pairs of voltage
+        nv_dict = {n:v for n, v in zip(nodes, voltage)}
         nv_dict = {n:v for n, v in zip(nodes, voltage)}
 
         # voltage across memristors
@@ -1039,7 +1095,35 @@ class MemristiveReservoir(ABC):
         #         V[i, j] = nv_dict[i] - nv_dict[j]
         #     else:
         #         V[i, j] = nv_dict[j] - nv_dict[i]
+        #Goes across each connection (non-zero in W) and find the voltage using kirchoffs law 
+        #loops through all non-zero (i,j) positions in W and sets that "Connection Voltage" as the difference
+        #between individual voltages, stored in the nv_dict -> (node_index, voltage)
+        #This difference in voltage (Voltage Drop) at (i,j) is stored in V at position (i,j)
+        
+        
+        # V = np.zeros_like(self._W).astype(float)
 
+        # def pairwise(i, j):
+        #     if j > i:
+        #         V[i, j] = nv_dict[i] - nv_dict[j]
+        #     else:
+        #         V[i, j] = nv_dict[j] - nv_dict[i]
+
+        # for i, j in list(zip(*np.where(self._W != 0))):
+        #     if j > i:
+        #         V[i, j] = nv_dict[i] - nv_dict[j]
+        #     else:
+        #         V[i, j] = nv_dict[j] - nv_dict[i]
+
+        # Parallel(n_jobs=8,prefer='processes')(delayed(pairwise)(i,j) for i, j in list(zip(*np.where(self._W != 0))))
+
+        vec = np.zeros(len(self._W), dtype=np.float32)
+        for k,v in nv_dict.items():
+            vec[k] = v
+
+        V = np.abs(np.subtract.outer(vec,vec))
+
+        #removes voltage values from V in positions where there is no connection in W 
         # Parallel(n_jobs=8,prefer='processes')(delayed(pairwise)(i,j) for i, j in list(zip(*np.where(self._W != 0))))
 
         vec = np.zeros(len(self._W), dtype=np.float32)
@@ -1076,6 +1160,7 @@ class MemristiveReservoir(ABC):
             N: number of nodes in the network
         """
         #Forward is explicit WORKING, backward is implicit 
+        #Forward is explicit WORKING, backward is implicit 
 
         # print('\n GENERATING RESERVOIR STATES ...')
         # print(f'\n SIMULATING STATES IN {mode.upper()} MODE ...')
@@ -1091,6 +1176,10 @@ class MemristiveReservoir(ABC):
         for t, Ve in enumerate(Vext):
             if mode == 'forward':
 
+                # if (t>0) and (t%10 == 0): print(f'\t ----- timestep = {t}')
+
+                # store external voltages
+                #self._state[t, self._E] = Ve
                 # if (t>0) and (t%10 == 0): print(f'\t ----- timestep = {t}')
 
                 # store external voltages
@@ -1121,6 +1210,7 @@ class MemristiveReservoir(ABC):
             if self.save_conductance:
                 self._G_history[t] = self._G
 
+        #self._state is a (t x N_nodes) matrix which keeps track of node voltage across time
         #self._state is a (t x N_nodes) matrix which keeps track of node voltage across time
         return self._state
 
@@ -1174,6 +1264,14 @@ class MemristiveReservoir(ABC):
             # print(f'\t\t\t max error = {max_err}')
 
         return Vi[-1]
+
+    @abstractmethod
+    def dG(self, V, G=None, dt=1e-4, seed=None):
+        pass
+
+    @abstractmethod
+    def updateG(self, V, G=None, update=False):
+        pass
 
     @abstractmethod
     def dG(self, V, G=None, dt=1e-4, seed=None):
@@ -1318,8 +1416,11 @@ class MSSNetwork(MemristiveReservoir):
         self.vB = self.init_property(vB, noise)      # constant
         self.tc = self.init_property(tc, noise)      # constant
         self.NMSS = self.init_property(NMSS, noise)    # constant Note: This sets a different number of switches per memristor 
+        self.NMSS = self.init_property(NMSS, noise)    # constant Note: This sets a different number of switches per memristor 
         self.Woff = self.init_property(Woff, noise)    # constant
         self.Won = self.init_property(Won, noise)     # constant
+        self._Ga = self.mask(np.divide(self.Woff,self.NMSS)) # constant
+        self._Gb = self.mask(np.divide(self.Won,self.NMSS))   # constant
         self._Ga = self.mask(np.divide(self.Woff,self.NMSS)) # constant
         self._Gb = self.mask(np.divide(self.Won,self.NMSS))   # constant
 
@@ -1352,10 +1453,13 @@ class MSSNetwork(MemristiveReservoir):
             Gdiff1 = G - self.NMSS * self._Ga
             Gdiff2 = self._Gb - self._Ga
             Nb = self.mask(np.divide(Gdiff1,Gdiff2))
+            Nb = self.mask(np.divide(Gdiff1,Gdiff2))
 
         else:
             Nb = self._Nb
 
+        # ratio of dt to characterictic time of the device tc
+        alpha = np.divide(dt, self.tc, where=self.tc != 0)
         # ratio of dt to characterictic time of the device tc
         alpha = np.divide(dt, self.tc, where=self.tc != 0)
 
@@ -1373,6 +1477,8 @@ class MSSNetwork(MemristiveReservoir):
         # use random number generator for reproducibility
         rng = np.random.default_rng(seed=seed)
 
+        Gab = rng.binomial(Na.astype(int), self.mask(Pa))
+        Gba = rng.binomial(Nb.astype(int), self.mask(Pb))
         Gab = rng.binomial(Na.astype(int), self.mask(Pa))
         Gba = rng.binomial(Nb.astype(int), self.mask(Pb))
         Gab = rng.binomial(Na.astype(int), self.mask(Pa))
