@@ -437,6 +437,7 @@ class Conn2ResTask(Task):
 
         #This extracts the portion of x that will be sliced off the front
         z=x[:win]
+        
         # update input data
         x = x[win : -abs_horizon_max - 1]
 

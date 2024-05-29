@@ -1544,11 +1544,15 @@ class MemristiveReservoirCupy(ABC):
         """
         This function initializes property matrices following a normal
         distribution with mean = 'mean' and standard deviation = 'mean' * 'std'
-        Returns a CuPy array
 
         Parameters
         ----------
         # TODO
+        mean : float
+            The mean to be used in the Gaussian random generation
+        std : float
+            The standard deviation to be used in the Gaussian random generation.
+            Default: 0.1
         seed : int, array_like[ints], SeedSequence, BitGenerator, Generator, optional
             seed to initialize the random number generator, by default None
             for details, see numpy.random.default_rng()
@@ -1577,14 +1581,22 @@ class MemristiveReservoirCupy(ABC):
         
         Parameters
         ----------
-        # TODO
+        Ve : cupy.ndarray
+            An array of the voltages applied to the external nodes
+        Vgr : cupy.ndarray
+            An array of the voltages applied to the external nodes
+            Default: None
+        G : cupy.ndarray
+            A matrix of conductance values for each memristor in the network        
 
         Returns
         -------
-        # TODO
+        x : cupy.ndarray
+            An array of the voltages at each of the internal nodes (NOT MEMRISTORS)
 
         """
 
+        #Sets the ground voltage to 0 if None was passed
         if Vgr is None:
             Vgr = cp.zeros((self._n_grounded_nodes))
         if G is None:
@@ -1621,11 +1633,22 @@ class MemristiveReservoirCupy(ABC):
 
         Parameters
         ----------
-        # TODO
+        Vi : cupy.ndarray
+            Array of voltages across all internal nodes. Calculated 
+            with solveVi
+
+        Ve : cupy.ndarray
+            Array of voltages passed through all the external nodes
+
+        Vgr : cupy.ndarray
+            Array of voltages across all ground nodes.
+            Default: None    
 
         Returns
         -------
-        # TODO
+        V : (N,N) cupy.ndarray
+            Matrix of voltage across every memristor, ie voltage across
+            every connection in the connection matrix W.
 
         """
 
@@ -1683,6 +1706,10 @@ class MemristiveReservoirCupy(ABC):
             Refers to the method used to solve the system of equations.
             Use 'forward' for explicit Euler method, and 'backward' for
             implicit Euler method.
+        ret_int_only : boolean
+            Flag that tells simulate to return either all of the node 
+            states, or only the states of the internal nodes
+            Default: False    
 
         Returns
         -------
@@ -1691,9 +1718,6 @@ class MemristiveReservoirCupy(ABC):
             N: number of nodes in the network
         """
         #Forward is explicit WORKING, backward is implicit 
-
-        # print('\n GENERATING RESERVOIR STATES ...')
-        # print(f'\n SIMULATING STATES IN {mode.upper()} MODE ...')
 
         # initialize reservoir states
         self._state = cp.zeros((len(Vext), self._n_nodes))
@@ -1710,9 +1734,6 @@ class MemristiveReservoirCupy(ABC):
             if mode == 'forward':
 
                 #if (t>0) and (t%50 == 0): print(f'\t ----- timestep = {t}')
-
-                # store external voltages
-                #self._state[t, self._E] = Ve
 
                 # get voltage at internal nodes
                 Vi = self.solveVi(Ve)
@@ -1819,8 +1840,17 @@ class MemristiveReservoirCupy(ABC):
     def mask(self, a):
         """
         This functions converts to zero all entries in matrix 'a' for which there is
-        no existent connection
-        # TODO
+        no existent connection in W
+        
+        Parameters
+        ----------
+        a : (N,N)  cupy.ndarray, numpy.ndarray
+            Matrix to be changed according to connections in W.
+
+        Returns
+        -------
+        a : cupy.ndarray
+            Masked matrix 'a'
         """
         # W = self._W.get()
         a[np.where(self._W == 0)] = 0
@@ -1952,18 +1982,26 @@ class MSSNetworkCupy(MemristiveReservoirCupy):
     def dG(self, V, G=None, dt=1e-4, seed=None):
         """
         # TODO
-        This function updates the conductance matrix G given V
+        This function updates the conductance matrix G given V.
+        G represents the conductance for each memristor in the network
+        (One per connection in W)
 
         Parameters
         ----------
-        V : (N,N) numpy.ndarray
+        V : (N,N) cupy.ndarray
             matrix of voltages accross memristors
+        G : (N,N) cupy.ndarray
+            Matrix of conductances across each memristor in the network
         seed : int, array_like[ints], SeedSequence, BitGenerator, Generator, optional
             seed to initialize the random number generator, by default None
             for details, see numpy.random.default_rng()
 
         Returns
         -------
+        dNb : cupy.ndarray
+            Matrix representing the number of switches change to or from 
+            B state per memristor in the network.
+            (+ more switches changed to B state,  - More switches changed to A state)
 
         References
         ----------
@@ -2014,7 +2052,27 @@ class MSSNetworkCupy(MemristiveReservoirCupy):
 
     def updateG(self, V, G=None, update=False):
         """
-        # TODO
+        This function updates the conductance matrix G
+        which represents the conductance across each memristor in
+        the network.
+
+        Parameters
+        ----------
+        V : (N,N) cupy.ndarray
+            Matrix of voltages across all memristors in the network
+        G : (N,N) cupy.ndarray
+            Matrix of conductance across each memristor (connection)
+            in the network
+            Deafault: None
+        update: boolean
+            Boolean flag of whether the current conductance matrix should be 
+            updated according to the calculated change of conductance or not
+
+        Returns
+        -------
+        G + dG : (N,N) cupy.ndarray
+            returns a copy of the updated conducatance matrix if the update
+            flag is false
         """
 
         if G is None:

@@ -115,7 +115,6 @@ class Readout:
             )
 
         # TODO: define sample_weight
-        print("SHAPE OF X AND Y IN train= x:",X.shape,"  y:",y.shape)
         # train model
         self._model.fit(X=X, y=y, sample_weight=sample_weight)
 
@@ -182,7 +181,6 @@ class Readout:
 
                 # predict values
                 y_pred = self._model.predict(X)
-                print("Y PREDICT SHAPE: ",y_pred.shape, "  Y_TRUE SHAPE: ",y.shape)
                 # estimate score
                 scores[m] = func(
                     y, y_pred, sample_weight=sample_weight, **kwargs)
@@ -258,7 +256,7 @@ class Readout:
 
         # train and test model
         if readout_nodes is None:
-            print("Shapes passed to train: X:",x_train.shape,"  y:",y_train.shape)
+
             self.train(
                 x_train, y_train, sample_weight_train
             )
