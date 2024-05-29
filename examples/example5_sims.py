@@ -19,10 +19,13 @@ warnings.simplefilter(action='ignore', category=FutureWarning)
 warnings.simplefilter(action='ignore', category=RuntimeWarning)
 warnings.simplefilter(action='ignore', category=UserWarning)
 
+#List of taks to do from conn2res.tasks
 TASKS = ['MemoryCapacity',]
 
+#metrics to measure
 CLASS_METRICS = ['mean_squared_error','corrcoef',]
 
+#Alpha values by which to scale connection matrix
 ALPHAS = np.linspace(start=0,stop=2,num=11,endpoint=True)
 
 #Directory for saving figures
@@ -32,21 +35,18 @@ OUTPUT_DIR = os.path.join(PROJ_DIR, 'figs')
 if not os.path.isdir(OUTPUT_DIR):
     os.makedirs(OUTPUT_DIR)
 
-N_RUNS = 20
+N_RUNS = 1
 
 def run_experiment():
-    #loads the ickle dictionary of connectome matrices
-    with open('/home/sasham/Desktop/data/SBMS_Matrices/sbms.pickle','rb') as file:
-        matrix_dict = pickle.load(file) #dictionary 'dict' object
+    #loads the pickle file from local
+    #can be replaced with any type of file, but matrix extracted should be of type numpy.ndarray
+    with open('/conntection_matrix','rb') as file:
+        matrix = pickle.load(file) #dictionary 'dict' object
 
-    #extracts the 3 matrix sets of levels of hierarchy 
-    matrices_1st = matrix_dict.get('1') # 'list' objects
-    matrices_2n = matrix_dict.get('2')
-    matrices_3rd = matrix_dict.get('3')
+    #loads the node mappings for the current connection matrix
+    mapping = np.load('/module_mappings.npy', mmap_mode='r+')
 
-    #loads the mapping (shared between these artificial connectomes)
-    mapping = np.load('/home/sasham/Desktop/data/SBMS_Matrices/module_mappings.npy', mmap_mode='r+')
-
+    #list of all possible regions
     mapping_unique = np.unique(mapping)
 
     for task_name in TASKS:
@@ -57,91 +57,119 @@ def run_experiment():
             os.makedirs(OUTPUT_DIR)
 
         task = Conn2ResTask(name=task_name,)
-        
-        #loops through the 3 levels of hierarchy
-        for lvl in range(3):
-            print(f'\n\t------------ Level: {lvl+1} ---------')
-            if(lvl==0): lvl_matrices = matrices_1st
-            elif (lvl==1): lvl_matrices = matrices_2n
-            else: lvl_matrices = matrices_3rd
 
-            df_runs = []
-            #runs: Currently the number of matrices to take from each level
-            for run in range(N_RUNS):
-                print(f'\n\t------------ run: {run+1} ------')
-                conn = Conn(w=lvl_matrices[run])
-                conn.scale_and_normalize()
+        df_runs = []
 
-                #loops through all the smallest level of modules and does a run where the ext node is in a specific module
-                for i in mapping_unique:
-                    x,y = task.fetch_data(n_trials=500, input_gain=1,horizon_max=-5)
-                    if run == 0:
-                            plotting.plot_iodata(
-                                x=x, y=y, title=task_name, savefig=True, 
-                                fname= os.path.join(OUTPUT_DIR, f'io_{task_name}'),
-                                rc_params={'figure.dpi':300, 'savefig.dpi':300},
-                                show = False
-                            )
+        for run in range(N_RUNS):
+            print(f'\n\t------------ run: {run+1} ------')
+            conn = Conn(w=matrix)
+            conn.scale_and_normalize()
 
-                    x_train, x_test, y_train, y_test = readout.train_test_split(x,y)
+            regions = []
 
-                    #Chooses 1 ground node per module/region
-                    gr_nodes = []
-                    for x in range(np.amax(mapping)):
-                        gr_nodes.append(conn.get_nodes('random',np.where(mapping == x),gr_nodes,n_nodes=1)[0])
+            #establishes 1 ground node per regions defined in the mapping array
+            gr_nodes = []
+            for x in mapping_unique:
+                gr_nodes.append(conn.get_nodes('random',np.where(mapping == x)[0],gr_nodes,n_nodes=1)[0])
 
-                    ext_nodes = conn.get_nodes('random', nodes_from=np.where(mapping == i),nodes_without=gr_nodes,n_nodes=task.n_features)
+            #arbitrary features values (placeholder, gets changed later)
+            features = 1
 
-                    int_nodes = conn.get_nodes('all',nodes_without=np.union1d(gr_nodes,ext_nodes))
+            #arbitrary internal and external nodes set to enable initialization of base memristive network
+            #internal and external node classifications are changed later to enable per region assignments
+            ext_nodes = conn.get_nodes('random',nodes_without=gr_nodes,n_nodes=features)
+            int_nodes = conn.get_nodes('all',nodes_without=np.union1d(gr_nodes,ext_nodes))
 
-                    # output_nodes = conn.get_nodes('random',
-                    #                             nodes_from = np.intersect1d(int_nodes,np.where(mapping == np.amax(mapping))),
-                    #                             n_nodes=task.n_features
-                    #                             )
+            #initializes base class of MSSNetwork so that initial properties of the network stay
+            #consistent between different alpha runs and internal/external node classifications
+            base = MSSNetworkCupy(
+                w=conn.w,
+                int_nodes=int_nodes,
+                ext_nodes=ext_nodes,
+                gr_nodes=gr_nodes,
+                mode='forward'
+            )
 
-                    mssn = MSSNetworkCupy(
-                        w=conn.w,
-                        int_nodes=int_nodes,
-                        ext_nodes =ext_nodes,
-                        gr_nodes=gr_nodes,
-                        mode='forward'
-                    )
 
-                    readout_module = Readout(estimator=readout.select_model(y))
+            #loops through all unique cortical regions defined in mapping to enable each region to contain
+            #the input node(s)
+            #Note: in MSSN, out is the reading across ALL internal nodes, but can be specified to include specific ones
+            for i in mapping_unique:
+                #fetches in/out data for memory capacity task
+                #also returns to z, the input data that has been cut off
 
-                    metrics = CLASS_METRICS
+                #running simulate on z will account for the data needed to make the first
+                #prediction in the output data according to each time lag 
+                x,y,z = task.fetch_data(n_trials=500, input_gain=1,horizon_max=-5)
 
-                    df_alpha = []
+                if run == 0:
+                        plotting.plot_iodata(
+                            x=x, y=y, title=task_name, savefig=True, 
+                            fname= os.path.join(OUTPUT_DIR, f'io_{task_name}'),
+                            rc_params={'figure.dpi':300, 'savefig.dpi':300},
+                            show = False
+                        )
 
-                    #lock to synchronize child processes for the appending to the dictionary
-                    lock = mp.Lock()
+                x_train, x_test, y_train, y_test = readout.train_test_split(x,y)
 
-                    #creates the dicrionary from mp.Manager to collect the output from each alpha run 
-                    manager = mp.Manager()
-                    return_dict = manager.dict()
+                #create copy of base network
+                mssn = copy.deepcopy(base)
+
+                #defines internal and external nodes for this iteration of unique cortical region
+                ext_nodes = conn.get_nodes('random', nodes_from=np.where(mapping == i)[0],nodes_without=gr_nodes,n_nodes=task.n_features)
+                int_nodes = conn.get_nodes('all',nodes_without=np.union1d(gr_nodes,ext_nodes))
+
+                #updates copied network with new node classifications
+                mssn._I = cp.asarray(int_nodes)
+                mssn._E = cp.asarray(ext_nodes)
+                mssn._n_external_nodes = len(ext_nodes)
+                mssn._n_internal_nodes = len(int_nodes)
+
+                readout_module = Readout(estimator=readout.select_model(y))
+
+                metrics = CLASS_METRICS
+
+                df_alpha = []
+
+                #lock to synchronize child processes for the appending to the dictionary
+                lock = mp.Lock()
+
+                #creates the dicrionary from mp.Manager to collect the output from each alpha run 
+                manager = mp.Manager()
+                return_dict = manager.dict()
+                
+                #creates a pool of processes, opted for this method instead of mp.Pool since synchronization was easier
+                #Each process runs an individual iteration of an alpha value
+                #(parallelizes across alpha value simulations)
+                pool = [mp.Process(target=run_alpha,args=(a,lock,mssn,readout_module,z,x_train,x_test,y_train,y_test,df_alpha,return_dict)) for a in range(len(ALPHAS))]
+
+                #runs all the Processes
+                for p in pool:
+                    p.start()
                     
-                    #creates a pool of processes, opted for this method instead of mp.Pool since synchronization was easier
-                    pool = [mp.Process(target=run_alpha,args=(a,lock,mssn,conn.w,readout_module,x_train,x_test,y_train,y_test,df_alpha,return_dict)) for a in range(len(ALPHAS))]
-
-                    #runs all the Processes
-                    for p in pool:
-                        p.start()
-                        
-                    #Synchronizes, waits for all processes to end
-                    for p in pool:
-                        p.join()
-                        
-                    #adds results of each alpha run to df_alpha
-                    for a in range(len(ALPHAS)):
-                        df_alpha.append(return_dict.get(a))
-
-                    df_alpha = pd.concat(df_alpha,ignore_index=True)
-                    df_alpha['run'] = run
-
-                    df_runs.append(df_alpha)
+                #Synchronizes, waits for all processes to end
+                for p in pool:
+                    p.join()
                     
-    
+                #adds results of each alpha run to df_alpha
+                for a in range(len(ALPHAS)):
+                    df_alpha.append(return_dict.get(a))
 
+                df_alpha = pd.concat(df_alpha,ignore_index=True)
+                df_alpha['run'] = run
+
+                regions.append(df_alpha)
+                    
+            #find the average of each alpha value simulation across each cortical region as input        
+            avrg = regions[0]
+
+            for x in avrg.index.tolist():
+                elements = np.array([df.at[x,'corrcoef'] for df in regions])
+                avrg.at[x,'corrcoef'] = np.mean(elements)
+
+            df_runs.append(avrg)
+
+            ####################################
             df_runs = pd.concat(df_runs,ignore_index=True)
             if 'module' in df_runs.columns:
                 df_subj = df_runs[
@@ -164,23 +192,22 @@ def run_experiment():
                 )
 
 
-def run_alpha(a,l,mssn,w,readout_module,x_train, x_test, y_train, y_test,df_alpha,return_dict):
+def run_alpha(a,l,mssn,w,readout_module,z_sliced,x_train, x_test, y_train, y_test,df_alpha,return_dict):
     time.sleep(1)
-    # print("\npid: ",os.getpid())
     mssnc = copy.deepcopy(mssn)
     print(f'\n\n\t------ alpha = {ALPHAS[a]} ------')
     metrics = CLASS_METRICS
-    mssnc.w = ALPHAS[a]*w
-    # with cp.cuda.Stream(non_blocking=True):
-    start1 = time.time()
-    rs_train = mssnc.simulate(Vext=x_train)
-    point = time.time()
-    rs_test = mssnc.simulate(Vext=x_test)
-    end1 = time.time()
 
-    print("\n\nSimulate time for rs_train: ",point - start1)
-    print("Simulate time for rs_test: ",end1 - point)
-    print("Simulate time elapsed (seconds): ",end1-start1,"\n\n")
+    #updates copied network connection matrix with current alpha value
+    mssnc._W = ALPHAS[a]*mssnc._W
+
+    #simulates cut data to "initialize" the network before the first prediction
+    mssnc.simulate(Vext=z_sliced)
+
+    #simulates the network on the test and train data
+    rs_train = mssnc.simulate(Vext=x_train)
+    rs_test = mssnc.simulate(Vext=x_test)
+    
 
     # if run == 0 and a == 1.0:
     #     plotting.plot_reservoir_states(
@@ -200,26 +227,21 @@ def run_alpha(a,l,mssn,w,readout_module,x_train, x_test, y_train, y_test,df_alph
     #         show = True
     #     )
 
-    start2 = time.time()
+
     df_res = readout_module.run_task(
         X=(rs_train,rs_test),y=(y_train,y_test),
         sample_weight='both', metric=metrics,
         readout_modules=None, readout_nodes=None,
     )
-    end2= time.time()
-
-    print("Run_task time elapsed (seconds): ",end2-start2)
 
     df_res['alpha'] = np.round(ALPHAS[a],3)
+
+    #locks critical region of code block to only allow 1 process to add to the dictionary at a time
     l.acquire()
-    df_alpha.append(df_res)
     return_dict[a] = df_res
     l.release()
 
     return 0
-
-
-
 
 
 def main():
