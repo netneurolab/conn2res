@@ -143,13 +143,10 @@ class EchoStateNetwork(Reservoir):
             activation_function, **kwargs)
         self.activation_function_derivative = self.get_derivative(
             activation_function, **kwargs)
-            activation_function, **kwargs)
         self.activation_function_derivative = self.get_derivative(
             activation_function, **kwargs)
 
     def simulate(
-        self, ext_input, w_in, input_gain=None, ic=None, output_nodes=None,
-        return_states=True, compute_LE = False, warmup = 0, **kwargs
         self, ext_input, w_in, input_gain=None, ic=None, output_nodes=None,
         return_states=True, compute_LE = False, warmup = 0, **kwargs
     ):
@@ -275,7 +272,6 @@ class EchoStateNetwork(Reservoir):
             else:
                 return self._state
 
-    def set_activation_function(self, function, **kwargs):
     def set_activation_function(self, function, **kwargs):
 
         def linear(x, **kwargs):
@@ -842,7 +838,6 @@ class SpikingNeuralNetwork(Reservoir):
             else:
                 return self._state
 
-class MemristiveReservoir(ABC):
 class MemristiveReservoir(ABC):
     """
     Class that represents a general Memristive Reservoir

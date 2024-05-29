@@ -297,7 +297,7 @@ class Readout:
                     df = pd.DataFrame(data=score, index=[0])
                     df['module'] = i
                     df['n_nodes'] = len(readouts)
-                    df_scores.append(df)
+                    df_scores.append(df[['module', 'n_nodes'] + metric])
 
                 df_scores = pd.concat(df_scores)
 

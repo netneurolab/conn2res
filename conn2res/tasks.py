@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 Functionality for fetching task datasets
 """
