@@ -314,8 +314,7 @@ class Readout:
                 )
 
                 df_scores = pd.DataFrame(data=score, index=[0])
-        print("\ndf_scores --------\n")
-        print(df_scores,"\n\n")
+
         return df_scores
 
 

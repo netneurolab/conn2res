@@ -986,8 +986,7 @@ class MemristiveReservoir(ABC):
         p = utils.make_symmetric(p)
 
         return p * self._W.astype(np.float64)  # ma.masked_array(p, mask=np.logical_not(self._W))
-        return p * self._W.astype(np.float64)  # ma.masked_array(p, mask=np.logical_not(self._W))
-
+    
     def solveVi(self, Ve, Vgr=None, G=None, **kwargs):
         """
         This function uses Kirchhoff's law to estimate voltage at the internal
@@ -1411,11 +1410,8 @@ class MSSNetwork(MemristiveReservoir):
         self.vB = self.init_property(vB, noise)      # constant
         self.tc = self.init_property(tc, noise)      # constant
         self.NMSS = self.init_property(NMSS, noise)    # constant Note: This sets a different number of switches per memristor 
-        self.NMSS = self.init_property(NMSS, noise)    # constant Note: This sets a different number of switches per memristor 
         self.Woff = self.init_property(Woff, noise)    # constant
         self.Won = self.init_property(Won, noise)     # constant
-        self._Ga = self.mask(np.divide(self.Woff,self.NMSS)) # constant
-        self._Gb = self.mask(np.divide(self.Won,self.NMSS))   # constant
         self._Ga = self.mask(np.divide(self.Woff,self.NMSS)) # constant
         self._Gb = self.mask(np.divide(self.Won,self.NMSS))   # constant
 
@@ -1448,7 +1444,6 @@ class MSSNetwork(MemristiveReservoir):
             Gdiff1 = G - self.NMSS * self._Ga
             Gdiff2 = self._Gb - self._Ga
             Nb = self.mask(np.divide(Gdiff1,Gdiff2))
-            Nb = self.mask(np.divide(Gdiff1,Gdiff2))
 
         else:
             Nb = self._Nb
@@ -1472,10 +1467,6 @@ class MSSNetwork(MemristiveReservoir):
         # use random number generator for reproducibility
         rng = np.random.default_rng(seed=seed)
 
-        Gab = rng.binomial(Na.astype(int), self.mask(Pa))
-        Gba = rng.binomial(Nb.astype(int), self.mask(Pb))
-        Gab = rng.binomial(Na.astype(int), self.mask(Pa))
-        Gba = rng.binomial(Nb.astype(int), self.mask(Pb))
         Gab = rng.binomial(Na.astype(int), self.mask(Pa))
         Gba = rng.binomial(Nb.astype(int), self.mask(Pb))
 
@@ -1671,7 +1662,8 @@ class MemristiveReservoirCupy(ABC):
         p = cp.asarray(rng.normal(mean, std*mean, size=self._W.shape))
         p = utils.make_symmetric(p)
 
-        return p * self._W.astype(cp.float64)  # ma.masked_array(p, mask=np.logical_not(self._W))
+        print("\nMEAN: ",mean,"  P: ",p.shape)
+        return cp.multiply(p , self._W).astype(cp.float64)  # ma.masked_array(p, mask=np.logical_not(self._W))   
 
     def solveVi(self, Ve, Vgr=None, G=None, **kwargs):
         """
@@ -1790,7 +1782,7 @@ class MemristiveReservoirCupy(ABC):
         #removes voltage values from V in positions where there is no connection in W 
         return self.mask(V)
 
-    def simulate(self, Vext, ic=None, mode='forward',ret_int_only=False):
+    def simulate(self, Vext, ic=None, mode='forward',ret_int_only=False,return_nodes=None):
         """
         Simulates the dynamics of a memristive reservoir given an external
         voltage signal V_E
@@ -1864,8 +1856,14 @@ class MemristiveReservoirCupy(ABC):
         #self._state is a (t x N_nodes) matrix which keeps track of node voltage across time
 
         #This checks if the flag for returning only the internal nodes is set
-        if ret_int_only: 
+        if ret_int_only and return_nodes is None: 
             return cp.asnumpy(self._state[:,self._I])
+        elif ret_int_only and return_nodes is not None:
+            raise ValueError(
+                "Only ret_int_only boolean can be true or return_nodes not None, not both"
+            )
+        elif not ret_int_only and return_nodes is not None:
+            return cp.asnumpy(self._state[:,return_nodes])
         else:
             return cp.asnumpy(self._state)
 
@@ -2017,12 +2015,12 @@ class MSSNetworkCupy(MemristiveReservoirCupy):
     # physical parameters of the MMS model
     k = 1.3806503e-23   # Boltzman's constant
     Q = 1.60217646e-19  # electron charge
-    Temp = 298          # temperature
+    Temp = 298.0          # temperature
     b = Q/(k*Temp)
-    VT = 1/b
+    VT = 1.0/b
 
-    def __init__(self, vA=0.17, vB=0.22, tc=0.32e-3, NMSS=10000,
-                 Woff=0.91e-3, Won=0.87e-2, Nb=2000, noise=0.1, *args, **kwargs):
+    def __init__(self, vA=0.17, vB=0.22, tc=0.32e-3, NMSS=1000000,
+                 Woff=0.91e-3, Won=0.87e-2, Nb=200000, noise=0.1, *args, **kwargs):
         """
         Constructor class for Memristive Networks following the Generalized
         Memristive Switch Model proposed in Nugent and Molter, 2014. Default
@@ -2071,13 +2069,15 @@ class MSSNetworkCupy(MemristiveReservoirCupy):
         self.vA = self.init_property(vA, noise)      # constant
         self.vB = self.init_property(vB, noise)      # constant
         self.tc = self.init_property(tc, noise)      # constant
-        self.NMSS = self.init_property(NMSS, noise)    # constant Note: This sets a different number of switches per memristor 
+        self.NMSS = cp.round(self.init_property(NMSS, noise)).astype(cp.float64)    # constant Note: This sets a different number of switches per memristor 
+        # self.NMSS = self.mask(self.NMSS)
         self.Woff = self.init_property(Woff, noise)    # constant
         self.Won = self.init_property(Won, noise)     # constant
         self._Ga = self.mask(cp.divide(self.Woff,self.NMSS)) # constant
         self._Gb = self.mask(cp.divide(self.Won,self.NMSS))   # constant
 
-        self._Nb = self.init_property(Nb, noise)
+        self._Nb = cp.round(self.init_property(Nb, noise)).astype(cp.float64)
+        # self._Nb = cp.where(self.NMSS < self._Nb, self.NMSS, self._Nb)
         self._G = cp.asarray(self._Nb * (self._Gb - self._Ga) + self.NMSS * self._Ga)
 
     def dG(self, V, G=None, dt=1e-4, seed=None):
@@ -2133,15 +2133,34 @@ class MSSNetworkCupy(MemristiveReservoirCupy):
         # compute dNb
         Na = self.NMSS - Nb
 
-        Na = Na.get()
-        Nb = Nb.get()
+        # Na = Na.get()
+        # Nb = Nb.get()
         # use random number generator for reproducibility
+        # rng = np.random.default_rng(seed=seed)
         rng = np.random.default_rng(seed=seed)
+        
+        cp.clip(Pa, 0.0, 1.0)
+        cp.clip(Pb, 0.0, 1.0)
+        Pa = cp.where(cp.isnan(Pa),0.0,Pa)
+        Pb = cp.where(cp.isnan(Pb),0.0,Pb)
 
-        Gab = cp.asarray(rng.binomial(Na.astype(int), self.mask(Pa).get()))
-        Gba = cp.asarray(rng.binomial(Nb.astype(int), self.mask(Pb).get()))
-        Gab = cp.asarray(rng.binomial(Na.astype(int), self.mask(Pa).get()))
-        Gba = cp.asarray(rng.binomial(Nb.astype(int), self.mask(Pb).get()))
+        # Gab = cp.asarray(rng.binomial(Na.astype(int), self.mask(Pa).get()))
+        # Gba = cp.asarray(rng.binomial(Nb.astype(int), self.mask(Pb).get()))
+        u_a = cp.multiply(Na,Pa)
+        u_b =  cp.multiply(Nb,Pb)
+
+        ones = cp.ones(cp.shape(Pa))
+
+        std_a = cp.sqrt(cp.multiply(cp.multiply(Na,Pa),cp.subtract(ones,Pa)))
+        std_b = cp.sqrt(cp.multiply(cp.multiply(Nb,Pb),cp.subtract(ones,Pb)))
+
+        std_a = cp.asnumpy(std_a)
+        std_b = cp.asnumpy(std_b)
+        u_a = cp.asnumpy(u_a)
+        u_b = cp.asnumpy(u_b)
+
+        Gab = cp.asarray(rng.normal(u_a,std_a))
+        Gba = cp.asarray(rng.normal(u_b,std_b))
 
         if utils.check_symmetric(self._W):
             Gab = utils.make_symmetric(Gab)
@@ -2186,7 +2205,7 @@ class MSSNetworkCupy(MemristiveReservoirCupy):
 
         if update:
             # update Nb
-            self._Nb += dNb
+            self._Nb = cp.round(self._Nb + dNb).astype(cp.float64)
 
             # update G
             self._G = self._Nb * (self._Gb - self._Ga) + self.NMSS * self._Ga
