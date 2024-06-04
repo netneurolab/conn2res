@@ -1826,7 +1826,7 @@ class MemristiveReservoirCupy(ABC):
         for t, Ve in enumerate(Vext):
             if mode == 'forward':
 
-                #if (t>0) and (t%50 == 0): print(f'\t ----- timestep = {t}')
+                if (t>0) and (t%50 == 0): print(f'\t ----- timestep = {t}')
 
                 # get voltage at internal nodes
                 Vi = self.solveVi(Ve)
@@ -2133,8 +2133,8 @@ class MSSNetworkCupy(MemristiveReservoirCupy):
         # compute dNb
         Na = self.NMSS - Nb
 
-        # Na = Na.get()
-        # Nb = Nb.get()
+        Na = Na.get()
+        Nb = Nb.get()
         # use random number generator for reproducibility
         # rng = np.random.default_rng(seed=seed)
         rng = np.random.default_rng(seed=seed)
@@ -2144,23 +2144,8 @@ class MSSNetworkCupy(MemristiveReservoirCupy):
         Pa = cp.where(cp.isnan(Pa),0.0,Pa)
         Pb = cp.where(cp.isnan(Pb),0.0,Pb)
 
-        # Gab = cp.asarray(rng.binomial(Na.astype(int), self.mask(Pa).get()))
-        # Gba = cp.asarray(rng.binomial(Nb.astype(int), self.mask(Pb).get()))
-        u_a = cp.multiply(Na,Pa)
-        u_b =  cp.multiply(Nb,Pb)
-
-        ones = cp.ones(cp.shape(Pa))
-
-        std_a = cp.sqrt(cp.multiply(cp.multiply(Na,Pa),cp.subtract(ones,Pa)))
-        std_b = cp.sqrt(cp.multiply(cp.multiply(Nb,Pb),cp.subtract(ones,Pb)))
-
-        std_a = cp.asnumpy(std_a)
-        std_b = cp.asnumpy(std_b)
-        u_a = cp.asnumpy(u_a)
-        u_b = cp.asnumpy(u_b)
-
-        Gab = cp.asarray(rng.normal(u_a,std_a))
-        Gba = cp.asarray(rng.normal(u_b,std_b))
+        Gab = cp.asarray(rng.binomial(Na.astype(int), self.mask(Pa).get()))
+        Gba = cp.asarray(rng.binomial(Nb.astype(int), self.mask(Pb).get()))
 
         if utils.check_symmetric(self._W):
             Gab = utils.make_symmetric(Gab)
