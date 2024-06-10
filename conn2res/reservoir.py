@@ -3,6 +3,7 @@
 Functionality for simulating reservoirs
 """
 from abc import ABCMeta, abstractmethod
+import time
 import numpy as np
 from numpy.linalg import pinv
 from . import utils
@@ -1095,7 +1096,7 @@ class MemristiveReservoir(ABC):
         #This difference in voltage (Voltage Drop) at (i,j) is stored in V at position (i,j)
         
         
-        # V = np.zeros_like(self._W).astype(float)
+        V = np.zeros_like(self._W).astype(float)
 
         # def pairwise(i, j):
         #     if j > i:
@@ -1103,28 +1104,22 @@ class MemristiveReservoir(ABC):
         #     else:
         #         V[i, j] = nv_dict[j] - nv_dict[i]
 
-        # for i, j in list(zip(*np.where(self._W != 0))):
-        #     if j > i:
-        #         V[i, j] = nv_dict[i] - nv_dict[j]
-        #     else:
-        #         V[i, j] = nv_dict[j] - nv_dict[i]
+        for i, j in list(zip(*np.where(self._W != 0))):
+            if j > i:
+                V[i, j] = nv_dict[i] - nv_dict[j]
+            else:
+                V[i, j] = nv_dict[j] - nv_dict[i]
 
         # Parallel(n_jobs=8,prefer='processes')(delayed(pairwise)(i,j) for i, j in list(zip(*np.where(self._W != 0))))
-
-        vec = np.zeros(len(self._W), dtype=np.float32)
-        for k,v in nv_dict.items():
-            vec[k] = v
-
-        V = np.abs(np.subtract.outer(vec,vec))
 
         #removes voltage values from V in positions where there is no connection in W 
         # Parallel(n_jobs=8,prefer='processes')(delayed(pairwise)(i,j) for i, j in list(zip(*np.where(self._W != 0))))
 
-        vec = np.zeros(len(self._W), dtype=np.float32)
-        for k,v in nv_dict.items():
-            vec[k] = v
+        # vec = np.zeros(len(self._W), dtype=np.float32)
+        # for k,v in nv_dict.items():
+        #     vec[k] = v
 
-        V = np.abs(np.subtract.outer(vec,vec))
+        # V = np.abs(np.subtract.outer(vec,vec))
 
         #removes voltage values from V in positions where there is no connection in W 
         return self.mask(V)
@@ -1745,8 +1740,6 @@ class MemristiveReservoirCupy(ABC):
 
         """
 
-
-
         # set voltage at grounded nodes
         if Vgr is None:
             Vgr = cp.zeros((self._n_grounded_nodes))
@@ -1766,18 +1759,29 @@ class MemristiveReservoirCupy(ABC):
         nodes = nodes.get()
         voltage = voltage.get()
         # dictionary that groups pairs of voltage
-        nv_dict = {n:v for n, v in zip(nodes, voltage)}
-
+        nv_dict = {n:v for n, v in zip(nodes.astype(int), voltage)}
         # voltage across memristors
         #Goes across each connection (non-zero in W) and find the voltage using kirchoffs law 
         #loops through all non-zero (i,j) positions in W and sets that "Connection Voltage" as the difference
         #between individual voltages, stored in the nv_dict -> (node_index, voltage)
         #This difference in voltage (Voltage Drop) at (i,j) is stored in V at position (i,j)
-        vec = cp.zeros(len(self._W), dtype=cp.float32)
-        for k,v in nv_dict.items():
-            vec[k] = v
+        # vec = cp.zeros(len(self._W), dtype=cp.float32)
+        # for k,v in nv_dict.items():
+        #     vec[k] = v
 
-        V = cp.abs(cp.subtract.outer(vec,vec))
+        # V = cp.abs(cp.subtract.outer(vec,vec))
+        V = cp.zeros_like(self._W).astype(cp.float64)
+        # for i, j in list(zip(*cp.where(self._W != 0))):
+        #     i=i.item()
+        #     j=j.item()
+        #     if j > i:
+        #         V[i, j] = nv_dict[i] - nv_dict[j]
+        #     else:
+        #         V[i, j] = nv_dict[j] - nv_dict[i]
+        i ,j = cp.where(self._W!=0)
+        nv_i = cp.array([nv_dict[x.item()] for x in i])
+        nv_j = cp.array([nv_dict[y.item()] for y in j])
+        V[i,j] = cp.where(j>i,nv_i-nv_j,nv_j-nv_i)
 
         #removes voltage values from V in positions where there is no connection in W 
         return self.mask(V)
@@ -1822,8 +1826,10 @@ class MemristiveReservoirCupy(ABC):
 
         Vext = cp.asarray(Vext)
 
+        Vext = cp.hstack([Vext for _ in range(self._n_external_nodes)])
 
         for t, Ve in enumerate(Vext):
+            time.sleep(3)
             if mode == 'forward':
 
                 if (t>0) and (t%50 == 0): print(f'\t ----- timestep = {t}')
@@ -1926,6 +1932,17 @@ class MemristiveReservoirCupy(ABC):
     def updateG(self, V, G=None, update=False):
         pass
 
+    def updateNodes(self, int_nodes=None, ext_nodes=None, gr_nodes=None):
+        if int_nodes is not None:
+            self._I = cp.asarray(int_nodes)
+            self._n_internal_nodes = len(int_nodes)
+        if ext_nodes is not None:
+            self._E = cp.asarray(ext_nodes)
+            self._n_external_nodes = len(ext_nodes)
+        if gr_nodes is not None:
+            self._GR = cp.asarray(gr_nodes)
+            self._n_grounded_nodes = len(gr_nodes)   
+
     def getErr(self, x_0, x_1):
         """
         # TODO
@@ -1954,7 +1971,6 @@ class MemristiveReservoirCupy(ABC):
         # W = self._W.get()
         a[np.where(self._W == 0)] = 0
         return a
-
 
 class MSSNetworkCupy(MemristiveReservoirCupy):
     """
@@ -2125,11 +2141,9 @@ class MSSNetworkCupy(MemristiveReservoirCupy):
         # compute Pa
         exponent = -1 * (V - self.vA) / self.VT
         Pa = alpha / (1 + cp.exp(exponent))
-
         # compute Pb
         exponent = -1 * (V + self.vB) / self.VT
-        Pb = alpha * (1 - 1 / (1 + cp.exp(exponent)))
-
+        Pb = alpha * (1 - (1 / (1 + cp.exp(exponent))))
         # compute dNb
         Na = self.NMSS - Nb
 
@@ -2139,10 +2153,431 @@ class MSSNetworkCupy(MemristiveReservoirCupy):
         # rng = np.random.default_rng(seed=seed)
         rng = np.random.default_rng(seed=seed)
         
-        cp.clip(Pa, 0.0, 1.0)
-        cp.clip(Pb, 0.0, 1.0)
-        Pa = cp.where(cp.isnan(Pa),0.0,Pa)
-        Pb = cp.where(cp.isnan(Pb),0.0,Pb)
+
+        # Pa = cp.where(cp.isnan(Pa),0.0,Pa)
+        # Pb = cp.where(cp.isnan(Pb),0.0,Pb)
+        Pa[cp.isnan(Pa)] = 0.0
+        Pb[cp.isnan(Pb)] = 0.0
+        Pa = cp.clip(Pa, 0.0, 1.0)
+        Pb = cp.clip(Pb, 0.0, 1.0)
+
+        Gab = cp.asarray(rng.binomial(Na.astype(int), Pa.get()))
+        Gba = cp.asarray(rng.binomial(Nb.astype(int), Pb.get()))
+
+        if utils.check_symmetric(self._W):
+            Gab = utils.make_symmetric(Gab)
+            Gba = utils.make_symmetric(Gba)
+
+        dNb = (Gab-Gba)
+
+        return dNb
+
+    def updateG(self, V, G=None, update=False):
+        """
+        This function updates the conductance matrix G
+        which represents the conductance across each memristor in
+        the network.
+
+        Parameters
+        ----------
+        V : (N,N) cupy.ndarray
+            Matrix of voltages across all memristors in the network
+        G : (N,N) cupy.ndarray
+            Matrix of conductance across each memristor (connection)
+            in the network
+            Deafault: None
+        update: boolean
+            Boolean flag of whether the current conductance matrix should be 
+            updated according to the calculated change of conductance or not
+
+        Returns
+        -------
+        G + dG : (N,N) cupy.ndarray
+            returns a copy of the updated conducatance matrix if the update
+            flag is false
+        """
+
+        if G is None:
+            G = self._G
+
+
+        # compute dG
+        dNb = self.dG(V=V, G=G)
+        dG = dNb * (self._Gb-self._Ga)
+
+        if update:
+            # update Nb
+            self._Nb = (self._Nb.astype(cp.int64) + dNb.astype(cp.int64)).astype(cp.float64)
+
+            # update G
+            self._G = self._Nb * (self._Gb - self._Ga) + self.NMSS * self._Ga
+            # self._G += dG
+
+        else:
+            return self._G.copy() + dG  # updated conductance
+
+
+class MultiTaskMemeristiveReservoirCupy(MemristiveReservoirCupy):
+    """
+    Class that represents a general Memristive Reservoir
+
+    This is a copy of the above Memristive reservoir, with the changes to incorporate CuPy for computation speedup
+    ...
+
+    Attributes
+    ----------
+    _W : numpy.ndarray
+        reservoir's binary connectivity matrix
+    _I : numpy.ndarray
+        indices of internal nodes
+    _E : numpy.ndarray
+        indices of external nodes
+    _GR : numpy.ndarray
+        indices of grounded nodes
+    n_internal_nodes : int
+        number of internal nodes
+    n_external_nodes : int
+        number of external nodes
+    n_grounded_nodes : int
+        number of gorunded nodes
+    n_nodes : int
+        total number of nodes (internal, external, and ground)
+    G : numpy.ndarray
+        matrix of conductances
+    save_conductance : bool
+        Indicates whether to save conductance state after each simulation
+        step. If True, then will be stored in self._G_history. This will
+        increase memory demands.
+    _state : numpy.ndarray
+        reservoir activation states
+
+    Methods
+    ----------
+    # TODO
+
+    References
+    ----------
+    # TODO
+
+    """
+
+    def __init__(self, w, int_nodes, ext_nodes, gr_nodes, save_conductance=False, *args, **kwargs):
+        """
+        Constructor class for Memristive Networks. Memristive networks are an
+        abstraction for physical networks of memristive elements.
+
+        Parameters
+        ----------
+        w : (N, N) numpy.ndarray
+            reservoir's binary connectivity matrix
+            N: total number of nodes in the network (internal + external
+            + grounded nodes)
+        int_nodes : (n_internal_nodes,) numpy.ndarray
+            indexes of internal nodes
+            n_internal_nodes: number of internal nodes
+        ext_nodes : (n_tasks,n_external_nodes) numpy.ndarray
+            indexes of external nodes, per task (TASK x EXT INDECES)
+            n_external_nodes: number of external nodes
+        gr_nodes : (n_tasks, n_grounded_nodes) numpy.ndarray
+            indexes of grounded nodes per task
+            n_grounded_nodes: number of grounded nodes
+        save_conductance : bool, optional
+            Indicates whether to save conductance state after each simulation
+            step. If True, then will be stored in self._G_history. This will
+            increase memory demands. Default: False
+        """
+        #setW now returns a CuPy array
+        self._W = self.setW(w)
+        #moves all of the arrays to the Device (GPU)
+        self._I = cp.asarray(int_nodes)
+        self._E = cp.asarray(ext_nodes)
+        self._GR = cp.asarray(gr_nodes)
+
+        self._n_internal_nodes = len(self._I)
+        self._n_external_nodes = len(self._E.flatten())
+        self._n_grounded_nodes = len(self._GR.flatten())
+        self._n_nodes = len(self._W)
+
+        self._G = None
+
+        self.save_conductance = save_conductance
+        self._G_history = None
+
+        self._state = None
+        
+
+    def adjust_matrices(self,Vext, target=None):
+        if target is None:
+            target = np.min(a.shape[0] for a in Vext)
+
+        adjusted_Vext = []
+        for v in Vext:
+            t = v.shape[0]
+            if t>target:
+                adjusted = v[:t,:]
+            else:
+                adjusted = v
+
+            adjusted_Vext.append(adjusted)
+
+        return adjusted_Vext                
+
+    def simulate(self, Vext, ic=None, mode='forward',ret_int_only=False,return_nodes=None):
+        """
+        Simulates the dynamics of a memristive reservoir given an external
+        voltage signal V_E
+
+        Parameters
+        ----------
+        Vext : (time, N_external_nodes) numpy.ndarray
+            External voltage signal
+            N_external_nodes: number of external (input) nodes
+        ic : (N_internal_nodes,) numpy.ndarray
+            Initial conditions
+            N_internal_nodes: number of internal (output) nodes
+        mode : {'forward', 'backward'}
+            Refers to the method used to solve the system of equations.
+            Use 'forward' for explicit Euler method, and 'backward' for
+            implicit Euler method.
+        ret_int_only : boolean
+            Flag that tells simulate to return either all of the node 
+            states, or only the states of the internal nodes
+            Default: False    
+        return_nodes : (n_tasks, output_nodes) numpy.ndarray
+            a task x output_indeces array that specifies which nodes should be output for which task
+
+        Returns
+        -------
+        self._state : (time, N) numpy.ndarray
+            activation states of the reservoir; includes all the nodes
+            N: number of nodes in the network
+        """
+        #Forward is explicit WORKING, backward is implicit 
+        # Vext = self.adjust_matrices(Vext)
+        # Vext = np.hstack([Vext[i] for i in range(len(Vext))])
+        
+
+        # initialize reservoir states
+        self._state = cp.zeros((len(Vext[0]), self._n_nodes))
+        # initialize array for storing conductance history if needed
+        if self.save_conductance:
+            self._G_history = cp.zeros((len(Vext), self._n_nodes,
+                                        self._n_nodes))
+
+        Vext = cp.asarray(Vext)
+
+        temp = []
+        for x in range(len(self._E)):
+            temp.append(cp.hstack([Vext[x] for _ in range(len(self._E[x]))]))
+
+        Vext = cp.hstack(temp)
+
+        hold_ext = self._E
+        hold_gr = self._G
+
+        self._E = self._E.flatten()
+        self._GR = self._GR.flatten()
+
+        for t, Ve in enumerate(Vext):
+            time.sleep(1)
+            print(Ve)
+            if mode == 'forward':
+
+                # if (t>0) and (t%50 == 0): print(f'\t ----- timestep = {t}')
+                print(t)
+
+                # get voltage at internal nodes
+                Vi = self.solveVi(Ve)
+
+                # update matrix of voltages across memristors
+                V = self.getV(Vi, Ve)
+
+                # update conductance
+                self.updateG(V=V, update=True)
+
+            elif mode == 'backward':
+
+                if (t > 0) and (t % 100 == 0):
+                    print(f'\t ----- timestep = {t}')
+
+                # get voltage at internal nodes
+                Vi = self.iterate(Ve)
+
+            # store activation states
+            self._state[t, self._E] = Ve
+            self._state[t, self._I] = Vi
+
+            # store conductance
+            if self.save_conductance:
+                self._G_history[t] = self._G
+
+        #self._state is a (t x N_nodes) matrix which keeps track of node voltage across time
+
+        self._E = hold_ext
+        self._G = hold_gr
+
+        #This checks if the flag for returning only the internal nodes is set
+        if ret_int_only and return_nodes is None: 
+            return cp.asnumpy(self._state[:,self._I])
+        elif ret_int_only and return_nodes is not None:
+            raise ValueError(
+                "Only ret_int_only boolean can be true or return_nodes not None, not both"
+            )
+        elif not ret_int_only and return_nodes is not None:
+            return [cp.asnumpy(self._state[:,ret]) for ret in return_nodes]
+        else:
+            return cp.asnumpy(self._state)
+        
+    def updateNodes(self, int_nodes=None, ext_nodes=None, gr_nodes=None):
+        if int_nodes is not None:
+            self._I = cp.asarray(int_nodes)
+            self._n_internal_nodes = len(int_nodes.flatten())
+        if ext_nodes is not None:
+            self._E = cp.asarray(ext_nodes)
+            self._n_external_nodes = len(ext_nodes.flatten())
+        if gr_nodes is not None:
+            self._GR = cp.asarray(gr_nodes)
+            self._n_grounded_nodes = len(gr_nodes.flatten())     
+
+class MultiTaskMSSNetworkCupy(MultiTaskMemeristiveReservoirCupy):
+    k = 1.3806503e-23   # Boltzman's constant
+    Q = 1.60217646e-19  # electron charge
+    Temp = 298.0          # temperature
+    b = Q/(k*Temp)
+    VT = 1.0/b
+
+    def __init__(self, vA=0.17, vB=0.22, tc=0.32e-3, NMSS=1000000,
+                 Woff=0.91e-3, Won=0.87e-2, Nb=200000, noise=0.1, *args, **kwargs):
+        """
+        Constructor class for Memristive Networks following the Generalized
+        Memristive Switch Model proposed in Nugent and Molter, 2014. Default
+        parameter values correspond to an Ag-chalcogenide memristive device
+        taken from Nugent and Molter, 2014.
+
+        Parameters
+        ----------
+        w : (N, N) numpy.ndarray
+            reservoir's binary connectivity matrix
+            N: total number of nodes in the network (internal + external
+            + grounded nodes)
+        int_nodes : (n_internal_nodes,) numpy.ndarray
+            indexes of internal nodes
+            n_internal_nodes: number of internal nodes
+        ext_nodes : (n_external_nodes,) numpy.ndarray
+            indexes of external nodes
+            n_external_nodes: number of external nodes
+        gr_nodes : (n_grounded_nodes,) numpy.ndarray
+            indexes of grounded nodes
+            n_grounded_nodes: number of grounded nodes
+        save_conductance : bool, optional
+            Indicates whether to save conductance state after each simulation
+            step. If True, then will be stored in self._G_history. This will
+            increase memory demands. Default: False
+        vA : float. Default: 0.17
+
+        vB : float. Default: 0.22
+
+        tc : float. Default: 0.32e-3
+
+        NMSS : int. Default: 10000
+
+        Woff : float. Default: 0.91e-3
+
+        Won : float. Default: 0.87e-2
+
+        Nb : int. Default: 2000
+
+        noise : float. Default: 0.1
+
+        # TODO
+        """
+        super().__init__(*args, **kwargs)
+
+        self.vA = self.init_property(vA, noise)      # constant
+        self.vB = self.init_property(vB, noise)      # constant
+        self.tc = self.init_property(tc, noise)      # constant
+        self.NMSS = cp.round(self.init_property(NMSS, noise)).astype(cp.float64)    # constant Note: This sets a different number of switches per memristor 
+        # self.NMSS = self.mask(self.NMSS)
+        self.Woff = self.init_property(Woff, noise)    # constant
+        self.Won = self.init_property(Won, noise)     # constant
+        self._Ga = self.mask(cp.divide(self.Woff,self.NMSS)) # constant
+        self._Gb = self.mask(cp.divide(self.Won,self.NMSS))   # constant
+
+        self._Nb = cp.round(self.init_property(Nb, noise)).astype(cp.float64)
+        # self._Nb = cp.where(self.NMSS < self._Nb, self.NMSS, self._Nb)
+        self._G = cp.asarray(self._Nb * (self._Gb - self._Ga) + self.NMSS * self._Ga)
+
+    def dG(self, V, G=None, dt=1e-4, seed=None):
+        """
+        # TODO
+        This function updates the conductance matrix G given V.
+        G represents the conductance for each memristor in the network
+        (One per connection in W)
+
+        Parameters
+        ----------
+        V : (N,N) cupy.ndarray
+            matrix of voltages accross memristors
+        G : (N,N) cupy.ndarray
+            Matrix of conductances across each memristor in the network
+        seed : int, array_like[ints], SeedSequence, BitGenerator, Generator, optional
+            seed to initialize the random number generator, by default None
+            for details, see numpy.random.default_rng()
+
+        Returns
+        -------
+        dNb : cupy.ndarray
+            Matrix representing the number of switches change to or from 
+            B state per memristor in the network.
+            (+ more switches changed to B state,  - More switches changed to A state)
+
+        References
+        ----------
+
+        """
+
+        # set Nb values
+        if G is not None:
+            Gdiff1 = G - self.NMSS * self._Ga
+            Gdiff2 = self._Gb - self._Ga
+            Nb = self.mask(cp.divide(Gdiff1,Gdiff2))
+
+        else:
+            Nb = self._Nb
+
+        tc_np = self.tc.get()
+        # ratio of dt to characterictic time of the device tc
+        alpha = cp.asarray(np.divide(dt, tc_np, where=tc_np != 0))
+
+        # compute Pa
+        exponent = -1 * (V - self.vA) / self.VT
+        Pa = alpha / (1 + cp.exp(exponent))
+
+        # compute Pb
+        exponent = -1 * (V + self.vB) / self.VT
+        Pb = alpha * (1 - 1 / (1 + cp.exp(exponent)))
+
+        # compute dNb
+        Na = self.NMSS - Nb
+
+        print(cp.amax(cp.where(self.NMSS==0,Nb,0.0)))
+        if cp.amin(Na) < 0:
+            print("\nNA: ",cp.amin(Na))
+
+
+        Na = Na.get()
+        Nb = Nb.get()
+
+        
+        # use random number generator for reproducibility
+        # rng = np.random.default_rng(seed=seed)
+        rng = np.random.default_rng(seed=seed)
+        
+        Pa[cp.isnan(Pa)] = 0.0
+        Pb[cp.isnan(Pb)] = 0.0
+        Pa = cp.clip(Pa, 0.0, 1.0)
+        Pb = cp.clip(Pb, 0.0, 1.0)
+        
 
         Gab = cp.asarray(rng.binomial(Na.astype(int), self.mask(Pa).get()))
         Gba = cp.asarray(rng.binomial(Nb.astype(int), self.mask(Pb).get()))
@@ -2198,7 +2633,6 @@ class MSSNetworkCupy(MemristiveReservoirCupy):
 
         else:
             return self._G.copy() + dG  # updated conductance
-
 
 def reservoir(name, **kwargs):
     if name == 'EchoStateNetwork':

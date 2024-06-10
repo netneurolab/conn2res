@@ -295,6 +295,7 @@ class ReservoirPyTask(Task):
         y = np.hstack([x[win + h : -abs_horizon_max + h - 1] for h in horizon])
 
         # update input data
+        z = x[:win]
         x = x[win : -abs_horizon_max - 1]
 
         # reshape data if needed
@@ -325,7 +326,7 @@ class ReservoirPyTask(Task):
         self.horizon = horizon
         # self._data = {'x': x, 'y': y}
 
-        return x, y
+        return x, y,z
 
 
 class Conn2ResTask(Task):
