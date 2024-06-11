@@ -6,6 +6,7 @@ from abc import ABCMeta, abstractmethod
 import numpy as np
 import neurogym as ngym
 from reservoirpy import datasets
+import datasetsConn2Res
 
 
 NEUROGYM_TASKS = [
@@ -57,6 +58,8 @@ RESERVOIRPY_TASKS = [
 
 CONN2RES_TASKS = [
     'MemoryCapacity'
+    'memory_capacity'
+    'non_linear_transformation'
 ]
 
 
@@ -362,7 +365,7 @@ class Conn2ResTask(Task):
 
     def fetch_data(self, n_trials=None, horizon_max=-20, win=30,
                    low=-1, high=1, input_gain=None, add_bias=False,
-                   seed=None):
+                   seed=None,**kwargs):
         """
         Fetch data for MemoryCapacity, which is defined as a multi-output
         task using a uniformly distributed input signal and multiple
@@ -425,50 +428,8 @@ class Conn2ResTask(Task):
         if win < abs_horizon_max:
             raise ValueError("Absolute maximum horizon should be within window")
 
-        # use random number generator for reproducibility
-        rng = np.random.default_rng(seed=seed)
-
-        # generate input data
-        x = rng.uniform(low=low, high=high, size=(self.n_trials + win + abs_horizon_max + 1))[
-            :, np.newaxis
-        ]
-
-        # output data
-        y = np.hstack([x[win + h : -abs_horizon_max + h - 1] for h in horizon])
-
-        #This extracts the portion of x that will be sliced off the front
-        z=x[:win]
-        
-        # update input data
-        x = x[win : -abs_horizon_max - 1]
-
-        # reshape data if needed
-        if x.ndim == 1:
-            x = x[:, np.newaxis]
-        if y.ndim == 1:
-            y = y[:, np.newaxis]
-
-        # scale input data
-        if input_gain is not None:
-            x *= input_gain
-
-        # add bias to input data if needed
-        if add_bias:
-            x = np.hstack((np.ones((n_trials, 1)), x))
-
-        # set attributes
-        if x.squeeze().ndim == 1:
-            self.n_features = 1
-        elif x.squeeze().ndim == 2:
-            self.n_features = x.shape[1]
-
-        if y.squeeze().ndim == 1:
-            self.n_targets = 1
-        elif y.squeeze().ndim == 2:
-            self.n_targets = y.shape[1]
-
-        self.horizon_max = horizon_max
-        # self._data = {'x': x, 'y': y}
+        env = getattr(datasetsConn2Res, self._name)
+        x,y,z = env(self.n_trials, **kwargs)
 
         return x, y, z
 

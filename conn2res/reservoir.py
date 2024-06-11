@@ -1712,7 +1712,7 @@ class MemristiveReservoirCupy(ABC):
         # return voltage at internal nodes
         return cp.dot(A_II_inv, H_I)
 
-    def getV(self, Vi, Ve, Vgr=None):
+    def getV(self, Vi, Ve, Vgr=None,reverse = False):
         """
         Given the nodal voltage at the internal, external and grounded
         nodes, this function estimates the voltage across all existent
@@ -1756,37 +1756,35 @@ class MemristiveReservoirCupy(ABC):
             [self._I[:, cp.newaxis], self._E[:, cp.newaxis], self._GR[:, cp.newaxis]]).squeeze()
 
 
-        nodes = nodes.get()
-        voltage = voltage.get()
-        # dictionary that groups pairs of voltage
-        nv_dict = {n:v for n, v in zip(nodes.astype(int), voltage)}
         # voltage across memristors
         #Goes across each connection (non-zero in W) and find the voltage using kirchoffs law 
         #loops through all non-zero (i,j) positions in W and sets that "Connection Voltage" as the difference
         #between individual voltages, stored in the nv_dict -> (node_index, voltage)
         #This difference in voltage (Voltage Drop) at (i,j) is stored in V at position (i,j)
-        # vec = cp.zeros(len(self._W), dtype=cp.float32)
-        # for k,v in nv_dict.items():
-        #     vec[k] = v
 
-        # V = cp.abs(cp.subtract.outer(vec,vec))
         V = cp.zeros_like(self._W).astype(cp.float64)
-        # for i, j in list(zip(*cp.where(self._W != 0))):
-        #     i=i.item()
-        #     j=j.item()
-        #     if j > i:
-        #         V[i, j] = nv_dict[i] - nv_dict[j]
-        #     else:
-        #         V[i, j] = nv_dict[j] - nv_dict[i]
         i ,j = cp.where(self._W!=0)
-        nv_i = cp.array([nv_dict[x.item()] for x in i])
-        nv_j = cp.array([nv_dict[y.item()] for y in j])
-        V[i,j] = cp.where(j>i,nv_i-nv_j,nv_j-nv_i)
+
+        nv_i = cp.empty(len(i))
+        i_u = cp.unique(i)
+        nv_j = cp.empty(len(j))
+        j_u = cp.unique(j)
+
+        for x in i_u:
+            nv_i[cp.where(i==x)] = voltage[cp.where(nodes==x)]
+
+        for y in j_u:
+            nv_j[cp.where(j==y)] = voltage[cp.where(nodes==y)]
+
+        if reverse:
+            V[i,j] = cp.where(j>i,nv_j-nv_i,nv_i-nv_j)
+        else:
+            V[i,j] = cp.where(j>i,nv_i-nv_j,nv_j-nv_i)
 
         #removes voltage values from V in positions where there is no connection in W 
         return self.mask(V)
 
-    def simulate(self, Vext, ic=None, mode='forward',ret_int_only=False,return_nodes=None):
+    def simulate(self, Vext, ic=None, mode='forward',ret_int_only=False,return_nodes=None,reverse=False):
         """
         Simulates the dynamics of a memristive reservoir given an external
         voltage signal V_E
@@ -1829,7 +1827,6 @@ class MemristiveReservoirCupy(ABC):
         Vext = cp.hstack([Vext for _ in range(self._n_external_nodes)])
 
         for t, Ve in enumerate(Vext):
-            time.sleep(3)
             if mode == 'forward':
 
                 if (t>0) and (t%50 == 0): print(f'\t ----- timestep = {t}')
@@ -1838,7 +1835,7 @@ class MemristiveReservoirCupy(ABC):
                 Vi = self.solveVi(Ve)
 
                 # update matrix of voltages across memristors
-                V = self.getV(Vi, Ve)
+                V = self.getV(Vi, Ve, reverse=reverse)
 
                 # update conductance
                 self.updateG(V=V, update=True)
