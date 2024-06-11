@@ -5,7 +5,7 @@ from scipy import signal
 
 def memory_capacity(n_trials=None, horizon_max=-20, win=30, 
                    low=-1,high=1,input_gain=None,add_bias=False,
-                   seed=None):
+                   seed=None, **kwargs):
     """
         Fetch data for MemoryCapacity, which is defined as a multi-output
         task using a uniformly distributed input signal and multiple
@@ -103,10 +103,16 @@ def memory_capacity(n_trials=None, horizon_max=-20, win=30,
     return x, y, z
 
 
-def non_linear_transformation(n_cycles=10,n_trials = 500,waveform='square',input_gain=None,add_bias=False):
+def non_linear_transformation(n_trials=500,n_cycles=10,waveform='square',input_gain=None,add_bias=False, **kwargs):
+    print(n_cycles)
     cycle_duration = n_trials/n_cycles
-    length = np.pi * 2 * cycle_duration
-    x = np.sin(np.arange(0,length, length/n_trials))[:,np.newaxis]
+    t = np.arange(n_trials)
+    # length = np.pi * 2.0 * cycle_duration
+    # sins = np.arange(0,length+length/n_trials, length/n_trials)
+    # print(sins)
+    # x = np.sin(sins)[:,np.newaxis]
+
+    x = np.sin(2 * np.pi * t / cycle_duration)[:,np.newaxis]
 
     if input_gain is not None:
         x *= input_gain
@@ -116,9 +122,9 @@ def non_linear_transformation(n_cycles=10,n_trials = 500,waveform='square',input
 
     if waveform == 'sawtooth':
         y = signal.sawtooth(x)
-        return x,y,[]
+        return x,y,None
     
     y = signal.square(x)
-    return x,y,[]
+    return x,y,None
 
     
