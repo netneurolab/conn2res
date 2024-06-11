@@ -52,8 +52,6 @@ def memory_capacity(n_trials=None, horizon_max=-20, win=30,
         ValueError
             if maximum horizon exceeds win (in absolute value)
     """
-    if n_trials is not None:
-        n_trials = n_trials
 
     # generate horizon as a list inclusive of horizon_max
     sign_ = np.sign(horizon_max)
@@ -99,27 +97,22 @@ def memory_capacity(n_trials=None, horizon_max=-20, win=30,
     if add_bias:
         x = np.hstack((np.ones((n_trials, 1)), x))
 
-    # set attributes
-    if x.squeeze().ndim == 1:
-        n_features = 1
-    elif x.squeeze().ndim == 2:
-        n_features = x.shape[1]
-
-    if y.squeeze().ndim == 1:
-        n_targets = 1
-    elif y.squeeze().ndim == 2:
-        n_targets = y.shape[1]
-
     horizon_max = horizon_max
     # _data = {'x': x, 'y': y}
 
     return x, y, z
 
 
-def non_linear_transformation(n_cycles=10,n_trials = 500,waveform='square',input_gain=None):
+def non_linear_transformation(n_cycles=10,n_trials = 500,waveform='square',input_gain=None,add_bias=False):
     cycle_duration = n_trials/n_cycles
     length = np.pi * 2 * cycle_duration
     x = np.sin(np.arange(0,length, length/n_trials))[:,np.newaxis]
+
+    if input_gain is not None:
+        x *= input_gain
+
+    if add_bias:
+        x = np.hstack((np.ones((n_trials, 1)), x))
 
     if waveform == 'sawtooth':
         y = signal.sawtooth(x)

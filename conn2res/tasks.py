@@ -6,8 +6,7 @@ from abc import ABCMeta, abstractmethod
 import numpy as np
 import neurogym as ngym
 from reservoirpy import datasets
-import datasetsConn2Res
-
+from . import datasetsConn2Res
 
 NEUROGYM_TASKS = [
     'AntiReach',
@@ -57,9 +56,9 @@ RESERVOIRPY_TASKS = [
 ]
 
 CONN2RES_TASKS = [
-    'MemoryCapacity'
-    'memory_capacity'
-    'non_linear_transformation'
+    'MemoryCapacity',
+    'memory_capacity',
+    'non_linear_transformation',
 ]
 
 
@@ -363,9 +362,8 @@ class Conn2ResTask(Task):
 
         self._name = name
 
-    def fetch_data(self, n_trials=None, horizon_max=-20, win=30,
-                   low=-1, high=1, input_gain=None, add_bias=False,
-                   seed=None,**kwargs):
+    def fetch_data(self, n_trials=None, horizon_max=-20, win=30, 
+                   input_gain=None, add_bias=False,**kwargs):
         """
         Fetch data for MemoryCapacity, which is defined as a multi-output
         task using a uniformly distributed input signal and multiple
@@ -429,7 +427,21 @@ class Conn2ResTask(Task):
             raise ValueError("Absolute maximum horizon should be within window")
 
         env = getattr(datasetsConn2Res, self._name)
-        x,y,z = env(self.n_trials, **kwargs)
+        x,y,z = env(self.n_trials,input_gain=input_gain, add_bias=add_bias, **kwargs)
+
+        # set attributes
+        if x.squeeze().ndim == 1:
+            self.n_features = 1
+        elif x.squeeze().ndim == 2:
+            self.n_features = x.shape[1]
+
+        if y.squeeze().ndim == 1:
+            self.n_targets = 1
+        elif y.squeeze().ndim == 2:
+            self.n_targets = y.shape[1]
+
+        self.horizon_max = horizon_max
+        # self._data = {'x': x, 'y': y}
 
         return x, y, z
 
