@@ -1657,7 +1657,6 @@ class MemristiveReservoirCupy(ABC):
         p = cp.asarray(rng.normal(mean, std*mean, size=self._W.shape))
         p = utils.make_symmetric(p)
 
-        print("\nMEAN: ",mean,"  P: ",p.shape)
         return cp.multiply(p , self._W).astype(cp.float64)  # ma.masked_array(p, mask=np.logical_not(self._W))   
 
     def solveVi(self, Ve, Vgr=None, G=None, **kwargs):
@@ -1755,7 +1754,6 @@ class MemristiveReservoirCupy(ABC):
         nodes = cp.concatenate(
             [self._I[:, cp.newaxis], self._E[:, cp.newaxis], self._GR[:, cp.newaxis]]).squeeze()
 
-
         # voltage across memristors
         #Goes across each connection (non-zero in W) and find the voltage using kirchoffs law 
         #loops through all non-zero (i,j) positions in W and sets that "Connection Voltage" as the difference
@@ -1813,7 +1811,6 @@ class MemristiveReservoirCupy(ABC):
             N: number of nodes in the network
         """
         #Forward is explicit WORKING, backward is implicit 
-
         # initialize reservoir states
         self._state = cp.zeros((len(Vext), self._n_nodes))
 
@@ -1829,8 +1826,7 @@ class MemristiveReservoirCupy(ABC):
         for t, Ve in enumerate(Vext):
             if mode == 'forward':
 
-                if (t>0) and (t%50 == 0): print(f'\t ----- timestep = {t}')
-
+                # if (t>0) and (t%10 == 0): print(f'\t ----- timestep = {t}')
                 # get voltage at internal nodes
                 Vi = self.solveVi(Ve)
 
@@ -1848,16 +1844,17 @@ class MemristiveReservoirCupy(ABC):
                 # get voltage at internal nodes
                 Vi = self.iterate(Ve)
 
-            # store activation states
+            # print("\nVext: ",Ve[0])
+            # # store activation states
+            # print("!!!!!!!",cp.amax(self._Nb[cp.where(self._Nb!=0.0)]))
+            # print("V: ",V[cp.where(self._Nb==cp.amax(self._Nb[cp.where(self._Nb!=0.0)]))])
             self._state[t, self._E] = Ve
             self._state[t, self._I] = Vi
-
             # store conductance
             if self.save_conductance:
                 self._G_history[t] = self._G
 
         #self._state is a (t x N_nodes) matrix which keeps track of node voltage across time
-
         #This checks if the flag for returning only the internal nodes is set
         if ret_int_only and return_nodes is None: 
             return cp.asnumpy(self._state[:,self._I])
@@ -2059,19 +2056,33 @@ class MSSNetworkCupy(MemristiveReservoirCupy):
             Indicates whether to save conductance state after each simulation
             step. If True, then will be stored in self._G_history. This will
             increase memory demands. Default: False
+
         vA : float. Default: 0.17
+            vA controls the voltage needed for metastable switch(es) to transition
+            from B state to A state
 
         vB : float. Default: 0.22
+            vB controls the voltage needed for metastable switch(es) to transition
+            from A state to B state
 
         tc : float. Default: 0.32e-3
 
         NMSS : int. Default: 10000
+            Number of Metastable switches switches per memristor
+                - More switches means memristor is more sensitive to change
 
         Woff : float. Default: 0.91e-3
+            Minimum conductance of memristor
 
         Won : float. Default: 0.87e-2
+            Maximum conductance of memristor
 
         Nb : int. Default: 2000
+            Note: Nb values changed to be uniform * NMSS, since having
+            normally distributed values for Nb around mean 2000000 made it so
+            that with any voltage passed, Nb for each memristor was consistently
+            increasing at each iteration. i.e original starting Nb was too low for
+            NMSS 
 
         noise : float. Default: 0.1
 
@@ -2082,17 +2093,22 @@ class MSSNetworkCupy(MemristiveReservoirCupy):
         self.vA = self.init_property(vA, noise)      # constant
         self.vB = self.init_property(vB, noise)      # constant
         self.tc = self.init_property(tc, noise)      # constant
+        # self.vA = self.mask(cp.full(self._W.shape,vA))
+        # self.vB = self.mask(cp.full(self._W.shape,vB))
+        # self.tc = self.mask(cp.full(self._W.shape,tc))
         self.NMSS = cp.round(self.init_property(NMSS, noise)).astype(cp.float64)    # constant Note: This sets a different number of switches per memristor 
-        # self.NMSS = self.mask(self.NMSS)
         self.Woff = self.init_property(Woff, noise)    # constant
         self.Won = self.init_property(Won, noise)     # constant
+        # self.Woff = self.mask(cp.full(self._W.shape,Woff))    # constant
+        # self.Won = self.mask(cp.full(self._W.shape,Won))     # constant
         self._Ga = self.mask(cp.divide(self.Woff,self.NMSS)) # constant
         self._Gb = self.mask(cp.divide(self.Won,self.NMSS))   # constant
 
-        self._Nb = cp.round(self.init_property(Nb, noise)).astype(cp.float64)
-        # self._Nb = cp.where(self.NMSS < self._Nb, self.NMSS, self._Nb)
+        # self._Nb = cp.round(self.init_property(Nb, noise)).astype(cp.float64)
+        self._Nb = (cp.asarray(np.random.default_rng().uniform(low=0.1,high=0.9,size=self._W.shape)) * self.NMSS).astype(int).astype(cp.float64)
         self._G = cp.asarray(self._Nb * (self._Gb - self._Ga) + self.NMSS * self._Ga)
 
+    #Note: dt was prev 1e-4 changed to match AgChalc Memristor 
     def dG(self, V, G=None, dt=1e-4, seed=None):
         """
         # TODO
@@ -2143,14 +2159,12 @@ class MSSNetworkCupy(MemristiveReservoirCupy):
         Pb = alpha * (1 - (1 / (1 + cp.exp(exponent))))
         # compute dNb
         Na = self.NMSS - Nb
-
-        Na = Na.get()
-        Nb = Nb.get()
+        Na = cp.asnumpy(Na)
+        Nb = cp.asnumpy(Nb)
         # use random number generator for reproducibility
         # rng = np.random.default_rng(seed=seed)
         rng = np.random.default_rng(seed=seed)
         
-
         # Pa = cp.where(cp.isnan(Pa),0.0,Pa)
         # Pb = cp.where(cp.isnan(Pb),0.0,Pb)
         Pa[cp.isnan(Pa)] = 0.0
@@ -2165,7 +2179,7 @@ class MSSNetworkCupy(MemristiveReservoirCupy):
             Gab = utils.make_symmetric(Gab)
             Gba = utils.make_symmetric(Gba)
 
-        dNb = (Gab-Gba)
+        dNb = (Gab-Gba).astype(cp.float64)
 
         return dNb
 
@@ -2204,8 +2218,8 @@ class MSSNetworkCupy(MemristiveReservoirCupy):
 
         if update:
             # update Nb
-            self._Nb = (self._Nb.astype(cp.int64) + dNb.astype(cp.int64)).astype(cp.float64)
-
+            self._Nb = self._Nb + dNb
+            self._Nb = cp.where(self._Nb>self.NMSS,self.NMSS,cp.where(self._Nb<0.0,0.0,self._Nb))
             # update G
             self._G = self._Nb * (self._Gb - self._Ga) + self.NMSS * self._Ga
             # self._G += dG
@@ -2557,13 +2571,8 @@ class MultiTaskMSSNetworkCupy(MultiTaskMemeristiveReservoirCupy):
         # compute dNb
         Na = self.NMSS - Nb
 
-        print(cp.amax(cp.where(self.NMSS==0,Nb,0.0)))
-        if cp.amin(Na) < 0:
-            print("\nNA: ",cp.amin(Na))
-
-
-        Na = Na.get()
-        Nb = Nb.get()
+        Na = cp.asnumpy(Na)
+        Nb = cp.asnumpy(Nb)
 
         
         # use random number generator for reproducibility
@@ -2583,7 +2592,7 @@ class MultiTaskMSSNetworkCupy(MultiTaskMemeristiveReservoirCupy):
             Gab = utils.make_symmetric(Gab)
             Gba = utils.make_symmetric(Gba)
 
-        dNb = (Gab-Gba)
+        dNb = (Gab-Gba).astype(cp.float64)
 
         return dNb
 
@@ -2622,8 +2631,8 @@ class MultiTaskMSSNetworkCupy(MultiTaskMemeristiveReservoirCupy):
 
         if update:
             # update Nb
-            self._Nb = cp.round(self._Nb + dNb).astype(cp.float64)
-
+            self._Nb = self._Nb + dNb
+            self._Nb = cp.where(self._Nb>self.NMSS,self.NMSS,cp.where(self._Nb<0.0,0.0,self._Nb))
             # update G
             self._G = self._Nb * (self._Gb - self._Ga) + self.NMSS * self._Ga
             # self._G += dG

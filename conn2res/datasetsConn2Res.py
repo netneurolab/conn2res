@@ -117,14 +117,19 @@ def non_linear_transformation(n_trials=500,n_cycles=10,waveform='square',input_g
     if input_gain is not None:
         x *= input_gain
 
+    if waveform == 'sawtooth':
+        y = signal.sawtooth(2 * np.pi * t / cycle_duration)[:,np.newaxis]
+        return x,y,None
+    else:
+        y = signal.square(x)
+
+    if input_gain is not None:
+        x *= input_gain
+        y *= input_gain
+
     if add_bias:
         x = np.hstack((np.ones((n_trials, 1)), x))
 
-    if waveform == 'sawtooth':
-        y = signal.sawtooth(x)
-        return x,y,None
-    
-    y = signal.square(x)
     return x,y,None
 
     
