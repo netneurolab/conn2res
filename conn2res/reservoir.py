@@ -2029,7 +2029,7 @@ class MSSNetworkCupy(MemristiveReservoirCupy):
     b = Q/(k*Temp)
     VT = 1.0/b
 
-    def __init__(self, vA=0.17, vB=0.22, tc=0.32e-3, NMSS=1000000,
+    def __init__(self, vA=0.17, vB=0.22, tc=0.32e-3, NMSS=10000,
                  Woff=0.91e-3, Won=0.87e-2, Nb=200000, noise=0.1, *args, **kwargs):
         """
         Constructor class for Memristive Networks following the Generalized
