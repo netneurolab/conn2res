@@ -42,7 +42,12 @@ def r2_score(
         point values, one for each individual target.
     """
     func = getattr(metrics, 'r2_score')
-    return func(y_true, y_pred, sample_weight=sample_weight, multioutput=multioutput)
+    if(multioutput=='sum'):
+        print("GOT SUM IN IF")
+        results = func(y_true, y_pred, sample_weight=sample_weight, multioutput='raw_valuess')
+        print(results)
+        return results
+    return func(y_true, y_pred, sample_weight=sample_weight, multioutput='uniform_average')
 
 
 def mean_squared_error(
