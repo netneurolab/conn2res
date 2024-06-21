@@ -265,6 +265,7 @@ class Readout:
                 x_test, y_test, sample_weight_test, metric=metric, **kwargs
             )
 
+            print(df_scores)
             df_scores = pd.DataFrame(data=score, index=[0])
 
         elif isinstance(readout_nodes, (list, tuple, np.ndarray)):
