@@ -1541,7 +1541,6 @@ class MemristiveReservoirCupy(ABC):
     """
 
     def __init__(self, w, int_nodes, ext_nodes, gr_nodes, save_conductance=False, *args, **kwargs):
-        print("OTHER MODULES ARE UPDATING")
         """
         Constructor class for Memristive Networks. Memristive networks are an
         abstraction for physical networks of memristive elements.
