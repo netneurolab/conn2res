@@ -35,6 +35,7 @@ class Readout:
         ValueError
             _description_
         """
+        print("CHANGES COMING INTO READOUT")
         if estimator is not None and y is not None:
             raise ValueError("y must be None if estimator is provided")
         elif estimator is not None and y is None:
@@ -115,7 +116,6 @@ class Readout:
             )
 
         # TODO: define sample_weight
-
         # train model
         self._model.fit(X=X, y=y, sample_weight=sample_weight)
 
@@ -182,7 +182,6 @@ class Readout:
 
                 # predict values
                 y_pred = self._model.predict(X)
-
                 # estimate score
                 scores[m] = func(
                     y, y_pred, sample_weight=sample_weight, **kwargs)
@@ -258,6 +257,7 @@ class Readout:
 
         # train and test model
         if readout_nodes is None:
+
             self.train(
                 x_train, y_train, sample_weight_train
             )
@@ -266,6 +266,7 @@ class Readout:
                 x_test, y_test, sample_weight_test, metric=metric, **kwargs
             )
 
+            print("WHAT IS GOING ON",df_scores)
             df_scores = pd.DataFrame(data=score, index=[0])
 
         elif isinstance(readout_nodes, (list, tuple, np.ndarray)):
