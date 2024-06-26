@@ -1583,6 +1583,9 @@ class MemristiveReservoirCupy(ABC):
         self._G_history = None
 
         self._state = None
+        self.energy_dissipated = None
+        self._power = None
+        self._V_history = None
         
 
     def setW(self, w):
@@ -1781,6 +1784,13 @@ class MemristiveReservoirCupy(ABC):
         #removes voltage values from V in positions where there is no connection in W 
         return self.mask(V)
 
+    def calc_energy(self, dt = 1e-4):
+        for i in range(len(self._power)-1):
+            # self.energy_dissipated[i] = cp.trapz(self._power[i:i+1],dx=dt,axis=0)
+            self.energy_dissipated[i] = cp.multiply(cp.divide(cp.add(self._power[i],self._power[i+1]),2),dt)
+  
+
+
     def simulate(self, Vext, ic=None, mode='forward',ret_int_only=False,return_nodes=None,reverse=False):
         """
         Simulates the dynamics of a memristive reservoir given an external
@@ -1812,6 +1822,9 @@ class MemristiveReservoirCupy(ABC):
         #Forward is explicit WORKING, backward is implicit 
         # initialize reservoir states
         self._state = cp.zeros((len(Vext), self._n_nodes))
+        self._power = cp.zeros((len(Vext), self._n_nodes, self._n_nodes))
+        self.energy_dissipated = cp.zeros((len(Vext)-1,self._n_nodes, self._n_nodes))
+        self._V_history = cp.zeros((len(Vext), self._n_nodes, self._n_nodes))
 
         # initialize array for storing conductance history if needed
         if self.save_conductance:
@@ -1835,6 +1848,13 @@ class MemristiveReservoirCupy(ABC):
                 # update conductance
                 self.updateG(V=V, update=True)
 
+                square = cp.square(V)
+                power = cp.multiply(square,self._G)
+                # print(cp.any(power[350:,350:]))
+                power[50:,50:] *=10
+                self._power[t] = power
+                self._V_history[t] = V
+
             elif mode == 'backward':
 
                 if (t > 0) and (t % 100 == 0):
@@ -1853,6 +1873,7 @@ class MemristiveReservoirCupy(ABC):
             if self.save_conductance:
                 self._G_history[t] = self._G
 
+        self.calc_energy()
         #self._state is a (t x N_nodes) matrix which keeps track of node voltage across time
         #This checks if the flag for returning only the internal nodes is set
         if ret_int_only and return_nodes is None: 

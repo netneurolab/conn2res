@@ -35,7 +35,6 @@ class Readout:
         ValueError
             _description_
         """
-        print("CHANGES COMING INTO READOUT")
         if estimator is not None and y is not None:
             raise ValueError("y must be None if estimator is provided")
         elif estimator is not None and y is None:
@@ -266,7 +265,6 @@ class Readout:
                 x_test, y_test, sample_weight_test, metric=metric, **kwargs
             )
 
-            print("WHAT IS GOING ON",df_scores)
             df_scores = pd.DataFrame(data=score, index=[0])
 
         elif isinstance(readout_nodes, (list, tuple, np.ndarray)):

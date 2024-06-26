@@ -41,12 +41,11 @@ def r2_score(
         A floating point value or an array of floating
         point values, one for each individual target.
     """
-    print("IN R2_SCORE")
 
     func = getattr(metrics, 'r2_score')
-    if(multioutput=='raw_values'):
-        results = func(y_true, y_pred, sample_weight=sample_weight, multioutput=multioutput)
-        print(results,"   ",type(results))
+    if(multioutput=='sum'):
+        results = func(y_true, y_pred, sample_weight=sample_weight, multioutput='raw_values')
+        return np.sum(results)
     return func(y_true, y_pred, sample_weight=sample_weight, multioutput=multioutput)
 
 
