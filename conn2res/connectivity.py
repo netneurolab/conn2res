@@ -60,7 +60,7 @@ class Conn:
     """
 
     def __init__(self, w=None, filename=None, subj_id=0, modules=None,
-                 density=None):
+                 density=None, subset=True):
         """
         Constructor method for class Conn
         """
@@ -83,7 +83,6 @@ class Conn:
 
         # remove inf and nan
         self.w[np.logical_or(np.isinf(self.w), np.isnan(self.w))] = 0
-
         # make sure weights are float
         self.w = self.w.astype(float)
 
@@ -115,7 +114,8 @@ class Conn:
         self.idx_node = np.full(self.n_nodes, True)
 
         # make sure that all nodes are connected to the rest of the network
-        self.subset_nodes()
+        if (subset == True):
+            self.subset_nodes()
 
         # assign modules
         self.modules = modules

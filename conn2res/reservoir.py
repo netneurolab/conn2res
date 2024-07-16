@@ -1540,7 +1540,7 @@ class MemristiveReservoirCupy(ABC):
 
     """
 
-    def __init__(self, w, int_nodes, ext_nodes, gr_nodes, save_conductance=False, *args, **kwargs):
+    def __init__(self, w, int_nodes, ext_nodes, gr_nodes, save_conductance=False, save_dissipated=False ,*args, **kwargs):
         """
         Constructor class for Memristive Networks. Memristive networks are an
         abstraction for physical networks of memristive elements.
@@ -1580,12 +1580,12 @@ class MemristiveReservoirCupy(ABC):
         self._G = None
 
         self.save_conductance = save_conductance
+        self.save_dissipated = save_dissipated
         self._G_history = None
 
         self._state = None
+        # self._power = None
         self.energy_dissipated = None
-        self._power = None
-        self._V_history = None
         
 
     def setW(self, w):
@@ -1784,14 +1784,16 @@ class MemristiveReservoirCupy(ABC):
         #removes voltage values from V in positions where there is no connection in W 
         return self.mask(V)
 
-    def calc_energy(self, dt = 1e-4):
-        for i in range(len(self._power)-1):
-            # self.energy_dissipated[i] = cp.trapz(self._power[i:i+1],dx=dt,axis=0)
-            self.energy_dissipated[i] = cp.multiply(cp.divide(cp.add(self._power[i],self._power[i+1]),2),dt)
+    # def energy_dissipated(self, dt = 1e-4):
+    #     energy_dissipated = cp.zeros((len(self._power)-1,self._n_nodes, self._n_nodes))
+    #     for i in range(len(self._power)-1):
+    #         # self.energy_dissipated[i] = cp.trapz(self._power[i:i+1],dx=dt,axis=0)
+    #         energy_dissipated[i] = cp.multiply(cp.divide(cp.add(self._power[i],self._power[i+1]),2),dt) 
+    #     return energy_dissipated    
   
 
 
-    def simulate(self, Vext, ic=None, mode='forward',ret_int_only=False,return_nodes=None,reverse=False):
+    def simulate(self, Vext, ic=None, mode='forward',ret_int_only=False,return_nodes=None,reverse=False, dt = 1e-4):
         """
         Simulates the dynamics of a memristive reservoir given an external
         voltage signal V_E
@@ -1822,19 +1824,19 @@ class MemristiveReservoirCupy(ABC):
         #Forward is explicit WORKING, backward is implicit 
         # initialize reservoir states
         self._state = cp.zeros((len(Vext), self._n_nodes))
-        self._power = cp.zeros((len(Vext), self._n_nodes, self._n_nodes))
-        self.energy_dissipated = cp.zeros((len(Vext)-1,self._n_nodes, self._n_nodes))
-        self._V_history = cp.zeros((len(Vext), self._n_nodes, self._n_nodes))
+
+        if self.save_dissipated:
+            self.energy_dissipated = np.zeros((len(Vext)-1, self._n_nodes, self._n_nodes))
 
         # initialize array for storing conductance history if needed
         if self.save_conductance:
-            self._G_history = cp.zeros((len(Vext), self._n_nodes,
-                                        self._n_nodes))
+            self._G_history = np.zeros((len(Vext), self._n_nodes,self._n_nodes))
+            power = []
 
         Vext = cp.asarray(Vext)
 
         Vext = cp.hstack([Vext for _ in range(self._n_external_nodes)])
-
+        
         for t, Ve in enumerate(Vext):
             if mode == 'forward':
 
@@ -1848,13 +1850,14 @@ class MemristiveReservoirCupy(ABC):
                 # update conductance
                 self.updateG(V=V, update=True)
 
-                square = cp.square(V)
-                power = cp.multiply(square,self._G)
-                # print(cp.any(power[350:,350:]))
-                power[50:,50:] *=10
-                self._power[t] = power
-                self._V_history[t] = V
-
+                if(self.save_dissipated):
+                    square = cp.square(V)
+                    power.append(cp.multiply(square,self._G))
+                    # print(cp.any(power[350:,350:]))
+                    if(len(power)>1):
+                        self.energy_dissipated[t-1] = cp.multiply(cp.divide(cp.add(power[0],power[1]),2),dt).get()
+                        power.pop(0)
+                
             elif mode == 'backward':
 
                 if (t > 0) and (t % 100 == 0):
@@ -1871,9 +1874,8 @@ class MemristiveReservoirCupy(ABC):
             self._state[t, self._I] = Vi
             # store conductance
             if self.save_conductance:
-                self._G_history[t] = self._G
+                self._G_history[t] = cp.asnumpy(self._G)
 
-        self.calc_energy()
         #self._state is a (t x N_nodes) matrix which keeps track of node voltage across time
         #This checks if the flag for returning only the internal nodes is set
         if ret_int_only and return_nodes is None: 
@@ -2110,17 +2112,18 @@ class MSSNetworkCupy(MemristiveReservoirCupy):
         """
         super().__init__(*args, **kwargs)
 
-        self.vA = self.init_property(vA, noise)      # constant
-        self.vB = self.init_property(vB, noise)      # constant
-        self.tc = self.init_property(tc, noise)      # constant
-        # self.vA = self.mask(cp.full(self._W.shape,vA))
-        # self.vB = self.mask(cp.full(self._W.shape,vB))
-        # self.tc = self.mask(cp.full(self._W.shape,tc))
-        self.NMSS = cp.round(self.init_property(NMSS, noise)).astype(cp.float64)    # constant Note: This sets a different number of switches per memristor 
-        self.Woff = self.init_property(Woff, noise)    # constant
-        self.Won = self.init_property(Won, noise)     # constant
-        # self.Woff = self.mask(cp.full(self._W.shape,Woff))    # constant
-        # self.Won = self.mask(cp.full(self._W.shape,Won))     # constant
+        # self.vA = self.init_property(vA, noise)      # constant
+        # self.vB = self.init_property(vB, noise)      # constant
+        # self.tc = self.init_property(tc, noise)      # constant
+        self.vA = self.mask(cp.full(self._W.shape,vA))
+        self.vB = self.mask(cp.full(self._W.shape,vB))
+        self.tc = self.mask(cp.full(self._W.shape,tc))
+        # self.NMSS = cp.round(self.init_property(NMSS, noise)).astype(cp.float64)    # constant Note: This sets a different number of switches per memristor 
+        self.NMSS = self.mask(cp.full(self._W.shape,NMSS))
+        # self.Woff = self.init_property(Woff, noise)    # constant
+        # self.Won = self.init_property(Won, noise)     # constant
+        self.Woff = self.mask(cp.full(self._W.shape,Woff))    # constant
+        self.Won = self.mask(cp.full(self._W.shape,Won))     # constant
         self._Ga = self.mask(cp.divide(self.Woff,self.NMSS)) # constant
         self._Gb = self.mask(cp.divide(self.Won,self.NMSS))   # constant
 
