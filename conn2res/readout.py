@@ -183,8 +183,8 @@ class Readout:
                 y_pred = self._model.predict(X)
                 # estimate score
                 result = func(y, y_pred, sample_weight=sample_weight, **kwargs)
-                print("TYPE: ",type(result), result.shape)
-                print(result)
+                # print("TYPE: ",type(result), result.shape)
+                # print(result)
                 result = [result]
                 scores[m] = result    
 
