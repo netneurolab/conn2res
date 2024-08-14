@@ -1,0 +1,25 @@
+Need CUDA installed through their website:
+	---  Lab computers run on Linux - x86_64 - Ubuntu - 20.04 - deb(local)  *DOUBLE CHECK* ---
+	
+	https://developer.nvidia.com/cuda-downloads?target_os=Linux&target_arch=x86_64&Distribution=Ubuntu&target_version=20.04&target_type=deb_local
+	
+	Make sure to install the drivers after finishing above steps with:
+	
+	sudo apt-get install -y cuda-drivers 
+	
+Note: if Public key is invalid for apt repository...:
+
+	RUN: sudo apt-key adv --fetch-keys https://developer.download.nvidia.com/compute/cuda/repos/ubuntu1804/x86_64/3bf863cc.pub
+	
+	Then try re-running: sudo apt-get update 
+	This error will probably appear when apt-get update is run:
+	
+	
+Then to install CuPy:
+	check cuda version with:   nvidia-smi   (should be in the top right)
+	
+	then run either:
+		for cuda version 11.xx:   pip install cupy-cuda11x
+		for cuda version 12.xx:   pip install cupy-cuda12x
+		
+	Note: Check whether you should be using pip or pip3 depending on your python environment

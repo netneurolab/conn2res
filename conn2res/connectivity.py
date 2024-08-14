@@ -60,7 +60,7 @@ class Conn:
     """
 
     def __init__(self, w=None, filename=None, subj_id=0, modules=None,
-                 density=None):
+                 density=None, subset=True):
         """
         Constructor method for class Conn
         """
@@ -83,7 +83,6 @@ class Conn:
 
         # remove inf and nan
         self.w[np.logical_or(np.isinf(self.w), np.isnan(self.w))] = 0
-
         # make sure weights are float
         self.w = self.w.astype(float)
 
@@ -115,7 +114,8 @@ class Conn:
         self.idx_node = np.full(self.n_nodes, True)
 
         # make sure that all nodes are connected to the rest of the network
-        self.subset_nodes()
+        if (subset == True):
+            self.subset_nodes()
 
         # assign modules
         self.modules = modules
@@ -306,6 +306,10 @@ class Conn:
         """
         Get a set of nodes from the connectivity matrix
 
+        Note: All the input arrays are arrays of the index of nodes we choose or don't choose from
+              ie, nodes_from = [0,3,4,5,8], we will only choose a subset of nodes from nodes
+              0,3,4,5,8 => [3,8]
+
         Parameters
         ----------
         node_set : str
@@ -454,7 +458,7 @@ class Conn:
             boolean indexing should be used for nodes
         """
 
-        if isinstance(idx_node, np.ndarray) and idx_node.dtype == bool:
+        if isinstance(idx_node, np.ndarray) and idx_node.dtype == np.bool_:
             # update node attributes
             self.n_nodes = sum(idx_node)
             self.idx_node[self.idx_node] = idx_node

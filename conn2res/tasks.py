@@ -6,7 +6,7 @@ from abc import ABCMeta, abstractmethod
 import numpy as np
 import neurogym as ngym
 from reservoirpy import datasets
-
+from . import datasetsConn2Res
 
 NEUROGYM_TASKS = [
     'AntiReach',
@@ -56,7 +56,9 @@ RESERVOIRPY_TASKS = [
 ]
 
 CONN2RES_TASKS = [
-    'MemoryCapacity'
+    'MemoryCapacity',
+    'memory_capacity',
+    'non_linear_transformation',
 ]
 
 
@@ -295,6 +297,7 @@ class ReservoirPyTask(Task):
         y = np.hstack([x[win + h : -abs_horizon_max + h - 1] for h in horizon])
 
         # update input data
+        z = x[:win]
         x = x[win : -abs_horizon_max - 1]
 
         # reshape data if needed
@@ -325,7 +328,7 @@ class ReservoirPyTask(Task):
         self.horizon = horizon
         # self._data = {'x': x, 'y': y}
 
-        return x, y
+        return x, y,z
 
 
 class Conn2ResTask(Task):
@@ -359,9 +362,8 @@ class Conn2ResTask(Task):
 
         self._name = name
 
-    def fetch_data(self, n_trials=None, horizon_max=-20, win=30,
-                   low=-1, high=1, input_gain=None, add_bias=False,
-                   seed=None):
+    def fetch_data(self, n_trials=None, horizon_max=-20, win=30, 
+                   input_gain=None, add_bias=False,**kwargs):
         """
         Fetch data for MemoryCapacity, which is defined as a multi-output
         task using a uniformly distributed input signal and multiple
@@ -424,33 +426,8 @@ class Conn2ResTask(Task):
         if win < abs_horizon_max:
             raise ValueError("Absolute maximum horizon should be within window")
 
-        # use random number generator for reproducibility
-        rng = np.random.default_rng(seed=seed)
-
-        # generate input data
-        x = rng.uniform(low=low, high=high, size=(self.n_trials + win + abs_horizon_max + 1))[
-            :, np.newaxis
-        ]
-
-        # output data
-        y = np.hstack([x[win + h : -abs_horizon_max + h - 1] for h in horizon])
-
-        # update input data
-        x = x[win : -abs_horizon_max - 1]
-
-        # reshape data if needed
-        if x.ndim == 1:
-            x = x[:, np.newaxis]
-        if y.ndim == 1:
-            y = y[:, np.newaxis]
-
-        # scale input data
-        if input_gain is not None:
-            x *= input_gain
-
-        # add bias to input data if needed
-        if add_bias:
-            x = np.hstack((np.ones((n_trials, 1)), x))
+        env = getattr(datasetsConn2Res, self._name)
+        x,y,z = env(self.n_trials,input_gain=input_gain, add_bias=add_bias, **kwargs)
 
         # set attributes
         if x.squeeze().ndim == 1:
@@ -466,7 +443,7 @@ class Conn2ResTask(Task):
         self.horizon_max = horizon_max
         # self._data = {'x': x, 'y': y}
 
-        return x, y
+        return x, y, z
 
 
 def get_task_list(repository):
