@@ -104,29 +104,26 @@ def memory_capacity(n_trials=None, horizon_max=-20, win=30,
 
 
 def non_linear_transformation(n_trials=500,n_cycles=10,waveform='square',input_gain=None,add_bias=False, **kwargs):
-    print(n_cycles)
+    #calculates cycle duration
     cycle_duration = n_trials/n_cycles
     t = np.arange(n_trials)
-    # length = np.pi * 2.0 * cycle_duration
-    # sins = np.arange(0,length+length/n_trials, length/n_trials)
-    # print(sins)
-    # x = np.sin(sins)[:,np.newaxis]
 
+    #Generated time series of Sin wave of voltage
     x = np.sin(2 * np.pi * t / cycle_duration)[:,np.newaxis]
 
-    if input_gain is not None:
-        x *= input_gain
-
+    #Creates 'transformed' signal as square of sawtooth signal
     if waveform == 'sawtooth':
         y = signal.sawtooth(2 * np.pi * t / cycle_duration)[:,np.newaxis]
         return x,y,None
     else:
         y = signal.square(x)
 
+    #adds input gain if needed
     if input_gain is not None:
         x *= input_gain
         y *= input_gain
 
+    #adds bias if needed
     if add_bias:
         x = np.hstack((np.ones((n_trials, 1)), x))
 

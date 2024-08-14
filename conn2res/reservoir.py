@@ -1540,7 +1540,7 @@ class MemristiveReservoirCupy(ABC):
 
     """
 
-    def __init__(self, w, int_nodes, ext_nodes, gr_nodes, save_conductance=False, save_dissipated=False ,*args, **kwargs):
+    def __init__(self, w, int_nodes, ext_nodes, gr_nodes, save_conductance=False, save_dissipated=False ,save_voltage=False,*args, **kwargs):
         """
         Constructor class for Memristive Networks. Memristive networks are an
         abstraction for physical networks of memristive elements.
@@ -1564,6 +1564,10 @@ class MemristiveReservoirCupy(ABC):
             Indicates whether to save conductance state after each simulation
             step. If True, then will be stored in self._G_history. This will
             increase memory demands. Default: False
+        save_dissipated : bool, optional
+            Indicates whether to save energy dissipated between timesteps. 
+            If True, then the energy dissipated will be stored in self.energy_dissipated. 
+            This will increase memory demands. Default: False
         """
         #setW now returns a CuPy array
         self._W = self.setW(w)
@@ -1581,11 +1585,12 @@ class MemristiveReservoirCupy(ABC):
 
         self.save_conductance = save_conductance
         self.save_dissipated = save_dissipated
+        self.save_voltage = save_voltage
         self._G_history = None
 
         self._state = None
-        # self._power = None
         self.energy_dissipated = None
+        self.memristor_voltage = None
         
 
     def setW(self, w):
@@ -1700,17 +1705,17 @@ class MemristiveReservoirCupy(ABC):
         A = N - G
 
         # inverse matrix A_II
+        #LOGIC IS that A is the conductance at each node, thus inverse is Resistance
         A_II = A[cp.ix_(self._I, self._I)]
-        # print(matrix_rank(A_II, hermitian=utils.check_symmetric(A_II)))
         A_II_inv = pinv(A_II)
 
-        # matrix HI
+        # matrix HI* finds the current at each node
         H_IE = cp.dot(G[cp.ix_(self._I, self._E)], Ve)
         H_IGR = cp.dot(G[cp.ix_(self._I, self._GR)], Vgr)
 
         H_I = H_IE + H_IGR
 
-        # return voltage at internal nodes
+        # return voltage at internal nodes (RESISTANCE * CURRENT)
         return cp.dot(A_II_inv, H_I)
 
     def getV(self, Vi, Ve, Vgr=None,reverse = False):
@@ -1731,7 +1736,11 @@ class MemristiveReservoirCupy(ABC):
 
         Vgr : cupy.ndarray
             Array of voltages across all ground nodes.
-            Default: None    
+            Default: None 
+
+        reverse : bool
+            boolean controls whether singla flows left to right or right to left
+            Default:False (Left to right)   
 
         Returns
         -------
@@ -1782,16 +1791,8 @@ class MemristiveReservoirCupy(ABC):
             V[i,j] = cp.where(j>i,nv_i-nv_j,nv_j-nv_i)
 
         #removes voltage values from V in positions where there is no connection in W 
-        return self.mask(V)
-
-    # def energy_dissipated(self, dt = 1e-4):
-    #     energy_dissipated = cp.zeros((len(self._power)-1,self._n_nodes, self._n_nodes))
-    #     for i in range(len(self._power)-1):
-    #         # self.energy_dissipated[i] = cp.trapz(self._power[i:i+1],dx=dt,axis=0)
-    #         energy_dissipated[i] = cp.multiply(cp.divide(cp.add(self._power[i],self._power[i+1]),2),dt) 
-    #     return energy_dissipated    
+        return self.mask(V)  
   
-
 
     def simulate(self, Vext, ic=None, mode='forward',ret_int_only=False,return_nodes=None,reverse=False, dt = 1e-4):
         """
@@ -1813,7 +1814,14 @@ class MemristiveReservoirCupy(ABC):
         ret_int_only : boolean
             Flag that tells simulate to return either all of the node 
             states, or only the states of the internal nodes
-            Default: False    
+            Default: False
+        return_nodes : numpy.ndarray
+            Contains the indices of the nodes of which to return the voltage values.
+            Default = None
+        dt : float
+            This is the simulated time for which the signal is propagated into the network.
+            i.e voltage x is input at internal nodes for dt amount of time
+            Default: 1e-4    
 
         Returns
         -------
@@ -1828,13 +1836,16 @@ class MemristiveReservoirCupy(ABC):
         if self.save_dissipated:
             self.energy_dissipated = np.zeros((len(Vext)-1, self._n_nodes, self._n_nodes))
 
+        if self.save_voltage:
+            self.memristor_voltage = np.zeros((len(Vext), self._n_nodes,self._n_nodes))
+
         # initialize array for storing conductance history if needed
         if self.save_conductance:
             self._G_history = np.zeros((len(Vext), self._n_nodes,self._n_nodes))
             power = []
 
+        #moves input to gpu and stacks to match number of input nodes
         Vext = cp.asarray(Vext)
-
         Vext = cp.hstack([Vext for _ in range(self._n_external_nodes)])
         
         for t, Ve in enumerate(Vext):
@@ -1847,13 +1858,16 @@ class MemristiveReservoirCupy(ABC):
                 # update matrix of voltages across memristors
                 V = self.getV(Vi, Ve, reverse=reverse)
 
+                if self.save_voltage:
+                    self.memristor_voltage[t] = cp.asnumpy(V)
+
                 # update conductance
                 self.updateG(V=V, update=True)
 
+                #calculate energy dissipated between this and previous timestep using power at each step using Trapezoid method
                 if(self.save_dissipated):
                     square = cp.square(V)
                     power.append(cp.multiply(square,self._G))
-                    # print(cp.any(power[350:,350:]))
                     if(len(power)>1):
                         self.energy_dissipated[t-1] = cp.multiply(cp.divide(cp.add(power[0],power[1]),2),dt).get()
                         power.pop(0)
@@ -1866,10 +1880,6 @@ class MemristiveReservoirCupy(ABC):
                 # get voltage at internal nodes
                 Vi = self.iterate(Ve)
 
-            # print("\nVext: ",Ve[0])
-            # # store activation states
-            # print("!!!!!!!",cp.amax(self._Nb[cp.where(self._Nb!=0.0)]))
-            # print("V: ",V[cp.where(self._Nb==cp.amax(self._Nb[cp.where(self._Nb!=0.0)]))])
             self._state[t, self._E] = Ve
             self._state[t, self._I] = Vi
             # store conductance
@@ -2111,6 +2121,8 @@ class MSSNetworkCupy(MemristiveReservoirCupy):
         # TODO
         """
         super().__init__(*args, **kwargs)
+        #NOTE: init_property initializes properties from normal distribution vs mask initializes constants
+
 
         # self.vA = self.init_property(vA, noise)      # constant
         # self.vB = self.init_property(vB, noise)      # constant
@@ -2185,23 +2197,24 @@ class MSSNetworkCupy(MemristiveReservoirCupy):
         Na = cp.asnumpy(Na)
         Nb = cp.asnumpy(Nb)
         # use random number generator for reproducibility
-        # rng = np.random.default_rng(seed=seed)
         rng = np.random.default_rng(seed=seed)
         
-        # Pa = cp.where(cp.isnan(Pa),0.0,Pa)
-        # Pb = cp.where(cp.isnan(Pb),0.0,Pb)
         Pa[cp.isnan(Pa)] = 0.0
         Pb[cp.isnan(Pb)] = 0.0
         Pa = cp.clip(Pa, 0.0, 1.0)
         Pb = cp.clip(Pb, 0.0, 1.0)
 
+        #calculates number of switches that switch states in each memristor
+        #state A to B
         Gab = cp.asarray(rng.binomial(Na.astype(int), Pa.get()))
+        #state B to A
         Gba = cp.asarray(rng.binomial(Nb.astype(int), Pb.get()))
 
         if utils.check_symmetric(self._W):
             Gab = utils.make_symmetric(Gab)
             Gba = utils.make_symmetric(Gba)
 
+        #finds the change in number of B state switches in each memristor
         dNb = (Gab-Gba).astype(cp.float64)
 
         return dNb
@@ -2210,7 +2223,8 @@ class MSSNetworkCupy(MemristiveReservoirCupy):
         """
         This function updates the conductance matrix G
         which represents the conductance across each memristor in
-        the network.
+        the network. Does this according to the change in number
+        of B state switches in each memristor
 
         Parameters
         ----------
@@ -2256,6 +2270,9 @@ class MultiTaskMemeristiveReservoirCupy(MemristiveReservoirCupy):
     Class that represents a general Memristive Reservoir
 
     This is a copy of the above Memristive reservoir, with the changes to incorporate CuPy for computation speedup
+
+    The Idea behind simulating multitasking is to take both sets of input nodes and input signals, stack them, 
+    then treat them as a single simulation. For example input_nodes = [nodes_x,nodes_y] input_singal = [x1y1,x2y2,...]
     ...
 
     Attributes
@@ -2400,15 +2417,22 @@ class MultiTaskMemeristiveReservoirCupy(MemristiveReservoirCupy):
 
         Vext = cp.asarray(Vext)
 
+        #For each set of input data, stacks it n times for number of input nodes for said task
         temp = []
         for x in range(len(self._E)):
             temp.append(cp.hstack([Vext[x] for _ in range(len(self._E[x]))]))
 
+        #stacks (concatenates vertically) the input signal to get a single inputxTime array
         Vext = cp.hstack(temp)
 
         hold_ext = self._E
         hold_gr = self._G
 
+        #flattens ground and external nodes to treat as single set
+        #NOTE: input array indices match with external node indices
+        #ex: nodes = [node_x1,node_x2,node_x3,node_y1,node_y2,node_y3]
+        #    input = [in_x   , in_x  , in_x  , in_y  , in_y  , in_y  ]
+        #                       --- across time ---
         self._E = self._E.flatten()
         self._GR = self._GR.flatten()
 
@@ -2451,6 +2475,7 @@ class MultiTaskMemeristiveReservoirCupy(MemristiveReservoirCupy):
         self._G = hold_gr
 
         #This checks if the flag for returning only the internal nodes is set
+        #Returns same format as single task, up to user to take what nodes they need per task
         if ret_int_only and return_nodes is None: 
             return cp.asnumpy(self._state[:,self._I])
         elif ret_int_only and return_nodes is not None:
@@ -2487,6 +2512,10 @@ class MultiTaskMSSNetworkCupy(MultiTaskMemeristiveReservoirCupy):
         Memristive Switch Model proposed in Nugent and Molter, 2014. Default
         parameter values correspond to an Ag-chalcogenide memristive device
         taken from Nugent and Molter, 2014.
+
+        NOTE: No changes in this class since functions like single task when
+        any of these functions are called, all pre-processing done by 
+        MultiTaskMSSNetworkCupy
 
         Parameters
         ----------
