@@ -125,9 +125,11 @@ class EchoStateNetwork(Reservoir):
             activation_function)
 
     def simulate(
-        self, ext_input, w_in, ic=None, output_nodes=None,
-        return_states=True, **kwargs
-    ):
+        self, ext_input, w_in, h=0, ic=None, output_nodes=None,
+        return_states=True, 
+        #pad_len=0, 
+        **kwargs
+        ):
         """
         Simulates reservoir dynamics given an external input signal
         'ext_input' and an input connectivity matrix 'w_in'
@@ -140,7 +142,9 @@ class EchoStateNetwork(Reservoir):
         w_in : (N_inputs, N) numpy.ndarray
             Input connectivity matrix (source, target)
             N_inputs: number of external input signals
-            N: number of nodes in the network
+            N: number of nodes in the network       
+        h : (N,) numpy.ndarray or float, optional
+            Node bias, as in an Ising model with external field. Default is 0.
         ic : (N,) numpy.ndarray, optional
             Initial conditions
             N: number of nodes in the network. If w is directed, then rows
@@ -150,6 +154,8 @@ class EchoStateNetwork(Reservoir):
             'return_states' is True.
         return_states : bool, optional
             If True, simulated resrvoir states are returned. True by default.
+        #pad_len : int, optional
+        #    Number of time steps to zero-pad after the input. Default is 0.
         kwargs:
             Other keyword arguments are passed to self.activation_function
 
@@ -170,10 +176,16 @@ class EchoStateNetwork(Reservoir):
         else:
             convert_to_list = False
 
+        # Zero-pad after input (to allow for hysteresis)
+        #ext_input = np.concatenate([ext_input, 
+        #                            np.zeros((int(pad_len),
+        #                                     ext_input.shape[1]))],
+        #                           axis=0)
+
         # initialize reservoir states
         timesteps = range(1, len(ext_input) + 1)
         self._state = np.zeros((len(timesteps) + 1, self.n_nodes))
-
+        
         # set initial conditions
         if ic is not None:
             self._state[0, :] = ic
@@ -184,7 +196,7 @@ class EchoStateNetwork(Reservoir):
             #     print(f'\t ----- timestep = {t}')
             synap_input = np.dot(
                 self._state[t-1, :], self.w) + np.dot(ext_input[t-1, :], w_in)
-            self._state[t, :] = self.activation_function(synap_input, **kwargs)
+            self._state[t, :] = self.activation_function(synap_input + h, **kwargs)
 
         # remove initial condition (to match the time index of _state
         # and ext_input)
