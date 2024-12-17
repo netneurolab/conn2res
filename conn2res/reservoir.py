@@ -103,7 +103,7 @@ class EchoStateNetwork(Reservoir):
 
     """
 
-    def __init__(self, *args, activation_function='tanh', **kwargs):
+    def __init__(self, *args, activation_function='tanh', leak_rate=None, **kwargs):
         """
         Constructor class for Echo State Networks
 
@@ -116,6 +116,9 @@ class EchoStateNetwork(Reservoir):
         activation_function: str {'linear', 'elu', 'relu', 'leaky_relu',
             'sigmoid', 'tanh', 'step'}, default 'tanh'
             Activation function (nonlinearity of the system's units)
+        leak_rate: float in (0, 1], default None
+            A leaky integrator is used if leak_rate is not None.
+            The leak rate forms a time constant to control the dynamics.
         """
 
         super().__init__(*args, **kwargs)
@@ -123,6 +126,9 @@ class EchoStateNetwork(Reservoir):
         # activation function
         self.activation_function = self.set_activation_function(
             activation_function)
+        
+        # leak rate
+        self.leak_rate = leak_rate
 
     def simulate(
         self, ext_input, w_in, ic=None, output_nodes=None,
@@ -182,9 +188,14 @@ class EchoStateNetwork(Reservoir):
         for t in timesteps:
             # if (t > 0) and (t % 100 == 0):
             #     print(f'\t ----- timestep = {t}')
-            synap_input = np.dot(
-                self._state[t-1, :], self.w) + np.dot(ext_input[t-1, :], w_in)
-            self._state[t, :] = self.activation_function(synap_input, **kwargs)
+            if self.leak_rate is None:
+                synap_input = np.dot(
+                    self._state[t-1, :], self.w) + np.dot(ext_input[t-1, :], w_in)
+                self._state[t, :] = self.activation_function(synap_input, **kwargs)
+            else:
+                synap_input = np.dot(
+                    self._state[t-1, :], self.w) + np.dot(ext_input[t-1, :], w_in)
+                self._state[t, :] = (1.0-self.leak_rate)*self._state[t-1,:] + self.leak_rate*self.activation_function(synap_input, **kwargs)
 
         # remove initial condition (to match the time index of _state
         # and ext_input)
